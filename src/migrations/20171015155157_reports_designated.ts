@@ -5,8 +5,7 @@ exports.up = async (knex: Knex): Promise<any> => {
     return  knex.schema.createTable("reports_designated", (table: Knex.CreateTableBuilder): void => {
       table.increments("reportDesignatedID");
       table.string("marketID", 66).notNullable();
-      // TODO: discuss correct datatype
-      for (let i: number = 0; i <= 14; i++ ) {
+      for (let i: number = 0; i <= 7; i++ ) {
         table.specificType(`payout${i}`, "NUMERIC").nullable();
       }
       table.integer("isInvalid");
