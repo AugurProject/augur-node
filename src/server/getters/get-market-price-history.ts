@@ -21,7 +21,8 @@ export function getMarketPriceHistory(db: Knex, marketID: Address|null|undefined
     // Group by outcome, drop "outcome" from result
     const marketPriceHistory: MarketPriceHistory = _.mapValues(
       _.groupBy(tradesRows, _.partialRight(_.get, "outcome")),
-      (value: MarketPriceHistoryTradesRow): TimestampedPrice => _.omit(value, "outcome")
+      (values: Array<MarketPriceHistoryTradesRow>): Array<TimestampedPrice> => values.map(
+        (v: MarketPriceHistoryTradesRow): TimestampedPrice  => _.omit(v, "outcome"))
     )
 
     callback(null, marketPriceHistory);
