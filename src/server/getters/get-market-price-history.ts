@@ -19,7 +19,7 @@ export function getMarketPriceHistory(db: Knex, marketID: Address|null|undefined
     if (!tradesRows || !tradesRows.length) return callback(null);
 
     // Group by outcome
-    const marketPriceHistory: MarketPriceHistory = _.groupBy(tradesRows, _.partialRight(_.get, "outcome"));
+    const marketPriceHistory: MarketPriceHistory = _.groupBy(tradesRows, (row: MarketPriceHistoryTradesRow): number => row.outcome)
 
     callback(null, marketPriceHistory);
   });
