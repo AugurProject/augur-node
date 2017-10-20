@@ -23,7 +23,7 @@ export function getMarketPriceHistory(db: Knex, marketID: Address|null|undefined
       _.groupBy(tradesRows, _.partialRight(_.get, "outcome")),
       (values: Array<MarketPriceHistoryTradesRow>): Array<TimestampedPrice> => values.map(
         (v: MarketPriceHistoryTradesRow): TimestampedPrice  => _.omit(v, "outcome"))
-    )
+    );
 
     callback(null, marketPriceHistory);
   });
