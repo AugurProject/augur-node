@@ -24,6 +24,13 @@ interface CategoriesRow {
   popularity: string|number;
 }
 
+const DEFAULT_MARKET_DATA = {
+  marketType:                 "binary",
+  minPrice:                   0,
+  maxPrice:                   1,
+  shortDescription:           "shortDescription",
+};
+
 export function processMarketCreatedLog(db: Knex, augur: Augur, trx: Knex.Transaction, log: FormattedLog, callback: ErrorCallback): void {
   const marketPayload: {} = { tx: { to: log.market } };
   parallel({
@@ -59,12 +66,12 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, trx: Knex.Transa
           creationBlockNumber:        log.blockNumber,
           creationFee:                log.marketCreationFee,
           category:                   log.topic,
-          marketType:                 extraInfo!.marketType,
-          minPrice:                   extraInfo!.minPrice,
-          maxPrice:                   extraInfo!.maxPrice,
+          marketType:                 extraInfo!.marketType || DEFAULT_MARKET_DATA.marketType,
+          minPrice:                   extraInfo!.minPrice != null ? extraInfo!.minPrice : DEFAULT_MARKET_DATA.minPrice,
+          maxPrice:                   extraInfo!.maxPrice != null ? extraInfo!.maxPrice : DEFAULT_MARKET_DATA.maxPrice,
           tag1:                       (extraInfo!.tags && extraInfo!.tags!.length) ? extraInfo!.tags![0] : null,
           tag2:                       (extraInfo!.tags && extraInfo!.tags!.length > 1) ? extraInfo!.tags![1] : null,
-          shortDescription:           extraInfo!.description,
+          shortDescription:           extraInfo!.description || DEFAULT_MARKET_DATA.shortDescription,
           longDescription:            extraInfo!.longDescription || null,
           resolutionSource:           extraInfo!.resolutionSource || null,
           universe:                   onMarketContractData!.universe,
@@ -111,10 +118,10 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, trx: Knex.Transa
             },
           ], (err: Error|null): void => {
             if (err) return callback(err);
-            trx.select("popularity").from("categories").where({ category: log.topic }).asCallback((err: Error|null, categoriesRows?: Array<CategoriesRow>): void => {
+            trx.select("popularity").from("categories").where({ category: log.topic, universe: onMarketContractData!.universe }).asCallback((err: Error|null, categoriesRows?: Array<CategoriesRow>): void => {
               if (err) return callback(err);
               if (categoriesRows && categoriesRows.length) return callback(null);
-              db.transacting(trx).insert({ category: log.topic, universe: onMarketContractData!.universe }).into("categories").asCallback(callback);
+              db.insert({ category: log.topic, universe: onMarketContractData!.universe }).into("categories").asCallback(callback);
             });
           });
         });
