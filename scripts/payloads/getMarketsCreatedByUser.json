@@ -1,0 +1,13 @@
+{
+  "id": 5,
+  "jsonrpc": "2.0",
+  "method": "getMarketsCreatedByUser",
+  "params": {
+    "universe": "0x000000000000000000000000000000000000000b",
+    "creator": "0x0000000000000000000000000000000000000b0b",
+    "sortBy": "creationTime",
+    "isSortDescending": false,
+    "limit": 2,
+    "offset": null
+  }
+}
