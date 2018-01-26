@@ -17,14 +17,14 @@ describe("server/getters/get-markets-created-by-user", () => {
     });
   };
   test({
-    description: "user has created 3 markets",
+    description: "user has created 11 markets",
     params: {
       universe: "0x000000000000000000000000000000000000000b",
       creator: "0x0000000000000000000000000000000000000b0b",
     },
     assertions: (err, marketsCreatedByUser) => {
       assert.isNull(err);
-      assert.deepEqual(marketsCreatedByUser, [
+      assert.deepEqual(marketsCreatedByUser.map((marketRow) => marketRow.marketID), [
         "0x0000000000000000000000000000000000000012",
         "0x0000000000000000000000000000000000000013",
         "0x0000000000000000000000000000000000000014",
@@ -37,6 +37,8 @@ describe("server/getters/get-markets-created-by-user", () => {
         "0x0000000000000000000000000000000000000002",
         "0x0000000000000000000000000000000000000011",
       ]);
+      assert.isTrue(marketsCreatedByUser.every((market) => !isNaN(market.creationTime)));
+      assert.equal(1506480000, marketsCreatedByUser[9].creationTime);
     },
   });
   test({
@@ -47,9 +49,10 @@ describe("server/getters/get-markets-created-by-user", () => {
     },
     assertions: (err, marketsCreatedByUser) => {
       assert.isNull(err);
-      assert.deepEqual(marketsCreatedByUser, [
-        "0x0000000000000000000000000000000000000003",
-      ]);
+      assert.deepEqual(marketsCreatedByUser, [{
+        creationTime: 1506480015,
+        marketID: "0x0000000000000000000000000000000000000003",
+      }]);
     },
   });
   test({

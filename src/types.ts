@@ -130,7 +130,8 @@ export interface GetAccountTransferHistoryRequest {
 }
 
 export interface MarketsContractAddressRow {
-  marketID: string;
+  marketID: Address;
+  creationTime: number;
 }
 
 export interface MarketsRow {
