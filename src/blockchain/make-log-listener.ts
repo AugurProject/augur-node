@@ -4,7 +4,7 @@ import { ErrorCallback, FormattedEventLog } from "../types";
 import { logProcessors } from "./log-processors";
 import { processLog } from "./process-logs";
 import { augurEmitter } from "../events";
-import { processQueue, LOG_PRIORITY } from "./process-queue";
+import { processQueue, logPriority } from "./process-queue";
 
 export function makeLogListener(db: Knex, augur: Augur, contractName: string, eventName: string) {
   return (log: FormattedEventLog): void => {
@@ -20,6 +20,6 @@ export function makeLogListener(db: Knex, augur: Augur, contractName: string, ev
           trx.commit();
         }
       })).asCallback(callback);
-  }, LOG_PRIORITY);
+  }, logPriority(log.blockNumber));
   };
 }
