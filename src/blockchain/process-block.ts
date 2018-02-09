@@ -6,7 +6,7 @@ import { augurEmitter } from "../events";
 import { logError } from "../utils/log-error";
 import { Block, BlocksRow, AsyncCallback, ErrorCallback, MarketsContractAddressRow } from "../types";
 import { updateMarketState } from "./log-processors/database";
-import { processQueue, BLOCK_PRIORITY } from "./process-queue";
+import { processQueue, blockPriority } from "./process-queue";
 import { QueryBuilder } from "knex";
 
 interface FeeWindowIDRow {
@@ -14,11 +14,11 @@ interface FeeWindowIDRow {
 }
 
 export function processBlock(db: Knex, augur: Augur, block: Block): void {
-  processQueue.push((callback) => _processBlock(db, augur, block, callback), BLOCK_PRIORITY);
+  processQueue.push((callback) => _processBlock(db, augur, block, callback), blockPriority(parseInt(block.number, 16)));
 }
 
 export function processBlockRemoval(db: Knex, block: Block): void {
-  processQueue.push((callback) => _processBlockRemoval(db, block, callback), BLOCK_PRIORITY);
+  processQueue.push((callback) => _processBlockRemoval(db, block, callback), blockPriority(parseInt(block.number, 16)));
 }
 
 export function processBlockByNumber(db: Knex, augur: Augur, blockNumber: number, callback: ErrorCallback): void {
