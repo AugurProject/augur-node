@@ -40,7 +40,7 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, trx: Knex.Transa
         const marketType: string = ["binary", "categorical", "scalar"][log.marketType];
         const marketsDataToInsert: MarketsRow = {
           marketType,
-          marketID:                   log.market,
+          marketID:                   log.marketId,
           marketCreator:              log.marketCreator,
           creationBlockNumber:        log.blockNumber,
           creationFee:                log.marketCreationFee,
