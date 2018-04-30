@@ -55,8 +55,22 @@ function monitorEthereumNodeHealth(augur: Augur) {
   }, 5000);
 }
 
+const getHttpUrl = (network: NetworkConfiguration) => {
+  if (process.env.ENDPOINT_HTTP) {
+    return process.env.ENDPOINT_HTTP;
+  }
+  return network.http;
+};
+
+const getWsUrl = (network: NetworkConfiguration) => {
+  if (process.env.ENDPOINT_WS) {
+    return process.env.ENDPOINT_WS;
+  }
+  return network.ws;
+};
+
 export function syncAugurNodeWithBlockchain(db: Knex, augur: Augur, network: NetworkConfiguration, uploadBlockNumbers: UploadBlockNumbers, callback: ErrorCallback): void {
-  augur.connect({ ethereumNode: { http: network.http, ws: network.ws }, startBlockStreamOnConnect: false }, (): void => {
+  augur.connect({ ethereumNode: { http: getHttpUrl(network), ws: getWsUrl(network) }, startBlockStreamOnConnect: false }, (): void => {
     getNetworkID(db, augur, (err: Error|null, networkId: string|null) => {
       if (err) return callback(err);
       if (networkId == null) return callback(new Error("could not get networkId"));
