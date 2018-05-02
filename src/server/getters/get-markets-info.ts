@@ -15,7 +15,7 @@ export function getMarketsInfo(db: Knex, marketIds: Array<Address>, callback: (e
   const marketsQuery: Knex.QueryBuilder = getMarketsWithReportingState(db);
   if (marketIds == null) return callback(new Error("must include marketIds parameter"));
   marketsQuery.whereIn("markets.marketId", marketIds);
-  marketsQuery.leftJoin("blocks as finalizationBlock", "finalizationBlock.blockNumber", "markets.finalizationBlock").select("finalizationBlock.timestamp as finalizationTime");
+  marketsQuery.leftJoin("blocks as finalizationBlockNumber", "finalizationBlockNumber.blockNumber", "markets.finalizationBlockNumber").select("finalizationBlockNumber.timestamp as finalizationTime");
 
   parallel({
     marketsRows: (next: AsyncCallback) => marketsQuery.asCallback(next),

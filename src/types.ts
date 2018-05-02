@@ -157,7 +157,7 @@ export interface MarketsRow<BigNumberType> {
   marketStateId: number;
   feeWindow: Address;
   endTime: number;
-  finalizationBlock?: number|null;
+  finalizationBlockNumber?: number|null;
   reportingState?: ReportingState|null;
   shortDescription: string;
   longDescription?: string|null;
@@ -325,7 +325,7 @@ export interface UIMarketInfo<BigNumberType> {
   outstandingShares: BigNumberType;
   feeWindow: Address;
   endTime: number;
-  finalizationBlock?: number|null;
+  finalizationBlockNumber?: number|null;
   finalizationTime?: number|null;
   reportingState?: ReportingState|null;
   forking: number;

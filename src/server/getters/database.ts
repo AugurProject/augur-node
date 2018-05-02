@@ -68,7 +68,7 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcome
     outstandingShares: row.sharesOutstanding,
     feeWindow: row.feeWindow,
     endTime: row.endTime,
-    finalizationBlock: row.finalizationBlock,
+    finalizationBlockNumber: row.finalizationBlockNumber,
     finalizationTime: row.finalizationTime,
     reportingState: row.reportingState,
     forking: row.forking,
