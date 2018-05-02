@@ -326,6 +326,7 @@ export interface UIMarketInfo<BigNumberType> {
   feeWindow: Address;
   endTime: number;
   finalizationBlock?: number|null;
+  finalizationTime?: number|null;
   reportingState?: ReportingState|null;
   forking: number;
   needsMigration: number;
@@ -434,8 +435,9 @@ export interface MarketPriceHistory<BigNumberType> {
   [outcome: number]: Array<TimestampedPriceAmount<BigNumberType>>;
 }
 
-export interface MarketsRowWithCreationTime extends MarketsRow<BigNumber> {
+export interface MarketsRowWithTime extends MarketsRow<BigNumber> {
   creationTime: number;
+  finalizationTime?: null|number;
 }
 
 export interface JoinedReportsMarketsRow<BigNumberType> extends Payout<BigNumberType> {
