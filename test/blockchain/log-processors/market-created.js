@@ -157,12 +157,14 @@ describe("blockchain/log-processors/market-created", () => {
             universe: "0x000000000000000000000000000000000000000b",
           }],
           outcomes: [{
+            shareToken: "SHARE_TOKEN_0",
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 0,
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             description: null,
           }, {
+            shareToken: "SHARE_TOKEN_1",
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 1,
             price: new BigNumber("0.5", 10),
@@ -317,24 +319,28 @@ describe("blockchain/log-processors/market-created", () => {
             universe: "0x000000000000000000000000000000000000000b",
           }],
           outcomes: [{
+            shareToken: "SHARE_TOKEN_0",
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 0,
             price: new BigNumber("0.25", 10),
             volume: new BigNumber("0", 10),
             description: "test outcome 0",
           }, {
+            shareToken: "SHARE_TOKEN_1",
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 1,
             price: new BigNumber("0.25", 10),
             volume: new BigNumber("0", 10),
             description: "test outcome 1",
           }, {
+            shareToken: "SHARE_TOKEN_2",
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 2,
             price: new BigNumber("0.25", 10),
             volume: new BigNumber("0", 10),
             description: "test outcome 2",
           }, {
+            shareToken: "SHARE_TOKEN_3",
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 3,
             price: new BigNumber("0.25", 10),
@@ -498,12 +504,14 @@ describe("blockchain/log-processors/market-created", () => {
             universe: "0x000000000000000000000000000000000000000b",
           }],
           outcomes: [{
+            shareToken: "SHARE_TOKEN_0",
             marketId: "0x1111111111111111111111111111111111111113",
             outcome: 0,
             price: new BigNumber("6.1", 10),
             volume: new BigNumber("0", 10),
             description: null,
           }, {
+            shareToken: "SHARE_TOKEN_1",
             marketId: "0x1111111111111111111111111111111111111113",
             outcome: 1,
             price: new BigNumber("6.1", 10),
@@ -653,12 +661,14 @@ describe("blockchain/log-processors/market-created", () => {
             universe: "0x000000000000000000000000000000000000000b",
           }],
           outcomes: [{
+            shareToken: "SHARE_TOKEN_0",
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 0,
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             description: null,
           }, {
+            shareToken: "SHARE_TOKEN_1",
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 1,
             price: new BigNumber("0.5", 10),
