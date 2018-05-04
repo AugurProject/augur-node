@@ -24,6 +24,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
       const { numOutcomes, price, volume } = marketOutcomeCounts[marketId];
       Array(numOutcomes).fill(0).forEach((_, i) => {
         seedData.push({
+          shareToken: marketId.replace("x00", `xa${i}`),
           marketId,
           volume,
           price,
