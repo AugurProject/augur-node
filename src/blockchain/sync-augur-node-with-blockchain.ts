@@ -8,7 +8,7 @@ import { setOverrideTimestamp } from "./process-block";
 import { NetworkConfiguration } from "augur-core";
 
 const BLOCKSTREAM_HANDOFF_BLOCKS = 5;
-let monitorEthereumNodeHealthId: number | null = null;
+let monitorEthereumNodeHealthId: NodeJS.Timer;
 
 interface HighestBlockNumberRow {
   highestBlockNumber: number;
@@ -46,7 +46,7 @@ function monitorEthereumNodeHealth(augur: Augur) {
   const networkId: string = augur.rpc.getNetworkID();
   const universe: string = augur.contracts.addresses[networkId].Universe;
   const controller: string = augur.contracts.addresses[networkId].Controller;
-  if (monitorEthereumNodeHealthId !== null) {
+  if (monitorEthereumNodeHealthId) {
     clearInterval(monitorEthereumNodeHealthId);
   }
   monitorEthereumNodeHealthId = setInterval(() => {
