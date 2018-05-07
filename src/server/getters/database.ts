@@ -4,7 +4,7 @@ import BigNumber from "bignumber.js";
 import { sortDirection } from "../../utils/sort-direction";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import {
-  MarketsRowWithCreationTime,
+  MarketsRowWithTime,
   OutcomesRow,
   UIMarketInfo,
   UIOutcomeInfo,
@@ -39,7 +39,7 @@ export function reshapeOutcomesRowToUIOutcomeInfo(outcomesRow: OutcomesRow<BigNu
   };
 }
 
-export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithCreationTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber>|null): UIMarketInfo<string> {
+export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber>|null): UIMarketInfo<string> {
   let consensus: NormalizedPayout<string>|null = null;
   if (winningPayoutRow != null) {
     consensus = normalizedPayoutsToFixed(normalizePayouts(winningPayoutRow));
@@ -60,7 +60,9 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithCreationTime,
     settlementFee: row.reportingFeeRate.plus(row.marketCreatorFeeRate),
     reportingFeeRate: row.reportingFeeRate,
     marketCreatorFeeRate: row.marketCreatorFeeRate,
-    marketCreatorFeesCollected: row.marketCreatorFeesCollected!,
+    marketCreatorFeesBalance: row.marketCreatorFeesBalance!,
+    marketCreatorMailbox: row.marketCreatorMailbox,
+    marketCreatorMailboxOwner: row.marketCreatorMailboxOwner,
     initialReportSize: row.initialReportSize,
     category: row.category,
     tags: [row.tag1, row.tag2],
@@ -68,8 +70,11 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithCreationTime,
     outstandingShares: row.sharesOutstanding,
     feeWindow: row.feeWindow,
     endTime: row.endTime,
+    finalizationBlockNumber: row.finalizationBlockNumber,
     finalizationTime: row.finalizationTime,
     reportingState: row.reportingState,
+    forking: row.forking,
+    needsMigration: row.needsMigration,
     description: row.shortDescription,
     details: row.longDescription,
     scalarDenomination: row.scalarDenomination,

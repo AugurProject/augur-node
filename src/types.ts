@@ -1,6 +1,9 @@
 import { BigNumber } from "bignumber.js";
 import { Augur, FormattedEventLog } from "augur.js";
 import * as Knex from "knex";
+import * as WebSocket from "ws";
+import * as https from "https";
+import * as http from "http";
 
 export { BlockDetail, FormattedEventLog } from "augur.js";
 
@@ -10,6 +13,7 @@ export enum ReportingState {
   OPEN_REPORTING = "OPEN_REPORTING",
   CROWDSOURCING_DISPUTE = "CROWDSOURCING_DISPUTE",
   AWAITING_NEXT_WINDOW = "AWAITING_NEXT_WINDOW",
+  AWAITING_FINALIZATION = "AWAITING_FINALIZATION",
   FINALIZED = "FINALIZED",
   FORKING = "FORKING",
   AWAITING_NO_REPORT_MIGRATION = "AWAITING_NO_REPORT_MIGRATION",
@@ -146,7 +150,9 @@ export interface MarketsRow<BigNumberType> {
   creationFee: BigNumberType;
   reportingFeeRate: BigNumberType;
   marketCreatorFeeRate: BigNumberType;
-  marketCreatorFeesCollected: BigNumberType|null;
+  marketCreatorFeesBalance: BigNumberType|null;
+  marketCreatorMailbox: Address;
+  marketCreatorMailboxOwner: Address;
   initialReportSize: BigNumberType|null;
   category: string;
   tag1: string|null;
@@ -156,7 +162,7 @@ export interface MarketsRow<BigNumberType> {
   marketStateId: number;
   feeWindow: Address;
   endTime: number;
-  finalizationTime?: number|null;
+  finalizationBlockNumber?: number|null;
   reportingState?: ReportingState|null;
   shortDescription: string;
   longDescription?: string|null;
@@ -167,6 +173,8 @@ export interface MarketsRow<BigNumberType> {
   numTicks: BigNumberType;
   consensusPayoutId?: number|null;
   isInvalid?: boolean|null;
+  forking: number;
+  needsMigration: number;
 }
 
 export interface PositionsRow<BigNumberType> {
@@ -314,7 +322,9 @@ export interface UIMarketInfo<BigNumberType> {
   settlementFee: BigNumberType;
   reportingFeeRate: BigNumberType;
   marketCreatorFeeRate: BigNumberType;
-  marketCreatorFeesCollected: BigNumberType|null;
+  marketCreatorFeesBalance: BigNumberType|null;
+  marketCreatorMailbox: Address;
+  marketCreatorMailboxOwner: Address;
   initialReportSize: BigNumberType|null;
   category: string;
   tags: Array<string|null>;
@@ -322,8 +332,11 @@ export interface UIMarketInfo<BigNumberType> {
   outstandingShares: BigNumberType;
   feeWindow: Address;
   endTime: number;
+  finalizationBlockNumber?: number|null;
   finalizationTime?: number|null;
   reportingState?: ReportingState|null;
+  forking: number;
+  needsMigration: number;
   description: string;
   details?: string|null;
   scalarDenomination?: string|null;
@@ -429,8 +442,9 @@ export interface MarketPriceHistory<BigNumberType> {
   [outcome: number]: Array<TimestampedPriceAmount<BigNumberType>>;
 }
 
-export interface MarketsRowWithCreationTime extends MarketsRow<BigNumber> {
+export interface MarketsRowWithTime extends MarketsRow<BigNumber> {
   creationTime: number;
+  finalizationTime?: null|number;
 }
 
 export interface JoinedReportsMarketsRow<BigNumberType> extends Payout<BigNumberType> {
@@ -538,4 +552,9 @@ export interface UIUniverseInfoRow<BigNumberType> extends NormalizedPayout<strin
   balance: BigNumberType;
   supply: BigNumberType;
   numMarkets: BigNumberType;
+}
+
+export interface ServersData {
+  servers: Array<WebSocket.Server>;
+  httpServers: Array<http.Server | https.Server>;
 }

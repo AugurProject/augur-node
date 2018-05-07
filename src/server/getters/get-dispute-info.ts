@@ -1,7 +1,7 @@
 import { parallel } from "async";
 import * as Knex from "knex";
 import * as _ from "lodash";
-import { Address, MarketsRowWithCreationTime, AsyncCallback, Payout, UIStakeInfo, PayoutRow, StakeDetails, ReportingState } from "../../types";
+import { Address, MarketsRowWithTime, AsyncCallback, Payout, UIStakeInfo, PayoutRow, StakeDetails, ReportingState } from "../../types";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { getMarketsWithReportingState, normalizePayouts, uiStakeInfoToFixed, groupByAndSum } from "./database";
 import { BigNumber } from "bignumber.js";
@@ -14,7 +14,7 @@ interface DisputeRound {
 }
 
 interface DisputesResult {
-  markets: Array<MarketsRowWithCreationTime>;
+  markets: Array<MarketsRowWithTime>;
   stakesCompleted: Array<StakeRow>;
   stakesCurrent: Array<ActiveCrowdsourcer>;
   accountStakesCompleted: Array<StakeRow>;
@@ -83,13 +83,21 @@ function getCompletedStakes(db: Knex, marketIds: Array<Address>, callback: Async
 }
 
 function getAccountStakes(db: Knex, marketIds: Array<Address>, account: Address|null, completed: boolean, callback: AsyncCallback) {
-  // select crowdsourcers.marketId, crowdsourcers.payoutId, crowdsourcers.completed, sum(balances.balance) from crowdsourcers JOIN balances ON balances.token = crowdsourcers.crowdsourcerId;
-
+  if ( account == null ) {
+    return callback(null, []);
+  }
   let query = db("crowdsourcers")
     .select(["crowdsourcers.marketId", "crowdsourcers.payoutId", "balances.balance as amountStaked"])
     .join("balances", "balances.token", "crowdsourcers.crowdsourcerId")
     .whereIn("marketId", marketIds)
-    .where("balances.owner", account || "");
+    .where("balances.owner", account || "")
+    .union((builder: QueryBuilder) => {
+      return builder
+        .from("initial_reports")
+        .select("marketId", "payoutId", "amountStaked")
+        .where("reporter", account || null)
+        .whereIn("marketId", marketIds);
+    });
 
   if (completed) {
     query = query.where("crowdsourcers.completed", 1);

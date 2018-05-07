@@ -10,7 +10,7 @@ const {parallel} = require("async");
 
 const getMarketState = (db, params, callback) => {
   parallel({
-    market: (next) => getMarketsWithReportingState(db, ["markets.marketId", "market_state.reportingState"]).first().where({"markets.marketId": params.log.market}).asCallback(next),
+    market: (next) => getMarketsWithReportingState(db, ["markets.marketId", "market_state.reportingState", "marketCreatorFeesBalance"]).first().where({"markets.marketId": params.log.market}).asCallback(next),
     winningPayout: (next) => db("payouts").where({marketId: params.log.market, "winning": 1}).first().asCallback(next),
   }, callback);
 };
@@ -44,12 +44,21 @@ describe("blockchain/log-processors/market-finalized", () => {
     params: {
       log: {
         market: "0x0000000000000000000000000000000000000211",
+        universe: "0x000000000000000000000000000000000000000b",
         blockNumber: 1400001,
         transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000A00",
         logIndex: 0,
       },
       augur: {
         constants: constants,
+        rpc: {
+          eth: {
+            getBalance: (p, callback) => {
+              assert.deepEqual(p, ["0xbbb0000000000000000000000000000000000211", "latest"]);
+              callback(null, "0x91f");
+            },
+          },
+        },
       },
     },
     assertions: {
@@ -59,6 +68,7 @@ describe("blockchain/log-processors/market-finalized", () => {
           market: {
             marketId: "0x0000000000000000000000000000000000000211",
             reportingState: "FINALIZED",
+            marketCreatorFeesBalance: new BigNumber("0x91f", 16),
           },
           winningPayout: {
             "isInvalid": 0,
@@ -83,6 +93,7 @@ describe("blockchain/log-processors/market-finalized", () => {
           market: {
             marketId: "0x0000000000000000000000000000000000000211",
             reportingState: "CROWDSOURCING_DISPUTE",
+            marketCreatorFeesBalance: new BigNumber("0x91f", 16),
           },
           winningPayout: undefined,
         });

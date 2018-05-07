@@ -14,8 +14,9 @@ exports.up = async (knex: Knex): Promise<any> => {
       "creationFee" VARCHAR(255) NOT NULL,
       "reportingFeeRate" VARCHAR(255) NOT NULL,
       "marketCreatorFeeRate" VARCHAR(255) NOT NULL,
-      "marketCreatorFeesClaimed" VARCHAR(255) DEFAULT "0",
-      "marketCreatorFeesCollected" VARCHAR(255) DEFAULT "0",
+      "marketCreatorFeesBalance" VARCHAR(255) DEFAULT "0",
+      "marketCreatorMailbox" VARCHAR(255) NOT NULL,
+      "marketCreatorMailboxOwner" VARCHAR(255) NOT NULL,
       "initialReportSize" VARCHAR(255) DEFAULT "0",
       category varchar(255) NOT NULL,
       tag1 varchar(255),
@@ -24,7 +25,9 @@ exports.up = async (knex: Knex): Promise<any> => {
       "sharesOutstanding" VARCHAR(255) NOT NULL,
       "feeWindow" varchar(66),
       "endTime" integer NOT NULL CONSTRAINT "positiveEndTime" CHECK ("endTime" > 0),
-      "finalizationTime" integer,
+      "finalizationBlockNumber" integer,
+      "forking" boolean DEFAULT 0,
+      "needsMigration" boolean DEFAULT 0,
       "marketStateId" integer,
       "shortDescription" text NOT NULL,
       "longDescription" text,
@@ -34,7 +37,7 @@ exports.up = async (knex: Knex): Promise<any> => {
       "resolutionSource" text,
       "numTicks" VARCHAR(255) NOT NULL,
       "consensusPayoutId" integer,
-      "reportingRoundsCompleted" integer NOT NULL DEFAULT 0,
+      "disputeRounds" integer,
       "isInvalid" boolean
     )`)
     .raw("CREATE INDEX endTime ON markets (endTime)");

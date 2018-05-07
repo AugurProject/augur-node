@@ -1,5 +1,5 @@
 import * as Knex from "knex";
-import { Address, ReportingState, AsyncCallback } from "../../types";
+import { Address, ReportingState, AsyncCallback, ErrorCallback } from "../../types";
 import { BigNumber } from "bignumber.js";
 import { getCurrentTime } from "../process-block";
 import { augurEmitter } from "../../events";
@@ -54,33 +54,51 @@ export function updateMarketState(db: Knex, marketId: Address, blockNumber: numb
 }
 
 export function updateActiveFeeWindows(db: Knex, blockNumber: number, timestamp: number, callback: (err: Error|null, results?: FeeWindowModifications) => void) {
-  db("fee_windows").select("feeWindow")
+  db("fee_windows").select("feeWindow", "universe")
     .where("isActive", 1)
     .andWhere((queryBuilder) => queryBuilder.where("endTime", "<", timestamp).orWhere("startTime", ">", timestamp))
-    .asCallback((err, results?: Array<{ feeWindow: Address }>) => {
+    .asCallback((err, expiredFeeWindowRows?: Array<{ feeWindow: Address; universe: Address }>) => {
       if (err) return callback(err);
-      const expiredFeeWindows = _.map(results, (result) => result.feeWindow);
-      db("fee_windows").update("isActive", 0).whereIn("feeWindow", expiredFeeWindows).asCallback((err) => {
-        if (err) return callback(err);
-        db("fee_windows").select("feeWindow")
-          .where("isActive", 0)
-          .where("endTime", ">", timestamp)
-          .where("startTime", "<", timestamp)
-          .asCallback((err, results?: Array<{ feeWindow: Address }>) => {
-            if (err) return callback(err);
-            const newActiveFeeWindows = _.map(results, (result) => result.feeWindow);
-            db("fee_windows").update("isActive", 1).whereIn("feeWindow", newActiveFeeWindows).asCallback((err) => {
+      db("fee_windows").update("isActive", 0).whereIn("feeWindow", _.map(expiredFeeWindowRows, (result) => result.feeWindow))
+        .asCallback((err) => {
+          if (err) return callback(err);
+          db("fee_windows").select("feeWindow", "universe")
+            .where("isActive", 0)
+            .where("endTime", ">", timestamp)
+            .where("startTime", "<", timestamp)
+            .asCallback((err, newActiveFeeWindowRows?: Array<{ feeWindow: Address; universe: Address }>) => {
               if (err) return callback(err);
-              expiredFeeWindows.forEach((expiredFeeWindow) => {
-                augurEmitter.emit("FeeWindowClosed", { feeWindowId: expiredFeeWindow, blockNumber, timestamp });
-              });
-              newActiveFeeWindows.forEach((newActiveFeeWindow) => {
-                augurEmitter.emit("FeeWindowOpened", { feeWindowId: newActiveFeeWindow, blockNumber, timestamp });
-              });
-              return callback(null, { newActiveFeeWindows, expiredFeeWindows });
+              db("fee_windows").update("isActive", 1).whereIn("feeWindow", _.map(newActiveFeeWindowRows, (row) => row.feeWindow))
+                .asCallback((err) => {
+                    if (err) return callback(err);
+                    if (expiredFeeWindowRows != null) {
+                      expiredFeeWindowRows.forEach((expiredFeeWindowRow) => {
+                        augurEmitter.emit("FeeWindowClosed", Object.assign({
+                            eventName: "FeeWindowClosed",
+                            blockNumber,
+                            timestamp,
+                          },
+                          expiredFeeWindowRow));
+                      });
+                    }
+                    if (newActiveFeeWindowRows != null) {
+                      newActiveFeeWindowRows.forEach((newActiveFeeWindowRow) => {
+                        augurEmitter.emit("FeeWindowOpened", Object.assign({
+                            eventName: "FeeWindowOpened",
+                            blockNumber,
+                            timestamp,
+                          },
+                          newActiveFeeWindowRow));
+                      });
+                      return callback(null, {
+                        newActiveFeeWindows: _.map(newActiveFeeWindowRows, (row) => row.feeWindow),
+                        expiredFeeWindows: _.map(expiredFeeWindowRows, (row) => row.feeWindow),
+                      });
+                    }
+                  },
+                );
             });
-          });
-      });
+        });
     });
 }
 
@@ -113,10 +131,28 @@ export function insertPayout(db: Knex, marketId: Address, payoutNumerators: Arra
         { tentativeWinning },
       );
       db.insert(payoutRowWithTentativeWinning).into("payouts").asCallback((err: Error|null, payoutIdRow?: Array<number>): void => {
-        if (err) callback(err);
+        if (err) return callback(err);
         if (!payoutIdRow || !payoutIdRow.length) return callback(new Error("No payoutId returned"));
         callback(err, payoutIdRow[0]);
       });
     }
+  });
+}
+
+export function updateDisputeRound(db: Knex, marketId: Address, callback: ErrorCallback) {
+  db("markets").update({
+    disputeRounds: db.count("* as completedRounds").from("crowdsourcers").where({ completed: 1, marketId }),
+  }).where({ marketId }).asCallback(callback);
+}
+
+export function refreshMarketMailboxEthBalance(db: Knex, augur: Augur, marketId: Address, callback: ErrorCallback) {
+  db("markets").first("marketCreatorMailbox").where({ marketId }).asCallback((err, marketCreatorMailboxRow?: {marketCreatorMailbox: Address}) => {
+    if (err) return callback(err);
+    if (!marketCreatorMailboxRow) return callback(new Error("Could not get market creator mailbox"));
+    augur.rpc.eth.getBalance([marketCreatorMailboxRow.marketCreatorMailbox, "latest"], (err: Error|null, mailboxBalanceResponse: string): void => {
+      if (err) return callback(err);
+      const mailboxBalance = new BigNumber(mailboxBalanceResponse, 16);
+      db("markets").update("marketCreatorFeesBalance", mailboxBalance.toFixed()).where({ marketId }).asCallback(callback);
+    });
   });
 }
