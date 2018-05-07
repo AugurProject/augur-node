@@ -19,6 +19,7 @@ interface TokensRowWithNumTicksAndCategory extends TokensRow {
 }
 
 export function processOrderFilledLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
+  console.log("ORDER FIL");
   const shareToken: Address = log.shareToken;
   const blockNumber: number = log.blockNumber;
   const filler: Address = log.filler;
