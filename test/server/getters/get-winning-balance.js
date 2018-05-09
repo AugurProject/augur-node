@@ -30,7 +30,7 @@ describe("server/getters/get-winning-balance", () => {
         {
           marketId: "0x0000000000000000000000000000000000000019",
           winnings: new BigNumber("10000000"),
-        }
+        },
       ]);
     },
   });
