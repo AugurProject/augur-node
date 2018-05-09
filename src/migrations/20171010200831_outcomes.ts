@@ -5,8 +5,8 @@ exports.up = async (knex: Knex): Promise<any> => {
     return knex.schema.createTable("outcomes", (table: Knex.CreateTableBuilder): void => {
       table.string("marketId", 42).notNullable();
       table.specificType("outcome", "integer NOT NULL CONSTRAINT nonnegativeOutcome CHECK (outcome >= 0)");
-      table.string("price", 255).notNullable();
-      table.string("volume", 255).notNullable();
+      table.specificType("price", "VARCHAR(255) NOT NULL CONSTRAINT nonnegativePrice CHECK (ltrim(price, '-') = price)");
+      table.specificType("volume", "VARCHAR(255) NOT NULL CONSTRAINT nonnegativeVolume CHECK (ltrim(volume, '-') = volume)");
       table.text("description").nullable();
 
       table.unique(["marketId", "outcome"]);
