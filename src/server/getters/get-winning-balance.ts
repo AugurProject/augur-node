@@ -5,7 +5,6 @@ import { Address, ReportingState, PayoutRow } from "../../types";
 import { getMarketsWithReportingState, groupByAndSum } from "./database";
 import Augur from "augur.js";
 
-
 interface WinningPayoutRows extends PayoutRow<BigNumber> {
   marketId: Address;
   reportingState: ReportingState;
@@ -24,7 +23,7 @@ export function getWinningBalance(db: Knex, augur: Augur, marketIds: Array<Addre
   if (account == null) return callback(new Error("must include account parameter"));
   const marketsQuery: Knex.QueryBuilder = getMarketsWithReportingState(db, ["markets.marketId", "markets.numTicks", "balances.balance", "balances.owner", "shareTokens.outcome", "payouts.*"]);
   marketsQuery.whereIn("markets.marketId", marketIds);
-  marketsQuery.whereIn("reportingState", [ReportingState.FINALIZED, ReportingState.AWAITING_FINALIZATION])
+  marketsQuery.whereIn("reportingState", [ReportingState.FINALIZED, ReportingState.AWAITING_FINALIZATION]);
   marketsQuery.join("tokens AS shareTokens", function () {
     this
       .on("shareTokens.marketId", "markets.marketId")
