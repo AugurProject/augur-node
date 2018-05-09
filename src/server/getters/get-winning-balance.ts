@@ -47,7 +47,6 @@ export function getWinningBalance(db: Knex, augur: Augur, marketIds: Array<Addre
       const winnings: BigNumber = payout.dividedBy(winningPayoutRow.numTicks).times(winningPayoutRow.balance);
       return {marketId: winningPayoutRow.marketId, winnings: winnings.decimalPlaces(0, BigNumber.ROUND_DOWN) };
     });
-    console.log(calculatedWinnings);
     callback(null, groupByAndSum(calculatedWinnings, ["marketId"], ["winnings"]));
   });
 }
