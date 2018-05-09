@@ -11,8 +11,8 @@ describe("server/getters/get-winning-balance", () => {
     it(t.description, (done) => {
       setupTestDb((err, db) => {
         if (err) assert.fail(err);
-        getWinningBalance(db, t.params.augur, t.params.marketIds, t.params.account, (err, marketsMatched) => {
-          t.assertions(err, marketsMatched);
+        getWinningBalance(db, t.params.augur, t.params.marketIds, t.params.account, (err, winningBalance) => {
+          t.assertions(err, winningBalance);
           done();
         });
       });
@@ -24,9 +24,9 @@ describe("server/getters/get-winning-balance", () => {
       marketIds: ["0x0000000000000000000000000000000000000019"],
       account: "0x0000000000000000000000000000000000000b0b",
     },
-    assertions: (err, marketsMatched) => {
+    assertions: (err, winningBalance) => {
       assert.isNull(err);
-      assert.deepEqual(marketsMatched, [
+      assert.deepEqual(winningBalance, [
         {
           marketId: "0x0000000000000000000000000000000000000019",
           winnings: new BigNumber("10000000"),
@@ -40,9 +40,9 @@ describe("server/getters/get-winning-balance", () => {
       marketIds: ["0xf0f0f0f0f0f0f0f0b0b0b0b0b0b0b0f0f0f0f0b0"],
       account: "0x0000000000000000000000000000000000000b0b",
     },
-    assertions: (err, marketsMatched) => {
+    assertions: (err, winningBalance) => {
       assert.isNull(err);
-      assert.deepEqual(marketsMatched, []);
+      assert.deepEqual(winningBalance, []);
     },
   });
 });
