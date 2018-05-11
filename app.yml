@@ -1,0 +1,16 @@
+name: augur-node
+image: ubuntu-16-04-x64
+min_size: 1gb
+config:
+  #cloud-config
+  runcmd:
+    - apt-get install -y build-essential
+    - apt-get install -y git
+    - apt-get install -y sqlite3
+    - echo "export ENDPOINT_HTTP=https://rinkeby.ethereum.nodes.augur.net" | tee -a /root/.bashrc
+    - echo "export ENDPOINT_WS=wss://websocket-rinkeby.ethereum.nodes.augur.net" | tee -a /root/.bashrc
+    - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+    - apt-get install -y nodejs
+    - cd /root && git clone https://github.com/kylewu/augur-node.git 
+    - cd /root/augur-node && npm install
+    - cd /root/augur-node && export ENDPOINT_HTTP=https://rinkeby.ethereum.nodes.augur.net && export ENDPOINT_WS=wss://websocket-rinkeby.ethereum.nodes.augur.net && npm run clean-start
