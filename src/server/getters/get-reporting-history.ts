@@ -6,7 +6,10 @@ import { parallel } from "async";
 
 interface UIReports<BigNumberType> {
   [universe: string]: {
-    [marketId: string]: Array<UIReport<BigNumberType>>,
+    [marketId: string]: {
+      crowdsourcers: Array<UIReport<BigNumberType>>;
+      initialReporter: UIReport<BigNumberType>|null;
+    },
   };
 }
 
@@ -52,7 +55,8 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   const initialReportQuery = doStuff(db.select([
     "participant.marketId",
     "participant.initialReporter",
-  ]).from("initial_reports as participant")); // .where({reporter})); TDOOD
+    db.raw("'initialReporter' as participantType"),
+  ]).from("initial_reports as participant").where({reporter}));
   initialReportQuery.join("payouts", "participant.payoutId", "payouts.payoutId");
   initialReportQuery.join("markets", "markets.marketId", "participant.marketId");
   if (marketId != null) initialReportQuery.where("participant.marketId", marketId);
@@ -60,6 +64,7 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   const crowdsourcersQuery = doStuff(db.select([
     "crowdsourcers.marketId",
     "participant.crowdsourcerId",
+    db.raw("'crowdsourcer' as participantType"),
   ]).from("disputes as participant").where({reporter}));
   crowdsourcersQuery.join("crowdsourcers", "participant.crowdsourcerId", "crowdsourcers.crowdsourcerId");
   crowdsourcersQuery.join("markets", "markets.marketId", "crowdsourcers.marketId");
@@ -70,13 +75,14 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   parallel({
     initialReport: (next: AsyncCallback) => initialReportQuery.asCallback(next),
     crowdsourcers: (next: AsyncCallback) => crowdsourcersQuery.asCallback(next),
-  }, (err: Error|null, joinedReportsMarketsRows: ParticipantResults<BigNumber>): void => {
+  }, (err: Error|null, participantResults: ParticipantResults<BigNumber>): void => {
     if (err) return callback(err);
-    if (!joinedReportsMarketsRows) return callback(new Error("Internal error retrieving reporting history"));
+    if (!participantResults) return callback(new Error("Internal error retrieving reporting history"));
     const reports: UIReports<string> = {};
-    joinedReportsMarketsRows.forEach((row: JoinedReportsMarketsRow<BigNumber>): void => {
+    const allParticipants = participantResults.crowdsourcers.concat(participantResults.initialReport);
+    allParticipants.forEach((row: JoinedReportsMarketsRow<BigNumber>): void => {
       if (!reports[row.universe]) reports[row.universe] = {};
-      if (!reports[row.universe][row.marketId]) reports[row.universe][row.marketId] = [];
+      if (!reports[row.universe][row.marketId]) reports[row.universe][row.marketId] = {initialReporter: null, crowdsourcers: []};
       const payoutNumerators: Array<string> = ([row.payout0, row.payout1, row.payout2, row.payout3, row.payout4, row.payout5, row.payout6, row.payout7].filter((payout: BigNumber|null): boolean => payout != null) as Array<BigNumber>).map((n) => n.toFixed());
       const report: UIReport<string> = Object.assign(
         formatBigNumberAsFixed<Partial<UIReport<BigNumber>>, Partial<UIReport<string>>>({
@@ -94,8 +100,11 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
           isInvalid: Boolean(row.isInvalid),
           isSubmitted: true,
         }), { payoutNumerators }) as UIReport<string>;
-
-      reports[row.universe][row.marketId].push(report);
+      if (row.participantType === "initialReporter") {
+        reports[row.universe][row.marketId].initialReporter = report;
+      } else if (row.participantType === "crowdsourcer") {
+        reports[row.universe][row.marketId].crowdsourcers.push(report);
+      }
     });
     callback(null, reports);
   });

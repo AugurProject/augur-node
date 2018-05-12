@@ -466,8 +466,10 @@ export interface JoinedReportsMarketsRow<BigNumberType> extends Payout<BigNumber
   marketId: Address;
   universe: Address;
   feeWindow: Address;
-  crowdsourcerId: Address;
+  crowdsourcerId?: Address;
+  initialReporter?: Address;
   marketType: string;
+  participantType: string;
   amountStaked: BigNumberType;
 
 }
