@@ -23,7 +23,7 @@ interface ParticipantResults<BigNumberType> {
 export function getReportingHistory(db: Knex, reporter: Address, universe: Address|null, marketId: Address|null, feeWindow: Address|null, earliestCreationTime: number|null, latestCreationTime: number|null, sortBy: string|null|undefined, isSortDescending: boolean|null|undefined, limit: number|null|undefined, offset: number|null|undefined, callback: (err: Error|null, result?: any) => void): void {
   // { universe: { marketId: { marketId, feeWindow, payoutNumerators, isCategorical, isScalar, isIndeterminate } } }
   if (universe == null && marketId == null && feeWindow == null) return callback(new Error("Must provide reference to universe, specify universe, marketId, or feeWindow"));
-  function doStuff(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  function queryParticipantBuilder(query: Knex.QueryBuilder): Knex.QueryBuilder {
     query.select([
       "participant.transactionHash",
       "participant.logIndex",
@@ -52,7 +52,7 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
     return query;
   }
 
-  const initialReportQuery = doStuff(db.select([
+  const initialReportQuery = queryParticipantBuilder(db.select([
     "participant.marketId",
     "participant.initialReporter",
     db.raw("'initialReporter' as participantType"),
@@ -61,7 +61,7 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   initialReportQuery.join("markets", "markets.marketId", "participant.marketId");
   if (marketId != null) initialReportQuery.where("participant.marketId", marketId);
 
-  const crowdsourcersQuery = doStuff(db.select([
+  const crowdsourcersQuery = queryParticipantBuilder(db.select([
     "crowdsourcers.marketId",
     "participant.crowdsourcerId",
     db.raw("'crowdsourcer' as participantType"),
@@ -78,6 +78,7 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   }, (err: Error|null, participantResults: ParticipantResults<BigNumber>): void => {
     if (err) return callback(err);
     if (!participantResults) return callback(new Error("Internal error retrieving reporting history"));
+    console.log(participantResults);
     const reports: UIReports<string> = {};
     const allParticipants = participantResults.crowdsourcers.concat(participantResults.initialReport);
     allParticipants.forEach((row: JoinedReportsMarketsRow<BigNumber>): void => {
@@ -94,16 +95,19 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
           marketId: row.marketId,
           feeWindow: row.feeWindow,
           amountStaked: row.amountStaked,
-          crowdsourcerId: row.crowdsourcerId,
           isCategorical: row.marketType === "categorical",
           isScalar: row.marketType === "scalar",
           isInvalid: Boolean(row.isInvalid),
           isSubmitted: true,
         }), { payoutNumerators }) as UIReport<string>;
       if (row.participantType === "initialReporter") {
-        reports[row.universe][row.marketId].initialReporter = report;
+        reports[row.universe][row.marketId].initialReporter = Object.assign({
+          initialReporter: row.initialReporter,
+        }, report);
       } else if (row.participantType === "crowdsourcer") {
-        reports[row.universe][row.marketId].crowdsourcers.push(report);
+        reports[row.universe][row.marketId].crowdsourcers.push(Object.assign({
+          crowdsourcerId: row.crowdsourcerId,
+        }, report));
       }
     });
     callback(null, reports);
