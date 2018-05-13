@@ -4,7 +4,7 @@ import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { queryModifier } from "./database";
 import { parallel } from "async";
 
-interface UIReports<BigNumberType> {
+export interface UIReports<BigNumberType> {
   [universe: string]: {
     [marketId: string]: {
       crowdsourcers: Array<UIReport<BigNumberType>>;
@@ -20,7 +20,7 @@ interface ParticipantResults<BigNumberType> {
 }
 
 // Look up a user's reporting history (i.e., all reports submitted by a given reporter); should take reporter (address) as a required parameter and take market, universe, and feeWindow all as optional parameters. For reporting windows that are complete, should also include the consensus outcome, whether the user's report matched the consensus, how much REP the user gained or lost from redistribution, and how much the user earned in reporting fees.
-export function getReportingHistory(db: Knex, reporter: Address, universe: Address|null, marketId: Address|null, feeWindow: Address|null, earliestCreationTime: number|null, latestCreationTime: number|null, sortBy: string|null|undefined, isSortDescending: boolean|null|undefined, limit: number|null|undefined, offset: number|null|undefined, callback: (err: Error|null, result?: any) => void): void {
+export function getReportingHistory(db: Knex, reporter: Address, universe: Address|null, marketId: Address|null, feeWindow: Address|null, earliestCreationTime: number|null, latestCreationTime: number|null, sortBy: string|null|undefined, isSortDescending: boolean|null|undefined, limit: number|null|undefined, offset: number|null|undefined, callback: (err: Error|null, result?: UIReports<string>) => void): void {
   // { universe: { marketId: { marketId, feeWindow, payoutNumerators, isCategorical, isScalar, isIndeterminate } } }
   if (universe == null && marketId == null && feeWindow == null) return callback(new Error("Must provide reference to universe, specify universe, marketId, or feeWindow"));
   function queryParticipantBuilder(query: Knex.QueryBuilder): Knex.QueryBuilder {
@@ -70,15 +70,12 @@ export function getReportingHistory(db: Knex, reporter: Address, universe: Addre
   crowdsourcersQuery.join("markets", "markets.marketId", "crowdsourcers.marketId");
   crowdsourcersQuery.join("payouts", "crowdsourcers.payoutId", "payouts.payoutId");
   if (marketId != null) crowdsourcersQuery.where("crowdsourcers.marketId", marketId);
-
-
   parallel({
     initialReport: (next: AsyncCallback) => initialReportQuery.asCallback(next),
     crowdsourcers: (next: AsyncCallback) => crowdsourcersQuery.asCallback(next),
   }, (err: Error|null, participantResults: ParticipantResults<BigNumber>): void => {
     if (err) return callback(err);
     if (!participantResults) return callback(new Error("Internal error retrieving reporting history"));
-    console.log(participantResults);
     const reports: UIReports<string> = {};
     const allParticipants = participantResults.crowdsourcers.concat(participantResults.initialReport);
     allParticipants.forEach((row: JoinedReportsMarketsRow<BigNumber>): void => {
