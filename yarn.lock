@@ -568,9 +568,9 @@ augur-core@1.0.0-4:
     rimraf "2.6.2"
     solidity-coverage "0.4.15"
 
-augur.js@4.11.0-16:
-  version "4.11.0-16"
-  resolved "https://registry.yarnpkg.com/augur.js/-/augur.js-4.11.0-16.tgz#2151e43227d7035bf4ac1da033bba14251168b6d"
+augur.js@4.11.0-14:
+  version "4.11.0-14"
+  resolved "https://registry.yarnpkg.com/augur.js/-/augur.js-4.11.0-14.tgz#fd7a99813bb786d40db3466d09cb1f33d2e2e887"
   dependencies:
     async "1.5.2"
     augur-core "1.0.0-4"
