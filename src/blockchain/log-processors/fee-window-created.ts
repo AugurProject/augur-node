@@ -20,14 +20,14 @@ export function processFeeWindowCreatedLog(db: Knex, augur: Augur, log: Formatte
     augurEmitter.emit("FeeWindowCreated", Object.assign({}, log, feeWindowToInsert));
     db.from("fee_windows").insert(feeWindowToInsert).asCallback((err) => {
       if (err) return callback(err);
-      db("tokens").insert(
-        [{
-          contractAddress: log.feeWindow,
-          symbol: "ParticipationToken",
-        }, {
-          contractAddress: feeToken,
-          symbol: "FeeToken",
-        }]).asCallback((err) => {
+      const feeWindowTokens = [{
+        contractAddress: log.feeWindow,
+        symbol: "ParticipationToken",
+      }, {
+        contractAddress: feeToken,
+        symbol: `FeeToken@${log.feeWindow}`,
+      }];
+      db("tokens").insert(feeWindowTokens).asCallback((err) => {
         if (err) return callback(err);
         // Re-running this is important for if the FeeWindow was created on the same block it started (not pre-created as part of getOrCreateNext)
         advanceFeeWindowActive(db, augur, log.blockNumber, getCurrentTime(), callback);
@@ -38,5 +38,8 @@ export function processFeeWindowCreatedLog(db: Knex, augur: Augur, log: Formatte
 
 export function processFeeWindowCreatedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
   augurEmitter.emit("FeeWindowCreated", log);
-  db.from("fee_windows").where({ feeWindow: log.feeWindow }).del().asCallback(callback);
+  db.from("fee_windows").where({ feeWindow: log.feeWindow }).del().asCallback((err) => {
+    if (err) return callback(err);
+    db("tokens").where("contractAddress", log.feeWindow).orWhere("symbol", `FeeToken@${log.feeWindow}`).del().asCallback(callback);
+  });
 }
