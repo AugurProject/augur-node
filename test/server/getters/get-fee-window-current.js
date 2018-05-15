@@ -46,7 +46,7 @@ describe("server/getters/get-fee-window-current", () => {
         feeWindow: "0x2000000000000000000000000000000000000000",
         feeWindowId: 457,
         startTime: 1509065473,
-        totalStake: "26",
+        totalStake: "132",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
