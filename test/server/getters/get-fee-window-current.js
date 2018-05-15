@@ -47,6 +47,8 @@ describe("server/getters/get-fee-window-current", () => {
         feeWindowId: 457,
         startTime: 1509065473,
         totalStake: "132",
+        participantContributions: "102",
+        participationTokens: "30",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
@@ -65,6 +67,8 @@ describe("server/getters/get-fee-window-current", () => {
         feeWindowId: 457,
         startTime: 1509065473,
         totalStake: "0",
+        participantContributions: "0",
+        participationTokens: "0",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },

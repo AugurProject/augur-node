@@ -47,7 +47,7 @@ export function getFeeWindowCurrent(db: Knex, universe: Address, reporter: Addre
       parallel({
         participantContributions: (next: AsyncCallback) => {
           participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber }>) => {
-            if (err || results.length === 0) return next(err, ZERO);
+            if (err || results == null || results.length === 0) return next(err, ZERO);
             const pick = sumBy(results, "amountStaked");
             next(null, pick.amountStaked || ZERO);
           });
@@ -60,11 +60,15 @@ export function getFeeWindowCurrent(db: Knex, universe: Address, reporter: Addre
         },
       }, (err: Error|null, stakes: StakeRows): void => {
         if (err) return callback(err);
-        const totalStake = (stakes.participantContributions || ZERO).plus((stakes.participationTokens || ZERO));
+        const totalStake = (stakes.participantContributions).plus((stakes.participationTokens));
         callback(null, Object.assign(
           {},
           feeWindowRow,
-          { totalStake: totalStake.toFixed() },
+          {
+            totalStake: totalStake.toFixed(),
+            participantContributions: stakes.participantContributions.toFixed(),
+            participationTokens: stakes.participationTokens.toFixed(),
+          },
         ));
       });
     }
