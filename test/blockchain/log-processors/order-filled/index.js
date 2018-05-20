@@ -163,14 +163,14 @@ describe("blockchain/log-processors/order-filled", () => {
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
-          { price: new BigNumber("0.7", 10), volume: new BigNumber("101.42857142857142", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("7000", 10), volume: new BigNumber("101.42857142857142", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
         ]);
         assert.deepEqual(records.categories, {
           popularity: 1.42857142857142,
@@ -293,14 +293,14 @@ describe("blockchain/log-processors/order-filled", () => {
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
-          { price: new BigNumber("0.7", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
-          { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("7000", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
+          { price: new BigNumber("1250", 10), volume: new BigNumber("100", 10) },
         ]);
         assert.deepEqual(records.categories, {
           popularity: 0,
