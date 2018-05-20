@@ -32,7 +32,7 @@ export function processUniverseForkedLog(db: Knex, augur: Augur, log: FormattedE
                   if (err || marketsToRevert == null) return callback(err);
                   console.log(marketsToRevert);
                   forEach(marketsToRevert, (marketIdRow: MarketsContractAddressRow, nextMarketId: ErrorCallback): void => {
-                    updateMarketState(db, marketIdRow.marketId, log.blockNumber, ReportingState.AWAITING_NEXT_WINDOW, (err) => {
+                    updateMarketState(db, marketIdRow.marketId, log.blockNumber, ReportingState.AWAITING_FORK_MIGRATION, (err) => {
                       if (err) return nextMarketId(err);
                       augurEmitter.emit("MarketState", {
                         eventName: "MarketState",
