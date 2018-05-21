@@ -1,10 +1,24 @@
 import Augur from "augur.js";
 import * as Knex from "knex";
-import { FormattedEventLog, ErrorCallback, CategoriesRow, CategoryRow, ReportingState } from "../../types";
+import { FormattedEventLog, ErrorCallback, CategoriesRow, CategoryRow, ReportingState, Address } from "../../types";
 import { rollbackMarketState, updateMarketFeeWindow, updateMarketState } from "./database";
+import { getMarketsWithReportingState } from "../../server/getters/database";
+
+function advanceToAwaitingNextWindow(db: Knex, marketId: Address, blockNumber: number, callback: ErrorCallback): void {
+  getMarketsWithReportingState(db, ["reportingState"]).first().where("markets.marketId", marketId)
+    .asCallback((err: Error|null, reportingStateRow?: {reportingState: ReportingState} ) => {
+      if (err) return callback(err);
+      if (reportingStateRow == null) return callback(new Error("Could not fetch prior reportingState"));
+      if (reportingStateRow.reportingState === ReportingState.AWAITING_FORK_MIGRATION) {
+        updateMarketState(db, marketId, blockNumber, ReportingState.AWAITING_NEXT_WINDOW, callback);
+      } else {
+        callback(null);
+      }
+    });
+}
 
 export function processMarketMigratedLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
-  updateMarketState(db, log.market, log.blockNumber, ReportingState.AWAITING_NEXT_WINDOW, (err) => {
+  advanceToAwaitingNextWindow(db, log.market, log.blockNumber, (err) => {
     if (err) return callback(err);
     updateMarketFeeWindow(db, augur, log.newUniverse, log.market, true, (err) => {
       if (err) return callback(err);
