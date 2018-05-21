@@ -9,7 +9,7 @@ export function processInitialReportSubmittedLog(db: Knex, augur: Augur, log: Fo
   db("universes").first("forked").where({ universe: log.universe }).asCallback((err, universeRow?: { forked: boolean }) => {
     if (err) return callback(err);
     if (universeRow == null) return callback(new Error("No universe in initial report"));
-    const marketState = universeRow.forked ? ReportingState.AWAITING_FORK_MIGRATION ? augur.constants.REPORTING_STATE.AWAITING_NEXT_WINDOW;
+    const marketState = universeRow.forked ? ReportingState.AWAITING_FORK_MIGRATION : augur.constants.REPORTING_STATE.AWAITING_NEXT_WINDOW;
     updateMarketState(db, log.market, log.blockNumber, marketState, (err: Error|null): void => {
       if (err) return callback(err);
       insertPayout(db, log.market, log.payoutNumerators, log.invalid, true, (err, payoutId) => {

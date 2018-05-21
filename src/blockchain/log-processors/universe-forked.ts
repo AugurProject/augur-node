@@ -6,6 +6,21 @@ import { augurEmitter } from "../../events";
 import { getMarketsWithReportingState } from "../../server/getters/database";
 import { forEach } from "async";
 
+// set all crowdsourcers completed to 0, and markets.disputeRounds = null if no initial report, 0 if there is
+function uncompleteNonforkingCrowdsourcers(db: Knex, universe: Address, forkingMarket: Address, callback: ErrorCallback) {
+  db("crowdsourcers").update("completed", 0)
+    .whereIn("marketId", (queryBuilder) => queryBuilder.from("markets").select("marketId").where({ universe }).whereNot("marketId", forkingMarket))
+    .asCallback((err) => {
+      if (err) return callback(err);
+      db("markets").update({ disputeRounds: null }).where({ universe }).whereNot("marketId", forkingMarket).asCallback((err) => {
+        if (err) return callback(err);
+        db("markets").update({ disputeRounds: 0 }).where({ universe }).whereNot("marketId", forkingMarket)
+          .whereIn("marketId", (queryBuilder) => queryBuilder.from("initial_reports").select("marketId"))
+          .asCallback(callback);
+      });
+    });
+}
+
 export function processUniverseForkedLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
   augur.api.Universe.getForkingMarket({ tx: { to: log.universe } }, (err: Error|null, forkingMarket?: Address): void => {
     if (err) return callback(err);
@@ -42,6 +57,9 @@ export function processUniverseForkedLog(db: Knex, augur: Augur, log: FormattedE
                       });
                       nextMarketId(null);
                     });
+                  }, (err) => {
+                    if (err) return callback(err);
+                    uncompleteNonforkingCrowdsourcers(db, log.universe, forkingMarket, callback);
                   });
                 });
             });
