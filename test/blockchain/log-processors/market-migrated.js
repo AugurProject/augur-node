@@ -76,7 +76,7 @@ describe("blockchain/log-processors/market-migrated", () => {
             "needsMigration": 0,
             "needsDisavowal": 0,
             "feeWindow": "0x0000000000000000000000000000000000FEE000",
-            "reportingState": ReportingState.AWAITING_NEXT_WINDOW,
+            "reportingState": ReportingState.CROWDSOURCING_DISPUTE,
           },
         ]);
       },
