@@ -49,6 +49,15 @@ export interface ProfitLossResults {
   all: any;
 }
 
+// For each group, gather the last trade prices for each bucket, and
+// calculate each bucket's profit and loss
+interface GroupResults {
+  marketId: string;
+  outcome: number;
+  profitLoss: Array<PLBucket>;
+}
+
+
 export function calculateBucketProfitLoss(augur: Augur, trades: Array<TradeRow>, buckets: Array<PLBucket>): Array<PLBucket> {
   if (buckets == null) throw new Error("Buckets are required");
   if (typeof buckets.map === "undefined") throw new Error(`buckets must be an array, got ${buckets}`);
@@ -181,10 +190,10 @@ function sumProfitLossResults(left: PLBucket, right: PLBucket): PLBucket {
   };
 }
 
-async function getPL(db: Knex, augur: Augur, universe: Address, account: Address, startTime: number, endTime: number, periodInterval: number | null): Promise<ProfitLossResults> {
-  // get all the trades for this user from the beginning of time, until
+async function getPLByOutcome(db: Knex, universe: Address, account: Address, marketId: Address|null, endTime: number, augur: Augur, startTime: number, periodInterval: number|null): Promise<Array<GroupResults>> {
+// get all the trades for this user from the beginning of time, until
   // `endTime`
-  const tradeHistory: Array<TradingHistoryRow> = await queryTradingHistory(db, universe, account, null, null, null, null, endTime, "trades.blockNumber", false, null, null);
+  const tradeHistory: Array<TradingHistoryRow> = await queryTradingHistory(db, universe, account, marketId, null, null, null, endTime, "trades.blockNumber", false, null, null);
   const marketIds = _.uniq(_.map(tradeHistory, "marketId"));
   const claimHistory: Array<ProceedTradesRow<BigNumber>> = await getProceedTradeRows(db, augur, marketIds, account, endTime);
   const trades: Array<TradeRow> = tradeHistory.map((trade: TradingHistoryRow): TradeRow => {
@@ -198,8 +207,7 @@ async function getPL(db: Knex, augur: Augur, universe: Address, account: Address
 
     return a.logIndex - b.logIndex;
   });
-
-  if (trades.length === 0) return { aggregate: bucketRangeByInterval(startTime, endTime, periodInterval).slice(1), all: {} };
+  if (trades.length === 0) return [];
 
   const buckets = bucketRangeByInterval(startTime || trades[0].timestamp, endTime, periodInterval);
 
@@ -207,20 +215,20 @@ async function getPL(db: Knex, augur: Augur, universe: Address, account: Address
   // separately
   const tradesByOutcome = _.groupBy(trades, (trade) => _.values(_.pick(trade, ["marketId", "outcome"])));
 
-  // For each group, gather the last trade prices for each bucket, and
-  // calculate each bucket's profit and loss
-  interface GroupResults {
-    marketId: string;
-    outcome: number;
-    profitLoss: Array<PLBucket>;
-  }
   const results = await Promise.all(
     _.map(tradesByOutcome, async (trades: Array<TradeRow>): Promise<GroupResults> => {
       const { marketId, outcome } = trades[0];
       const bucketsWithLastPrice: Array<PLBucket> = await getBucketLastTradePrices(db, universe, marketId, outcome, endTime, buckets);
-      return {marketId, outcome, profitLoss: calculateBucketProfitLoss(augur, trades, bucketsWithLastPrice)};
+      return { marketId, outcome, profitLoss: calculateBucketProfitLoss(augur, trades, bucketsWithLastPrice) };
     }),
   );
+  return results;
+}
+
+async function getPL(db: Knex, augur: Augur, universe: Address, marketId: Address|null, account: Address, startTime: number, endTime: number, periodInterval: number | null): Promise<ProfitLossResults> {
+  const results = await getPLByOutcome(db, universe, account, marketId, endTime, augur, startTime, periodInterval);
+
+  if (results.length === 0) return { aggregate: bucketRangeByInterval(startTime, endTime, periodInterval).slice(1), all: {} };
 
   // We have results! Drop the market & outcome groups, and then re-group by
   // bucket timestamp, and aggregate all of the PLBuckets by bucket
@@ -254,7 +262,7 @@ export function getProfitLoss(db: Knex, augur: Augur, universe: Address|undefine
   if (typeof universe !== "string") return callback(new Error("Universe Address Required"));
   if (typeof account !== "string") return callback(new Error("Account Address Required"));
   try {
-    getPL(db, augur, universe.toLowerCase(), account.toLowerCase(), startTime, endTime, periodInterval)
+    getPL(db, augur, universe.toLowerCase(), null, account.toLowerCase(), startTime, endTime, periodInterval)
       .then((results: ProfitLossResults) => callback(null, results));
   } catch (e) {
     callback(e);
