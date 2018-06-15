@@ -35,7 +35,7 @@ export enum DisputeTokenState {
 export enum OrderState {
   ALL = "ALL",
   OPEN = "OPEN",
-  CLOSED = "CLOSED",
+  FILLED = "FILLED",
   CANCELED = "CANCELED",
 }
 
@@ -378,8 +378,10 @@ export interface UIOrder<BigNumberType> {
   orderState: OrderState;
   price: BigNumberType;
   amount: BigNumberType;
+  originalAmount: BigNumberType;
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
+  originalFullPrecisionAmount: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   canceledBlockNumber?: Bytes32;
@@ -407,8 +409,10 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
   orderState: OrderState;
   price: BigNumberType;
   amount: BigNumberType;
+  originalAmount: BigNumberType;
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
+  originalFullPrecisionAmount: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   tradeGroupId: Bytes32|null;
@@ -417,10 +421,12 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
 export interface UITrade {
   transactionHash: string;
   logIndex: number;
+  orderId: string;
   type: string;
   price: string;
   amount: string;
   maker: boolean;
+  selfFilled: boolean;
   marketCreatorFees: string;
   reporterFees: string;
   settlementFees: string;
