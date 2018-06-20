@@ -33,7 +33,7 @@ export function getAccountTransferHistory(db: Knex, account: Address, token: Add
     "tokens.symbol",
     "tokens.outcome",
     "tokens.marketId",
-    db.raw("CASE WHEN transfers.transactionHash IN (SELECT transactionHash FROM trades) THEN 1 ELSE 0 END as isTrade"),
+    db.raw("CASE WHEN transfers.transactionHash IN (SELECT distinct transactionHash FROM trades union SELECT transactionHash FROM orders) THEN 1 ELSE 0 END as isTrade"),
   ]).where((db: Knex): Knex.QueryBuilder => db.where("sender", account).orWhere("recipient", account));
   query.join("blocks", "blocks.blockNumber", "transfers.blockNumber");
   query.join("tokens", "tokens.contractAddress", "transfers.token");
