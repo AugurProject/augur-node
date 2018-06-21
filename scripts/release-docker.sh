@@ -42,7 +42,12 @@ docker build . --build-arg ethereum_network=${network}
 
 docker push augurproject/${augur_repo}:${version}
 docker push augurproject/${augur_repo}:${augur_env}
-docker push augurproject/${augur_repo}:$(npm explore augur.js -- npm run --silent core:version)
+
+
+# This should only be populated in CI. If that changes, Paul will probably fight you.
+if [[ ${TRAVIS_PULL_REQUEST_BRANCH} = 'master' ]]; then
+    docker push augurproject/${augur_repo}:$(npm explore augur.js -- npm run --silent core:version)
+fi
 
 # install packages needed to deploy to aws, then deploy
 aws_preconfigure
