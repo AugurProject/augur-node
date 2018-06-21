@@ -47,7 +47,6 @@ docker build . --build-arg ethereum_network=${network}
 docker push augurproject/${augur_repo}:${version}
 docker push augurproject/${augur_repo}:${augur_env}
 
-# This should only be populated in CI. If that changes, Paul will probably fight you.
 if [[ $push_core_tag ]]; then
     docker push augurproject/${augur_repo}:$(npm explore augur.js -- npm run --silent core:version)
 fi
