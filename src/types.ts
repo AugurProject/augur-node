@@ -1,5 +1,6 @@
 import { BigNumber } from "bignumber.js";
 import { Augur, FormattedEventLog } from "augur.js";
+import { EventEmitter } from "events";
 import * as Knex from "knex";
 import * as WebSocket from "ws";
 import * as https from "https";
@@ -35,7 +36,7 @@ export enum DisputeTokenState {
 export enum OrderState {
   ALL = "ALL",
   OPEN = "OPEN",
-  CLOSED = "CLOSED",
+  FILLED = "FILLED",
   CANCELED = "CANCELED",
 }
 
@@ -88,11 +89,11 @@ export interface MarketCreatedOnContractInfo {
   numTicks: string;
 }
 
-export type ErrorCallback = (err?: Error|null) => void;
+export type ErrorCallback = (err: Error|null) => void;
 
-export type GenericCallback<ResultType> = (err?: Error|null, result?: ResultType) => void;
+export type GenericCallback<ResultType> = (err: Error|null, result?: ResultType) => void;
 
-export type AsyncCallback = (err?: Error|null, result?: any) => void;
+export type AsyncCallback = (err: Error|null, result?: any) => void;
 
 export type LogProcessor = (db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback) => void;
 
@@ -378,8 +379,10 @@ export interface UIOrder<BigNumberType> {
   orderState: OrderState;
   price: BigNumberType;
   amount: BigNumberType;
+  originalAmount: BigNumberType;
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
+  originalFullPrecisionAmount: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   canceledBlockNumber?: Bytes32;
@@ -407,8 +410,10 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
   orderState: OrderState;
   price: BigNumberType;
   amount: BigNumberType;
+  originalAmount: BigNumberType;
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
+  originalFullPrecisionAmount: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   tradeGroupId: Bytes32|null;
@@ -417,10 +422,12 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
 export interface UITrade {
   transactionHash: string;
   logIndex: number;
+  orderId: string;
   type: string;
   price: string;
   amount: string;
   maker: boolean;
+  selfFilled: boolean;
   marketCreatorFees: string;
   reporterFees: string;
   settlementFees: string;
@@ -592,6 +599,7 @@ export interface UIUniverseInfoRow<BigNumberType> extends NormalizedPayout<strin
 export interface ServersData {
   servers: Array<WebSocket.Server>;
   httpServers: Array<http.Server | https.Server>;
+  controlEmitter: EventEmitter;
 }
 
 export interface AllOrdersRow<BigNumberType> {

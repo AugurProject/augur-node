@@ -16,9 +16,10 @@ export interface TransferRow<BigNumberType> {
   symbol: string|null;
   outcome: number|null;
   marketId: Address|null;
+  isTrade: number;
 }
 
-export function getAccountTransferHistory(db: Knex, account: Address, token: Address|null|undefined, earliestCreationTime: number|null, latestCreationTime: number|null, sortBy: string|null|undefined, isSortDescending: boolean|null|undefined, limit: number|null|undefined, offset: number|null|undefined, callback: (err: Error|null, transferHistory?: Array<TransferRow<string>>) => void): void {
+export function getAccountTransferHistory(db: Knex, account: Address, token: Address|null|undefined, isInternalTransfer: boolean|null, earliestCreationTime: number|null, latestCreationTime: number|null, sortBy: string|null|undefined, isSortDescending: boolean|null|undefined, limit: number|null|undefined, offset: number|null|undefined, callback: (err: Error|null, transferHistory?: Array<TransferRow<string>>) => void): void {
   const query = db("transfers").select([
     "transfers.transactionHash",
     "transfers.logIndex",
@@ -32,9 +33,11 @@ export function getAccountTransferHistory(db: Knex, account: Address, token: Add
     "tokens.symbol",
     "tokens.outcome",
     "tokens.marketId",
+    db.raw("CASE WHEN transfers.transactionHash IN (SELECT DISTINCT transactionHash FROM trades UNION SELECT DISTINCT transactionHash FROM orders) THEN 1 ELSE 0 END as isInternalTransfer"),
   ]).where((db: Knex): Knex.QueryBuilder => db.where("sender", account).orWhere("recipient", account));
-  query.join("blocks", "blocks.blockNumber", "transfers.blockNumber" );
+  query.join("blocks", "blocks.blockNumber", "transfers.blockNumber");
   query.join("tokens", "tokens.contractAddress", "transfers.token");
+  if (isInternalTransfer != null) query.where({ isInternalTransfer });
   if (token != null) query.andWhere({ token });
   if (earliestCreationTime != null) query.where("creationTime", ">=", earliestCreationTime);
   if (latestCreationTime != null) query.where("creationTime", "<=", latestCreationTime);
