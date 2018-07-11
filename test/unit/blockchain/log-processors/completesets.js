@@ -2,6 +2,7 @@
 
 const assert = require("chai").assert;
 const setupTestDb = require("../../test.database");
+const speedomatic = require("speedomatic");
 const { BigNumber } = require("bignumber.js");
 const { processCompleteSetsPurchasedOrSoldLog, processCompleteSetsPurchasedOrSoldLogRemoval } = require("../../../../build/blockchain/log-processors/completesets");
 
@@ -39,7 +40,12 @@ describe("blockchain/log-processors/completesets", () => {
       log: {
         market: "0x0000000000000000000000000000000000000002",
         account: "0x0000000000000000000000000000000000000b0b",
-        numCompleteSets: "2",
+        numCompleteSets: "200000000000000",
+        numPurchasedOrSold: "200000000000000",
+        blockNumber: 437,
+        transactionHash: "0x00000000000000000000000000000000deadbeef",
+        logIndex: 0,
+        tradeGroupId: 12,
       },
       augur: {
         api: {
@@ -57,6 +63,9 @@ describe("blockchain/log-processors/completesets", () => {
         utils: {
           convertOnChainPriceToDisplayPrice: (onChainPrice, minDisplayPrice, tickSize) => {
             return onChainPrice.times(tickSize).plus(minDisplayPrice);
+          },
+          convertOnChainAmountToDisplayAmount: (onChainAmount, tickSize) => {
+            return speedomatic.unfix(onChainAmount.dividedBy(tickSize));
           },
         },
         trading: {

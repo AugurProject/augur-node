@@ -457,6 +457,15 @@ export interface TradesRow<BigNumberType> extends BaseTransactionRow {
   tradeGroupId: Bytes32|null;
 }
 
+export interface CompleteSetsRow<BigNumberType> extends BaseTransactionRow {
+  marketId: Address;
+  account: Address;
+  numPurchasedOrSold: BigNumberType;
+  numCompleteSets: BigNumberType;
+  tradeGroupId: Bytes32|null;
+  timestamp: number;
+}
+
 export interface TradingHistoryRow extends TradesRow<BigNumber> {
   timestamp: number;
 }
