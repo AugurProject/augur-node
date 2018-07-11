@@ -1,7 +1,7 @@
 import { Augur } from "augur.js";
 import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { FormattedEventLog, MarketsRow, ErrorCallback } from "../../types";
+import { FormattedEventLog, MarketsRow, CompleteSetsRow, BlocksRow, ErrorCallback } from "../../types";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { augurEmitter } from "../../events";
@@ -20,19 +20,29 @@ export function processCompleteSetsPurchasedOrSoldLog(db: Knex, augur: Augur, lo
       const maxPrice = marketsRow.maxPrice!;
       const numTicks = marketsRow.numTicks!;
       const tickSize = numTicksToTickSize(numTicks, minPrice, maxPrice);
-      const numCompleteSets = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(log.numCompleteSets, 10), tickSize).toFixed()
-      const completeSetPurchasedData = formatBigNumberAsFixed({
-        marketId,
-        account,
-        blockNumber,
-        transactionHash: log.transactionHash,
-        logIndex: log.logIndex,
-        tradeGroupId: log.tradeGroupId,
-        numCompleteSets: numCompleteSets,
-        numPurchasedOrSold: numCompleteSets,
+      const numCompleteSets = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(log.numCompleteSets, 10), tickSize).toFixed();
+      const query = db.select("timestamp").from("blocks")
+      .where("blockNumber", blockNumber);
+      query.asCallback((err: Error|null, blocksRows?: Array<BlocksRow>): void => {
+        if (err) return callback(err);
+        let timestamp = null;
+        if (blocksRows && blocksRows.length) {
+          timestamp = blocksRows[0].timestamp;
+        }
+        const completeSetPurchasedData: CompleteSetsRow<string> = {
+          marketId,
+          account,
+          blockNumber,
+          timestamp,
+          transactionHash: log.transactionHash,
+          logIndex: log.logIndex,
+          tradeGroupId: log.tradeGroupId,
+          numCompleteSets,
+          numPurchasedOrSold: numCompleteSets,
+        };
+        augurEmitter.emit(log.eventName, Object.assign(completeSetPurchasedData, log));
+        db.insert(completeSetPurchasedData).into("completeSets").asCallback(callback);
       });
-      augurEmitter.emit(log.eventName, Object.assign({}, log, completeSetPurchasedData));
-      db.insert(completeSetPurchasedData).into("completeSets").asCallback(callback);
     });
   });
 }

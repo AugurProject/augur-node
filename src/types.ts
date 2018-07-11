@@ -463,7 +463,7 @@ export interface CompleteSetsRow<BigNumberType> extends BaseTransactionRow {
   numPurchasedOrSold: BigNumberType;
   numCompleteSets: BigNumberType;
   tradeGroupId: Bytes32|null;
-  timestamp: number;
+  timestamp: number|null;
 }
 
 export interface TradingHistoryRow extends TradesRow<BigNumber> {
