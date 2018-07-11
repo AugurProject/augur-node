@@ -11,13 +11,16 @@ import { monitorEthereumNodeHealth } from "../blockchain/monitor-ethereum-node-h
 import { logger } from "../utils/logger";
 import { ErrorCallback } from "../types";
 
+// WARNING: Update this only if this release requires destroying all existing Augur Node Databases
+const DB_VERSION = 1;
+
 interface NetworkIdRow {
   networkId: string;
   overrideTimestamp: number|null;
 }
 
-function getDatabasePathFromNetworkId(networkId: string, databaseDir: string|undefined, filenameTemplate: string = "augur-%s.db") {
-  return path.join(databaseDir || path.join(__dirname, "../../"), format(filenameTemplate, networkId));
+function getDatabasePathFromNetworkId(networkId: string, databaseDir: string|undefined, filenameTemplate: string = "augur-%s-%s.db") {
+  return path.join(databaseDir || path.join(__dirname, "../../"), format(filenameTemplate, networkId, DB_VERSION));
 }
 
 function getUploadBlockPathFromNetworkId(networkId: string, databaseDir: string|undefined, filenameTemplate: string = "upload-block-%s") {
