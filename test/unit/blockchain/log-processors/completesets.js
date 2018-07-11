@@ -2,9 +2,10 @@
 
 const assert = require("chai").assert;
 const setupTestDb = require("../../test.database");
-const speedomatic = require("speedomatic");
 const { BigNumber } = require("bignumber.js");
 const { processCompleteSetsPurchasedOrSoldLog, processCompleteSetsPurchasedOrSoldLogRemoval } = require("../../../../build/blockchain/log-processors/completesets");
+const Augur = require("augur.js");
+const augur = new Augur();
 
 describe("blockchain/log-processors/completesets", () => {
   const test = (t) => {
@@ -60,14 +61,7 @@ describe("blockchain/log-processors/completesets", () => {
             },
           },
         },
-        utils: {
-          convertOnChainPriceToDisplayPrice: (onChainPrice, minDisplayPrice, tickSize) => {
-            return onChainPrice.times(tickSize).plus(minDisplayPrice);
-          },
-          convertOnChainAmountToDisplayAmount: (onChainAmount, tickSize) => {
-            return speedomatic.unfix(onChainAmount.dividedBy(tickSize));
-          },
-        },
+        utils: augur.utils,
         trading: {
           calculateProfitLoss: (p) => {
             assert.isObject(p);

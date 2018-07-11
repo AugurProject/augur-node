@@ -2,7 +2,6 @@ import { Augur } from "augur.js";
 import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
 import { FormattedEventLog, MarketsRow, CompleteSetsRow, BlocksRow, ErrorCallback } from "../../types";
-import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { augurEmitter } from "../../events";
 import { refreshPositionInMarket } from "./order-filled/refresh-position-in-market";
