@@ -460,11 +460,15 @@ export interface TradesRow<BigNumberType> extends BaseTransactionRow {
 export interface CompleteSetsRow<BigNumberType> extends BaseTransactionRow {
   marketId: Address;
   account: Address;
+  universe: Address;
   eventName: string;
   numPurchasedOrSold: BigNumberType;
   numCompleteSets: BigNumberType;
   tradeGroupId: Bytes32|null;
-  timestamp: number|null;
+}
+
+export interface UICompleteSetsRow<BigNumberType> extends CompleteSetsRow<BigNumberType> {
+  timestamp: number;
 }
 
 export interface TradingHistoryRow extends TradesRow<BigNumber> {

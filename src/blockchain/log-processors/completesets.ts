@@ -1,7 +1,7 @@
 import { Augur } from "augur.js";
 import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { FormattedEventLog, MarketsRow, CompleteSetsRow, BlocksRow, ErrorCallback } from "../../types";
+import { FormattedEventLog, MarketsRow, CompleteSetsRow, ErrorCallback } from "../../types";
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { augurEmitter } from "../../events";
 import { refreshPositionInMarket } from "./order-filled/refresh-position-in-market";
@@ -20,29 +20,20 @@ export function processCompleteSetsPurchasedOrSoldLog(db: Knex, augur: Augur, lo
       const numTicks = marketsRow.numTicks!;
       const tickSize = numTicksToTickSize(numTicks, minPrice, maxPrice);
       const numCompleteSets = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(log.numCompleteSets, 10), tickSize).toFixed();
-      const query = db.select("timestamp").from("blocks")
-      .where("blockNumber", blockNumber);
-      query.asCallback((err: Error|null, blocksRows?: Array<BlocksRow>): void => {
-        if (err) return callback(err);
-        let timestamp = null;
-        if (blocksRows && blocksRows.length) {
-          timestamp = blocksRows[0].timestamp;
-        }
-        const completeSetPurchasedData: CompleteSetsRow<string> = {
-          marketId,
-          account,
-          blockNumber,
-          timestamp,
-          eventName: log.eventName,
-          transactionHash: log.transactionHash,
-          logIndex: log.logIndex,
-          tradeGroupId: log.tradeGroupId,
-          numCompleteSets,
-          numPurchasedOrSold: numCompleteSets,
-        };
-        augurEmitter.emit(log.eventName, Object.assign({}, completeSetPurchasedData));
-        db.insert(completeSetPurchasedData).into("completeSets").asCallback(callback);
-      });
+      const completeSetPurchasedData: CompleteSetsRow<string> = {
+        marketId,
+        account,
+        blockNumber,
+        universe: log.universe,
+        eventName: log.eventName,
+        transactionHash: log.transactionHash,
+        logIndex: log.logIndex,
+        tradeGroupId: log.tradeGroupId,
+        numCompleteSets,
+        numPurchasedOrSold: numCompleteSets,
+      };
+      augurEmitter.emit(log.eventName, completeSetPurchasedData);
+      db.insert(completeSetPurchasedData).into("completeSets").asCallback(callback);
     });
   });
 }

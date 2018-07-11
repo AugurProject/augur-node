@@ -39,6 +39,7 @@ describe("blockchain/log-processors/completesets", () => {
     description: "CompleteSetsPurchased log and removal",
     params: {
       log: {
+        universe: "0x0000000000000000000000000000000000000001",
         market: "0x0000000000000000000000000000000000000002",
         account: "0x0000000000000000000000000000000000000b0b",
         numCompleteSets: "200000000000000",

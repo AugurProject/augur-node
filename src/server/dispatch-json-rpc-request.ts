@@ -87,7 +87,7 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
     case "getBetterWorseOrders":
       return getBetterWorseOrders(db, request.params.marketId, request.params.outcome, request.params.orderType, request.params.price, callback);
     case "getCompleteSets":
-      return getCompleteSets(db, request.params.account, callback);
+      return getCompleteSets(db, request.params.universe, request.params.account, callback);
     case "getContractAddresses":
       return getContractAddresses(augur, callback);
     case "getUniversesInfo":
