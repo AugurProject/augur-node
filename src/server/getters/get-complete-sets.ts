@@ -16,6 +16,7 @@ export function getCompleteSets(db: Knex, account: Address, callback: (err: Erro
     callback(null, completeSets.reduce((acc: CompleteSets, cur: CompleteSetsRow<BigNumber>) => {
       acc[cur.transactionHash] = formatBigNumberAsFixed<CompleteSetsRow<BigNumber>, CompleteSetsRow<string>>({
         account: cur.account,
+        eventName: cur.eventName,
         timestamp: cur.timestamp,
         blockNumber: cur.blockNumber,
         transactionHash: cur.transactionHash,
@@ -23,7 +24,7 @@ export function getCompleteSets(db: Knex, account: Address, callback: (err: Erro
         tradeGroupId: cur.tradeGroupId,
         numCompleteSets: cur.numCompleteSets,
         numPurchasedOrSold: cur.numPurchasedOrSold,
-        market: cur.market,
+        marketId: cur.marketId,
       });
       return acc;
     }, {}));

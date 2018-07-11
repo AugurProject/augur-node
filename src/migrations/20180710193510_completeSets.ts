@@ -6,8 +6,10 @@ exports.up = async (knex: Knex): Promise<any> => {
       table.string("transactionHash", 66).notNullable();
       table.specificType("logIndex", "integer NOT NULL CONSTRAINT \"nonnegativelogIndex\" CHECK (\"logIndex\" >= 0)");
       table.string("account", 42).notNullable();
-      table.string("market", 42).notNullable();
+      table.string("marketId", 42).notNullable();
       table.integer("tradeGroupId");
+      table.text("eventName").nullable();
+      table.integer("timestamp").nullable();
       table.specificType("numCompleteSets", "varchar(255) CONSTRAINT \"nonnegativeNumCompleteSets\" CHECK (ltrim(\"numCompleteSets\", '-') = \"numCompleteSets\")");
       table.specificType("numPurchasedOrSold", "varchar(255) CONSTRAINT \"nonnegativeNumPurchasedOrSold\" CHECK (ltrim(\"numPurchasedOrSold\", '-') = \"numPurchasedOrSold\")");
       table.specificType("blockNumber", "integer NOT NULL CONSTRAINT positiveCompleteSetsBlockNumber CHECK (\"blockNumber\" > 0)");

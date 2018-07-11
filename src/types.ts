@@ -458,8 +458,9 @@ export interface TradesRow<BigNumberType> extends BaseTransactionRow {
 }
 
 export interface CompleteSetsRow<BigNumberType> extends BaseTransactionRow {
-  market: Address;
+  marketId: Address;
   account: Address;
+  eventName: string;
   numPurchasedOrSold: BigNumberType;
   numCompleteSets: BigNumberType;
   tradeGroupId: Bytes32|null;

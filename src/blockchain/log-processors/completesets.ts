@@ -8,11 +8,11 @@ import { refreshPositionInMarket } from "./order-filled/refresh-position-in-mark
 
 export function processCompleteSetsPurchasedOrSoldLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
   const blockNumber: number = log.blockNumber;
-  const market = log.market;
+  const marketId = log.market;
   const account = log.account;
-  refreshPositionInMarket(db, augur, market, account, (err: Error|null) => {
+  refreshPositionInMarket(db, augur, marketId, account, (err: Error|null) => {
     if (err) return callback(err);
-    db.first("minPrice", "maxPrice", "numTicks").from("markets").where({ market }).asCallback((err: Error|null, marketsRow?: Partial<MarketsRow<BigNumber>>): void => {
+    db.first("minPrice", "maxPrice", "numTicks").from("markets").where({ marketId }).asCallback((err: Error|null, marketsRow?: Partial<MarketsRow<BigNumber>>): void => {
       if (err) return callback(err);
       if (!marketsRow) return callback(new Error("market min price, max price, category, and/or num ticks not found"));
       const minPrice = marketsRow.minPrice!;
@@ -29,17 +29,18 @@ export function processCompleteSetsPurchasedOrSoldLog(db: Knex, augur: Augur, lo
           timestamp = blocksRows[0].timestamp;
         }
         const completeSetPurchasedData: CompleteSetsRow<string> = {
-          market,
+          marketId,
           account,
           blockNumber,
           timestamp,
+          eventName: log.eventName,
           transactionHash: log.transactionHash,
           logIndex: log.logIndex,
           tradeGroupId: log.tradeGroupId,
           numCompleteSets,
           numPurchasedOrSold: numCompleteSets,
         };
-        augurEmitter.emit(log.eventName, Object.assign(completeSetPurchasedData, log));
+        augurEmitter.emit(log.eventName, Object.assign({}, completeSetPurchasedData));
         db.insert(completeSetPurchasedData).into("completeSets").asCallback(callback);
       });
     });
