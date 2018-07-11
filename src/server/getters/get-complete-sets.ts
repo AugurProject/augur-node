@@ -23,7 +23,7 @@ export function getCompleteSets(db: Knex, account: Address, callback: (err: Erro
         tradeGroupId: cur.tradeGroupId,
         numCompleteSets: cur.numCompleteSets,
         numPurchasedOrSold: cur.numPurchasedOrSold,
-        marketId: cur.marketId,
+        market: cur.market,
       });
       return acc;
     }, {}));
