@@ -1,6 +1,6 @@
 {
   "name": "augur-node",
-  "version": "5.0.0-12",
+  "version": "5.0.0-13",
   "description": "Augur Node",
   "author": "The Augur Developers <team@augur.net>",
   "license": "MIT",
@@ -14,6 +14,7 @@
     "test": "test"
   },
   "scripts": {
+    "version": "npm run rebuild",
     "go": "scripts/go.sh",
     "start": "node ./build/runServer",
     "debug": "node --inspect-brk ./build/runServer",
