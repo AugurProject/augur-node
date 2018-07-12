@@ -17,6 +17,10 @@ export class Logger {
     this.loggers.push(logger);
   }
 
+  public clearLoggers(): void {
+    this.loggers = [];
+  }
+
   public error(...err: Array<string | Error>): void {
     this.loggers.forEach((logger) => logger.error(...err));
   }
