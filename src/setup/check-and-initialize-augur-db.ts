@@ -56,7 +56,7 @@ export async function createDbAndConnect(errorCallback: ErrorCallback|undefined,
   return new Promise<Knex>((resolve, reject) => {
     const connectOptions = Object.assign(
       { ethereumNode: { http: network.http, ws: network.ws }, startBlockStreamOnConnect: false },
-      network.propogationDelayWaitMillis != null ? { propogationDelayWaitMillis: network.propogationDelayWaitMillis } : {},
+      network.propagationDelayWaitMillis != null ? { propagationDelayWaitMillis: network.propagationDelayWaitMillis } : {},
     );
     augur.connect(connectOptions, async (err) => {
       if (err) return reject(new Error(`Could not connect via augur.connect ${err}`));
