@@ -77,7 +77,7 @@ export function processOrderCreatedLog(db: Knex, augur: Augur, log: FormattedEve
 export function processOrderCreatedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
   db.from("orders").where("orderId", log.orderId).delete().asCallback((err: Error|null): void => {
     if (err) return callback(err);
-    checkForUnOrphanedOrders(db, log, (err) => {
+    unOrphanOrders(db, log, (err) => {
       if (err) return callback(err);
       augurEmitter.emit("OrderCreated", log);
       return callback(null);
@@ -91,9 +91,14 @@ function checkForOrphanedOrders(db: Knex, orderData: OrdersRow<string>, callback
     outcome: orderData.outcome,
     orderType: orderData.orderType,
   };
-  db.first([db.raw("count(*) as numOrders"), db.raw("count(distinct(price)) as numPrices")]).from("orders").where(queryData).where("amount", "!=", "0").asCallback((err: Error|null, results: { numOrders: number, numPrices: number }): void => {
+  db.first([db.raw("count(*) as numOrders"), db.raw("count(distinct(fullPrecisionPrice)) as numPrices"), db.raw("min(fullPrecisionPrice) as fullPrecisionPrice")]).from("orders").where(queryData).where("amount", "!=", "0").asCallback((err: Error|null, results: { numOrders: number, numPrices: number, fullPrecisionPrice: string }): void => {
     if (err) return callback(err);
-    if (results.numPrices === 1 && results.numOrders > 1) {
+    if (results.numOrders < 2) return callback(null);
+    const onBookPrice = new BigNumber(results.fullPrecisionPrice);
+    const newOrderPrice = new BigNumber(orderData.fullPrecisionPrice);
+    const orderType = queryData.orderType === "buy" ? 0 : 1;
+    const worseOrEqualPrice = orderType === 0 ? newOrderPrice.lte(onBookPrice) : newOrderPrice.gte(onBookPrice);
+    if (results.numPrices === 1 && results.numOrders > 1 && worseOrEqualPrice) {
       db.from("orders").first(db.raw("MAX(blockNumber * ?? + logIndex) as maxLog", [MAX_LOGS_PER_BLOCK])).where(queryData).asCallback((err: Error|null, result: {maxLog: number}): void => {
         if (err) return callback(err);
         db.from("orders").where(db.raw("(blockNumber * ?? + logIndex) == ??", [MAX_LOGS_PER_BLOCK, result.maxLog])).update({orphaned: true}).asCallback((err) => {
@@ -107,7 +112,7 @@ function checkForOrphanedOrders(db: Knex, orderData: OrdersRow<string>, callback
   });
 }
 
-function checkForUnOrphanedOrders(db: Knex, log: FormattedEventLog, callback: ErrorCallback): void {
+function unOrphanOrders(db: Knex, log: FormattedEventLog, callback: ErrorCallback): void {
   db.first("marketId", "outcome").from("tokens").where({ contractAddress: log.shareToken }).asCallback((err: Error|null, tokensRow?: TokensRow): void => {
     if (err) return callback(err);
     if (!tokensRow) return callback(new Error(`market and outcome not found for shareToken ${log.shareToken} (${log.transactionHash}`));
@@ -116,19 +121,12 @@ function checkForUnOrphanedOrders(db: Knex, log: FormattedEventLog, callback: Er
       outcome: tokensRow.outcome!,
       orderType: log.orderType === "0" ? "buy" : "sell",
     };
-    db.first([db.raw("count(*) as numOrders"), db.raw("count(distinct(price)) as numPrices")]).from("orders").where(queryData).where("amount", "!=", "0").asCallback((err: Error|null, results: { numOrders: number, numPrices: number }): void => {
+    db.from("orders").first(db.raw("MAX(blockNumber * ?? + logIndex) as maxLog", [MAX_LOGS_PER_BLOCK])).where(queryData).asCallback((err: Error|null, result: {maxLog: number}): void => {
       if (err) return callback(err);
-      if (results.numPrices === 1 && results.numOrders > 1) {
-        db.from("orders").first(db.raw("MAX(blockNumber * 100000 + logIndex) as maxLog")).where(queryData).asCallback((err: Error|null, result: {maxLog: number}): void => {
-          if (err) return callback(err);
-          db.from("orders").where(db.raw("(blockNumber * 100000 + logIndex) == ??", [result.maxLog])).update({orphaned: false}).asCallback((err) => {
-            if (err) return callback(err);
-            return callback(null);
-          });
-        });
-      } else {
+      db.from("orders").where(db.raw("(blockNumber * ?? + logIndex) == ??", [MAX_LOGS_PER_BLOCK, result.maxLog])).update({orphaned: false}).asCallback((err) => {
+        if (err) return callback(err);
         return callback(null);
-      }
+      });
     });
   });
 }
