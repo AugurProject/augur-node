@@ -14,6 +14,7 @@ export function getUserTradingPositions(db: Knex, universe: Address|null, accoun
   queryModifier(db, query, "outcome", "asc", sortBy, isSortDescending, limit, offset, (err: Error|null, positionsRows?: Array<PositionsRow<BigNumber>>): void => {
     if (err) return callback(err);
     if (!positionsRows) return callback(new Error("Internal error retrieving positions"));
+
     if (outcome != null) {
       positionsRows = positionsRows.filter((positionsRow: PositionsRow<BigNumber>): boolean => positionsRow.outcome === outcome);
     }

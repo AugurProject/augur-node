@@ -1,4 +1,4 @@
-import { forEachOf, parallel } from "async";
+import { forEachOf, parallel, series } from "async";
 import Augur from "augur.js";
 import BigNumber from "bignumber.js";
 import * as Knex from "knex";
@@ -34,7 +34,11 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, log: FormattedEv
         reportingState: augur.constants.REPORTING_STATE.PRE_REPORTING,
         blockNumber: log.blockNumber,
       };
-      db.insert(marketStateDataToInsert).into("market_state").asCallback((err: Error|null, marketStateRow?: Array<number>): void => {
+      let query = db.insert(marketStateDataToInsert).into("market_state");
+      if (db.client.config.client !== "sqlite3") {
+        query = query.returning("marketStateId");
+      }
+      query.asCallback((err: Error|null, marketStateRow?: Array<number>): void => {
         if (err) return callback(err);
         if (!marketStateRow || !marketStateRow.length) return callback(new Error("No market state ID"));
         const marketStateId = marketStateRow[0];
@@ -96,7 +100,10 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, log: FormattedEv
         }, (err: Error|null): void => {
           if (err) return callback(err);
           const outcomeNames: Array<string|number|null> = (log.marketType === "1" && log!.outcomes) ? log!.outcomes! : new Array(numOutcomes).fill(null);
-          parallel([
+          // Postgres throws an error when executing multiple batchInserts at the same time,
+          // But SQLite does it just fine. Using a flag to preserve the performance benefit.
+          const flow = db.client.config.client === "sqlite3" ? parallel : series;
+          flow([
             (next: AsyncCallback): void => {
               db.insert(marketsDataToInsert).into("markets").asCallback(next);
             },
