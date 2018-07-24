@@ -2,7 +2,7 @@ import { forEachOf, parallel } from "async";
 import Augur from "augur.js";
 import BigNumber from "bignumber.js";
 import * as Knex from "knex";
-import { Address, FormattedEventLog, MarketCreatedLogExtraInfo, MarketsRow, OutcomesRow, TokensRow, CategoriesRow, ErrorCallback, AsyncCallback } from "../../types";
+import { Address, FormattedEventLog, MarketCreatedLogExtraInfo, MarketsRow, SearchRow, OutcomesRow, TokensRow, CategoriesRow, ErrorCallback, AsyncCallback } from "../../types";
 import { convertDivisorToRate } from "../../utils/convert-divisor-to-rate";
 import { convertFixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
@@ -77,6 +77,11 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, log: FormattedEv
           needsDisavowal:             0,
           finalizationBlockNumber:    null,
         };
+        const fullTextStringInsert: SearchRow = {
+          marketId: marketsDataToInsert.marketId,
+          content: `${marketsDataToInsert.marketId} ${marketsDataToInsert.category} ${marketsDataToInsert.shortDescription} ${marketsDataToInsert.tag1} ${marketsDataToInsert.tag2} ${marketsDataToInsert.resolutionSource}`,
+        };
+        console.log("fulltext search", fullTextStringInsert.content);
         const outcomesDataToInsert: Partial<OutcomesRow<string>> = formatBigNumberAsFixed<Partial<OutcomesRow<BigNumber>>, Partial<OutcomesRow<string>>>({
           marketId: log.market,
           price: new BigNumber(log.minPrice, 10).plus(new BigNumber(log.maxPrice, 10)).dividedBy(new BigNumber(numOutcomes, 10)),
@@ -99,6 +104,9 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, log: FormattedEv
           parallel([
             (next: AsyncCallback): void => {
               db.insert(marketsDataToInsert).into("markets").asCallback(next);
+            },
+            (next: AsyncCallback): void => {
+              db.raw("insert into search_en(marketId, content) values( ?, ? )", [fullTextStringInsert.marketId, fullTextStringInsert.content]).asCallback(next);
             },
             (next: AsyncCallback): void => {
               db.batchInsert("outcomes", shareTokens.map((_: Address, outcome: number): Partial<OutcomesRow<string>> => Object.assign({ outcome, description: outcomeNames[outcome] }, outcomesDataToInsert)), numOutcomes).asCallback(next);
@@ -140,6 +148,9 @@ export function processMarketCreatedLogRemoval(db: Knex, augur: Augur, log: Form
     },
     (next: AsyncCallback): void => {
       db.from("market_state").where({ marketId: log.market }).del().asCallback(next);
+    },
+    (next: AsyncCallback): void => {
+      db.from("search_en").where({ marketId: log.market }).del().asCallback(next);
     },
   ], (err) => {
     if (err) callback(err);
