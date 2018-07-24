@@ -10,8 +10,8 @@ export function getMarketsSearch(db: Knex, universe: Address, search: string, so
   queryMarkets.join("blocks as marketStateBlock", "marketStateBlock.blockNumber", "market_state.blockNumber");
   queryMarkets.where({ universe });
 
-  const querySearch = db.raw("SELECT marketId FROM search_en WHERE content MATCH '?'", [search]);
-  queryMarkets.whereIn("markets.marketId", querySearch);
+  const querySearch = db.raw("marketId FROM search_en WHERE content MATCH ?", [search]);
+  queryMarkets.whereIn("markets.marketId", (queryBuilder) => queryBuilder.select(querySearch));
 
   queryModifier(db, queryMarkets, "volume", "desc", sortBy, isSortDescending, limit, offset, (err?: Error|null, marketsRows?: Array<MarketsContractAddressRow>): void => {
     if (err) return callback(err);
