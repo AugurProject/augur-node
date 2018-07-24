@@ -13,6 +13,7 @@ export function getMarketsSearch(db: Knex, universe: Address, search: string, so
   const querySearch = db.raw("SELECT marketId FROM search_en WHERE content MATCH '?'", [search]);
   queryMarkets.whereIn("markets.marketId", querySearch);
 
+
   queryModifier(db, queryMarkets, "volume", "desc", sortBy, isSortDescending, limit, offset, (err?: Error|null, marketsRows?: Array<MarketsContractAddressRow>): void => {
     if (err) return callback(err);
     if (!marketsRows) return callback(null);
