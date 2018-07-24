@@ -4,6 +4,7 @@ import BigNumber from "bignumber.js";
 import * as Knex from "knex";
 import { Address, FormattedEventLog, MarketCreatedLogExtraInfo, MarketsRow, SearchRow, OutcomesRow, TokensRow, CategoriesRow, ErrorCallback, AsyncCallback } from "../../types";
 import { convertDivisorToRate } from "../../utils/convert-divisor-to-rate";
+import { contentSearchBuilder} from "../../utils/content-search-builder";
 import { convertFixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { augurEmitter } from "../../events";
@@ -77,16 +78,15 @@ export function processMarketCreatedLog(db: Knex, augur: Augur, log: FormattedEv
           needsDisavowal:             0,
           finalizationBlockNumber:    null,
         };
-        const fullTextStringInsert: SearchRow = {
-          marketId: marketsDataToInsert.marketId,
-          content: `${marketsDataToInsert.marketId} ${marketsDataToInsert.category} ${marketsDataToInsert.shortDescription} ${marketsDataToInsert.tag1} ${marketsDataToInsert.tag2} ${marketsDataToInsert.resolutionSource}`,
-        };
-        console.log("fulltext search", fullTextStringInsert.content);
         const outcomesDataToInsert: Partial<OutcomesRow<string>> = formatBigNumberAsFixed<Partial<OutcomesRow<BigNumber>>, Partial<OutcomesRow<string>>>({
           marketId: log.market,
           price: new BigNumber(log.minPrice, 10).plus(new BigNumber(log.maxPrice, 10)).dividedBy(new BigNumber(numOutcomes, 10)),
           volume: ZERO,
         });
+        const fullTextStringInsert: SearchRow = {
+          marketId: marketsDataToInsert.marketId,
+          content: contentSearchBuilder(marketsDataToInsert),
+        };
         const tokensDataToInsert: Partial<TokensRow> = {
           marketId: log.market,
           symbol: "shares",

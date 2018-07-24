@@ -26,8 +26,8 @@ describe("server/getters/get-markets-search", () => {
     assertions: (err, marketsMatched) => {
       assert.ifError(err);
       assert.deepEqual(marketsMatched, [
-        "0x0000000000000000000000000000000000000015",
         "0x0000000000000000000000000000000000000012",
+        "0x0000000000000000000000000000000000000015",
       ]);
     },
   });
@@ -40,11 +40,9 @@ describe("server/getters/get-markets-search", () => {
     assertions: (err, marketsCreatedByUser) => {
       assert.ifError(err);
       assert.deepEqual(marketsCreatedByUser, [
-        "0x0000000000000000000000000000000000000015",
         "0x0000000000000000000000000000000000000014",
-        "0x0000000000000000000000000000000000000016",
-        "0x0000000000000000000000000000000000000017",
         "0x0000000000000000000000000000000000000015",
+        "0x0000000000000000000000000000000000000016",
         "0x0000000000000000000000000000000000000017",
         "0x0000000000000000000000000000000000000018",
         "0x0000000000000000000000000000000000000019",
@@ -52,7 +50,7 @@ describe("server/getters/get-markets-search", () => {
     },
   });
   test({
-    description: "user has created 1 market",
+    description: "search for 'to the store'",
     params: {
       universe: "0x000000000000000000000000000000000000000b",
       search: "to the store",

@@ -2,7 +2,6 @@ import * as Knex from "knex";
 
 exports.seed = async (knex: Knex): Promise<any> => {
   // Deletes ALL existing entries
-  console.log("RUNNING search en");
   return knex("search_en").del().then(async (): Promise<any> => {
     // Inserts seed entries
     const seedData = [{
