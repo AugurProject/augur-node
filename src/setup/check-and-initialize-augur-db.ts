@@ -52,7 +52,7 @@ function createKnex(networkId: string, dbPath: string): Knex {
 }
 
 async function renameDatabaseFile(networkId: string, dbPath: string) {
-  const backupDbPath = getDatabasePathFromNetworkId(networkId, path.dirname(dbPath), `backup-augur-%s-${new Date().getTime()}.db`);
+  const backupDbPath = getDatabasePathFromNetworkId(networkId, `backup-augur-%s-${new Date().getTime()}.db`, path.dirname(dbPath));
   logger.info(`Moving database ${dbPath} to ${backupDbPath}`);
   await promisify(rename)(dbPath, backupDbPath);
 }
@@ -108,7 +108,7 @@ async function checkAndUpdateContractUploadBlock(augur: Augur, networkId: string
 export async function createDbAndConnect(errorCallback: ErrorCallback|undefined, augur: Augur, network: ConnectOptions, databaseDir?: string): Promise<Knex> {
   return new Promise<Knex>((resolve, reject) => {
     const connectOptions = Object.assign(
-      { ethereumNode: { http: network.http, ws: network.ws, ipc: network.ipc }, startBlockStreamOnConnect: false },
+      { ethereumNode: { http: network.http, ws: network.ws }, startBlockStreamOnConnect: false },
       network.propagationDelayWaitMillis != null ? { propagationDelayWaitMillis: network.propagationDelayWaitMillis } : {},
       network.maxRetries != null ? { maxRetries: network.maxRetries } : {},
     );
