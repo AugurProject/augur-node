@@ -5,17 +5,18 @@ import { logger } from "./utils/logger";
 
 const networkName = process.argv[2] || "environment";
 const databaseDir = process.env.AUGUR_DATABASE_DIR;
-const maxRetries = process.env.MAX_RETRIES || "0";
+const maxRetries = process.env.MAX_REQUEST_RETRIES;
+const maxSystemRetries = process.env.MAX_SYSTEM_RETRIES;
 const propagationDelayWaitMillis = process.env.DELAY_WAIT_MILLIS;
 const networkConfig = NetworkConfiguration.create(networkName);
-const augur: Augur = new Augur();
 
 let config = networkConfig;
 if (maxRetries) config = Object.assign({}, config, { maxRetries });
 if (propagationDelayWaitMillis) config = Object.assign({}, config, { propagationDelayWaitMillis });
-const retries: number = parseInt(maxRetries, 10);
+const retries: number = parseInt(maxSystemRetries || "1", 10);
 
-function start(retries: number, augur: Augur, config: any, databaseDir: any) {
+function start(retries: number, config: any, databaseDir: any) {
+  const augur = new Augur();
   const augurNodeController = new AugurNodeController(augur, config, databaseDir);
 
   augur.rpc.setDebugOptions({ broadcast: false });
@@ -31,7 +32,7 @@ function start(retries: number, augur: Augur, config: any, databaseDir: any) {
     if (retries > 0) {
       retries--;
       augurNodeController.shutdown();
-      setTimeout(start(retries, augur, config, databaseDir), 1000);
+      setTimeout(start(retries, config, databaseDir), 1000);
     } else {
       process.exit(1);
     }
@@ -40,4 +41,4 @@ function start(retries: number, augur: Augur, config: any, databaseDir: any) {
   augurNodeController.start(errorCatch).catch(errorCatch);
 }
 
-start(retries, augur, config, databaseDir);
+start(retries, config, databaseDir);
