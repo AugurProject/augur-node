@@ -28,12 +28,14 @@ function start(retries: number, config: any, databaseDir: any) {
     logger.warn("Reconnect to Ethereum node");
   });
 
-  function errorCatch(err: any) {
+  function errorCatch(err: Error) {
     if (retries > 0) {
+      logger.warn(err.message);
       retries--;
       augurNodeController.shutdown();
-      setTimeout(start(retries, config, databaseDir), 1000);
+      setTimeout(() => start(retries, config, databaseDir), 1000);
     } else {
+      logger.error("Fatal Error:", err);
       process.exit(1);
     }
   }
