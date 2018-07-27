@@ -5,11 +5,18 @@ import { logger } from "./utils/logger";
 
 const networkName = process.argv[2] || "environment";
 const databaseDir = process.env.AUGUR_DATABASE_DIR;
+const maxRetries = process.env.MAX_RETRIES;
+const propagationDelayWaitMillis = process.env.DELAY_WAIT_MILLIS;
 const networkConfig = NetworkConfiguration.create(networkName);
-
 const augur: Augur = new Augur();
 
-const augurNodeController = new AugurNodeController(augur, networkConfig, databaseDir);
+let config = networkConfig;
+if (maxRetries) config = Object.assign({}, config, { propagationDelayWaitMillis, maxRetries });
+if (propagationDelayWaitMillis) config = Object.assign({}, config, { propagationDelayWaitMillis });
+
+console.log("networkConfig", JSON.stringify(config));
+
+const augurNodeController = new AugurNodeController(augur, config, databaseDir);
 
 augur.rpc.setDebugOptions({ broadcast: false });
 augur.events.nodes.ethereum.on("disconnect", (event) => {
