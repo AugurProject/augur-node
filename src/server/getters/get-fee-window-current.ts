@@ -54,7 +54,7 @@ function getFeeWindowRepStaked(db: Knex, feeWindow: Address, feeToken: Address, 
   const feeWindowRepStakedQuery = db("token_supply").select("supply")
     .whereIn("token_supply.token", [feeWindow, feeToken]);
   feeWindowRepStakedQuery.asCallback((err: Error|null, results?: Array<{ supply: BigNumber }>) => {
-    if (err || results == null) return next(err, ZERO);
+    if (err || results == null || results.length === 0) return next(err, ZERO);
     next(null, sumBy(results, "supply").supply);
   });
 }
