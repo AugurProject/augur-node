@@ -2,16 +2,22 @@ import * as Knex from "knex";
 import { Address, AsyncCallback, FeeWindowRow, FeeWindowState, UIFeeWindowCurrent } from "../../types";
 import { series } from "async";
 import { BigNumber } from "bignumber.js";
-import { sumBy } from "./database";
+import { groupByAndSum, sumBy } from "./database";
 import { ZERO } from "../../constants";
 import { getCurrentTime } from "../../blockchain/process-block";
 import Augur from "augur.js";
+import * as _ from "lodash";
 
 interface StakeRows {
-  participantContributions: BigNumber;
+  participantContributions: ParticipantStake;
   participationTokens: BigNumber;
   feeWindowEthFees: BigNumber;
   feeWindowRepStaked: BigNumber;
+}
+
+interface ParticipantStake {
+  initial_report: BigNumber;
+  crowdsourcer: BigNumber;
 }
 
 function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void) {
@@ -49,9 +55,8 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
     if (reporter == null) {
       return callback(null, feeWindowRow);
     } else {
-      const participantQuery = db.select("reporterBalance as amountStaked").from("all_participants")
-        .join("markets", "markets.marketId", "all_participants.marketId")
-        .where("markets.feeWindow", feeWindowRow.feeWindow)
+      const participantQuery = db.select("type", "reporterBalance as amountStaked").from("all_participants")
+        .where("feeWindow", feeWindowRow.feeWindow)
         .where("reporter", reporter);
 
       const participationTokenQuery = db.first([
@@ -74,10 +79,13 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
 
       series({
         participantContributions: (next: AsyncCallback) => {
-          participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber }>) => {
-            if (err || results == null || results.length === 0) return next(err, ZERO);
-            const pick = sumBy(results, "amountStaked");
-            next(null, pick.amountStaked || ZERO);
+          participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber; type: string }>) => {
+            if (err || results == null) return next(err);
+            const pick = _.keyBy(groupByAndSum(results, ["type"], ["amountStaked"]), "type");
+            next(null, {
+              initial_report: pick.initial_report ?  pick.initial_report.amountStaked : ZERO,
+              crowdsourcer: pick.crowdsourcer ? pick.crowdsourcer.amountStaked : ZERO,
+            });
           });
         },
         participationTokens: (next: AsyncCallback) => {
@@ -100,11 +108,14 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
         },
       }, (err: Error|null, stakes: StakeRows): void => {
         if (err) return callback(err);
-        const totalStake = (stakes.participantContributions).plus((stakes.participationTokens));
+        const totalParticipantContributions = stakes.participantContributions.crowdsourcer.plus(stakes.participantContributions.initial_report);
+        const totalStake = totalParticipantContributions.plus((stakes.participationTokens));
         callback(null, Object.assign(
           {
             totalStake: totalStake.toFixed(),
-            participantContributions: stakes.participantContributions.toFixed(),
+            participantContributions: totalParticipantContributions.toFixed(),
+            participantContributionsInitialReport: stakes.participantContributions.initial_report.toFixed(),
+            participantContributionsCrowdsourcer: stakes.participantContributions.crowdsourcer.toFixed(),
             participationTokens: stakes.participationTokens.toFixed(),
             feeWindowEthFees: stakes.feeWindowEthFees.toFixed(),
             feeWindowRepStaked: stakes.feeWindowRepStaked.toFixed(),
