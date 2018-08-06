@@ -2,7 +2,7 @@ import * as Knex from "knex";
 import { Address, AsyncCallback, FeeWindowRow, FeeWindowState, UIFeeWindowCurrent } from "../../types";
 import { series } from "async";
 import { BigNumber } from "bignumber.js";
-import { groupByAndSum, sumBy } from "./database";
+import { getCashAddress, groupByAndSum, sumBy } from "./database";
 import { ZERO } from "../../constants";
 import { getCurrentTime } from "../../blockchain/process-block";
 import Augur from "augur.js";
@@ -40,10 +40,10 @@ function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback:
   });
 }
 
-function feeWindowEthFees(db: Knex, augur: Augur, feeWindow: Address, next: AsyncCallback) {
+function getFeeWindowEthFees(db: Knex, augur: Augur, feeWindow: Address, next: AsyncCallback) {
   const feeWindowEthFeesQuery = db("balances").first("balance")
     .where("owner", feeWindow)
-    .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
+    .where("token", getCashAddress(augur));
   feeWindowEthFeesQuery.asCallback((err: Error|null, results?: { balance: BigNumber }) => {
     if (err || results == null) return next(err, ZERO);
     next(null, results.balance);
@@ -106,7 +106,7 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
     if (err) return callback(err);
     if (!feeWindowRow) return fabricateFeeWindow(db, augur, universe, callback);
     series({
-      feeWindowEthFees: (next: AsyncCallback) => feeWindowEthFees(db, augur, feeWindowRow.feeWindow, next),
+      feeWindowEthFees: (next: AsyncCallback) => getFeeWindowEthFees(db, augur, feeWindowRow.feeWindow, next),
       feeWindowRepStaked: (next: AsyncCallback) => getFeeWindowRepStaked(db, feeWindowRow.feeWindow, feeWindowRow.feeToken, next),
     }, (err: Error|null, stakes: FeeWindowStakes): void => {
       if (err) return callback(err);
