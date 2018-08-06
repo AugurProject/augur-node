@@ -48,6 +48,7 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
       "feeWindowId",
       "startTime",
       "universe",
+      "feeToken",
     ]).first().from("fee_windows")
     .where("state", FeeWindowState.CURRENT)
     .where({ universe });
@@ -72,9 +73,8 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
       .where("owner", feeWindowRow.feeWindow)
       .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
 
-    const feeWindowRepStakedQuery = db("token_supply").first("supply")
-      .join("fee_windows", "token_supply.token", "fee_windows.feeToken")
-      .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
+    const feeWindowRepStakedQuery = db("token_supply").select("supply")
+      .whereIn("token_supply.token", [feeWindowRow.feeWindow, feeWindowRow.feeToken] );
 
     series({
       feeWindowEthFees: (next: AsyncCallback) => {
@@ -84,9 +84,9 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
         });
       },
       feeWindowRepStaked: (next: AsyncCallback) => {
-        feeWindowRepStakedQuery.asCallback((err: Error|null, results?: { supply: BigNumber }) => {
+        feeWindowRepStakedQuery.asCallback((err: Error|null, results?: Array<{ supply: BigNumber }>) => {
           if (err || results == null) return next(err, ZERO);
-          next(null, results.supply);
+          next(null,  sumBy(results, "supply").supply);
         });
       },
     }, (err: Error|null, stakes: FeeWindowStakes): void => {

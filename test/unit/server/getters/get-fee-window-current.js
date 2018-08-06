@@ -47,10 +47,11 @@ describe("server/getters/get-fee-window-current", () => {
       assert.deepEqual(feeWindow, {
         endTime: 1509670273,
         feeWindow: "0x2000000000000000000000000000000000000000",
+        feeToken: "FEE_TOKEN_2",
         feeWindowId: 457,
         startTime: 1509065473,
         feeWindowEthFees: "2000",
-        feeWindowRepStaked: "100",
+        feeWindowRepStaked: "1100",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
@@ -78,6 +79,7 @@ describe("server/getters/get-fee-window-current", () => {
       assert.deepEqual(feeWindow, {
         endTime: 1509670273,
         feeWindow: "0x2000000000000000000000000000000000000000",
+        feeToken: "FEE_TOKEN_2",
         feeWindowId: 457,
         startTime: 1509065473,
         totalStake: "132",
@@ -86,7 +88,7 @@ describe("server/getters/get-fee-window-current", () => {
         participantContributionsInitialReport: "102",
         participationTokens: "30",
         feeWindowEthFees: "2000",
-        feeWindowRepStaked: "100",
+        feeWindowRepStaked: "1100",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
@@ -138,6 +140,7 @@ describe("server/getters/get-fee-window-current", () => {
       assert.deepEqual(feeWindow, {
         endTime: 1509670273,
         feeWindow: "0x2000000000000000000000000000000000000000",
+        feeToken: "FEE_TOKEN_2",
         feeWindowId: 457,
         startTime: 1509065473,
         totalStake: "0",
@@ -146,7 +149,7 @@ describe("server/getters/get-fee-window-current", () => {
         participantContributionsInitialReport: "0",
         participationTokens: "0",
         feeWindowEthFees: "2000",
-        feeWindowRepStaked: "100",
+        feeWindowRepStaked: "1100",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
