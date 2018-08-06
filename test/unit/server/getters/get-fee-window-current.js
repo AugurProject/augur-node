@@ -96,6 +96,43 @@ describe("server/getters/get-fee-window-current", () => {
   test({
     description: "get feeWindow with no account on fee window that does not yet exist",
     params: {
+      universe: "CHILD_UNIVERSE",
+      overrideTimestamp: 1526620468,
+      augur: {
+        constants: {
+          CONTRACT_INTERVAL: {
+            DISPUTE_ROUND_DURATION_SECONDS: 7 * 24 * 3600,
+          },
+        },
+        contracts: {
+          addresses: {
+            974: {
+              Cash: "CASH",
+            },
+          },
+        },
+        rpc: {
+          getNetworkID: () => 974,
+        },
+      },
+    },
+    assertions: (err, feeWindow) => {
+      assert.ifError(err);
+      assert.deepEqual(feeWindow, {
+        endTime: 1509065473,
+        feeToken: "FEE_TOKEN_CHILD_UNIVERSE_CURRENT",
+        feeWindow: "0x5000000000000000000000000000000000000000",
+        feeWindowEthFees: "0",
+        feeWindowId: 458,
+        feeWindowRepStaked: "0",
+        startTime: 1508065473,
+        universe: "CHILD_UNIVERSE",
+      });
+    },
+  });
+  test({
+    description: "get feeWindow that exists, but lacks any stake",
+    params: {
       universe: "0x000000000000000000000000000000000000000d",
       overrideTimestamp: 1526620468,
       augur: {
@@ -159,9 +196,8 @@ describe("server/getters/get-fee-window-current", () => {
     params: {
       universe: "0x1010101010101010101010101010101010101010",
     },
-    assertions: (err, feeWindow) => {
-      assert.ifError(err);
-      assert.isNull(feeWindow);
+    assertions: (err) => {
+      assert.isNotNull(err);
     },
   });
 });

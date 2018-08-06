@@ -26,7 +26,7 @@ interface ParticipantStake {
 function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void) {
   db("universes").first("universe").where({ universe }).asCallback((err, universeRow) => {
     if (err) return callback(err);
-    if (universeRow == null) return callback(null, null);
+    if (universeRow == null) return callback(new Error("Universe does not exist"), null);
     const feeWindowId = Math.floor(getCurrentTime() / augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS);
     const startTime = feeWindowId * augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS;
     const endTime = (feeWindowId + 1) * augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS;
