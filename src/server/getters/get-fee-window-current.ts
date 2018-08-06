@@ -10,6 +10,8 @@ import Augur from "augur.js";
 interface StakeRows {
   participantContributions: BigNumber;
   participationTokens: BigNumber;
+  feeWindowEthFees: BigNumber;
+  feeWindowRepStaked: BigNumber;
 }
 
 function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void) {
@@ -62,6 +64,14 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
         })
         .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
 
+      const feeWindowEthFeesQuery = db("balances").first("balance")
+        .where("owner", feeWindowRow.feeWindow)
+        .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
+
+      const feeWindowRepStakedQuery = db("token_supply").first("supply")
+        .join("fee_windows", "token_supply.token", "fee_windows.feeToken")
+        .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
+
       series({
         participantContributions: (next: AsyncCallback) => {
           participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber }>) => {
@@ -76,6 +86,18 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
             next(null, results.amountStaked);
           });
         },
+        feeWindowEthFees: (next: AsyncCallback) => {
+          feeWindowEthFeesQuery.asCallback((err: Error|null, results?: { balance: BigNumber }) => {
+            if (err || results == null) return next(err, ZERO);
+            next(null, results.balance);
+          });
+        },
+        feeWindowRepStaked: (next: AsyncCallback) => {
+          feeWindowRepStakedQuery.asCallback((err: Error|null, results?: { supply: BigNumber }) => {
+            if (err || results == null) return next(err, ZERO);
+            next(null, results.supply);
+          });
+        },
       }, (err: Error|null, stakes: StakeRows): void => {
         if (err) return callback(err);
         const totalStake = (stakes.participantContributions).plus((stakes.participationTokens));
@@ -84,6 +106,8 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
             totalStake: totalStake.toFixed(),
             participantContributions: stakes.participantContributions.toFixed(),
             participationTokens: stakes.participationTokens.toFixed(),
+            feeWindowEthFees: stakes.feeWindowEthFees.toFixed(),
+            feeWindowRepStaked: stakes.feeWindowRepStaked.toFixed(),
           },
           feeWindowRow,
         ));
