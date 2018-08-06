@@ -40,9 +40,9 @@ function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback:
   });
 }
 
-function feeWindowEthFees(db: Knex, feeWindowRow: FeeWindowRow, augur: Augur, next: AsyncCallback) {
+function feeWindowEthFees(db: Knex, augur: Augur, feeWindow: Address, next: AsyncCallback) {
   const feeWindowEthFeesQuery = db("balances").first("balance")
-    .where("owner", feeWindowRow.feeWindow)
+    .where("owner", feeWindow)
     .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
   feeWindowEthFeesQuery.asCallback((err: Error|null, results?: { balance: BigNumber }) => {
     if (err || results == null) return next(err, ZERO);
@@ -50,18 +50,18 @@ function feeWindowEthFees(db: Knex, feeWindowRow: FeeWindowRow, augur: Augur, ne
   });
 }
 
-function getFeeWindowRepStaked(db: Knex, feeWindowRow: FeeWindowRow, next: AsyncCallback) {
+function getFeeWindowRepStaked(db: Knex, feeWindow: Address, feeToken: Address, next: AsyncCallback) {
   const feeWindowRepStakedQuery = db("token_supply").select("supply")
-    .whereIn("token_supply.token", [feeWindowRow.feeWindow, feeWindowRow.feeToken]);
+    .whereIn("token_supply.token", [feeWindow, feeToken]);
   feeWindowRepStakedQuery.asCallback((err: Error|null, results?: Array<{ supply: BigNumber }>) => {
     if (err || results == null) return next(err, ZERO);
     next(null, sumBy(results, "supply").supply);
   });
 }
 
-function getParticipantContributions(db: Knex, feeWindowRow: FeeWindowRow, reporter: Address, next: AsyncCallback) {
+function getParticipantContributions(db: Knex, feeWindow: Address, reporter: Address, next: AsyncCallback) {
   const participantQuery = db.select("type", "reporterBalance as amountStaked").from("all_participants")
-    .where("feeWindow", feeWindowRow.feeWindow)
+    .where("feeWindow", feeWindow)
     .where("reporter", reporter);
   participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber; type: string }>) => {
     if (err || results == null) return next(err);
@@ -73,7 +73,7 @@ function getParticipantContributions(db: Knex, feeWindowRow: FeeWindowRow, repor
   });
 }
 
-function getParticipationTokens(db: Knex, feeWindowRow: FeeWindowRow, reporter: Address, next: AsyncCallback) {
+function getParticipationTokens(db: Knex, feeWindow: Address, reporter: Address, next: AsyncCallback) {
   const participationTokenQuery = db.first([
     "participationToken.balance AS amountStaked",
   ]).from("fee_windows")
@@ -82,7 +82,7 @@ function getParticipationTokens(db: Knex, feeWindowRow: FeeWindowRow, reporter: 
         .on("participationToken.token", db.raw("fee_windows.feeWindow"))
         .andOn("participationToken.owner", db.raw("?", [reporter]));
     })
-    .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
+    .where("fee_windows.feeWindow", feeWindow);
   participationTokenQuery.asCallback((err: Error|null, results?: { amountStaked: BigNumber }) => {
     if (err || results == null) return next(err, ZERO);
     next(null, results.amountStaked);
@@ -106,8 +106,8 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
     if (err) return callback(err);
     if (!feeWindowRow) return fabricateFeeWindow(db, augur, universe, callback);
     series({
-      feeWindowEthFees: (next: AsyncCallback) => feeWindowEthFees(db, feeWindowRow, augur, next),
-      feeWindowRepStaked: (next: AsyncCallback) => getFeeWindowRepStaked(db, feeWindowRow, next),
+      feeWindowEthFees: (next: AsyncCallback) => feeWindowEthFees(db, augur, feeWindowRow.feeWindow, next),
+      feeWindowRepStaked: (next: AsyncCallback) => getFeeWindowRepStaked(db, feeWindowRow.feeWindow, feeWindowRow.feeToken, next),
     }, (err: Error|null, stakes: FeeWindowStakes): void => {
       if (err) return callback(err);
       const feeWindowResponse = Object.assign({
@@ -118,8 +118,8 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
         return callback(null, feeWindowResponse);
       }
       series({
-        participantContributions: (next: AsyncCallback) => getParticipantContributions(db, feeWindowRow, reporter, next),
-        participationTokens: (next: AsyncCallback) => getParticipationTokens(db, feeWindowRow, reporter, next),
+        participantContributions: (next: AsyncCallback) => getParticipantContributions(db, feeWindowRow.feeWindow, reporter, next),
+        participationTokens: (next: AsyncCallback) => getParticipationTokens(db, feeWindowRow.feeWindow, reporter, next),
       }, (err: Error|null, stakes: StakeRows): void => {
         if (err) return callback(err);
         const totalParticipantContributions = stakes.participantContributions.crowdsourcer.plus(stakes.participantContributions.initial_report);
