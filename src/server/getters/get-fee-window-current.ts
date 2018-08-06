@@ -11,10 +11,12 @@ import * as _ from "lodash";
 interface StakeRows {
   participantContributions: ParticipantStake;
   participationTokens: BigNumber;
+}
+
+interface FeeWindowStakes {
   feeWindowEthFees: BigNumber;
   feeWindowRepStaked: BigNumber;
 }
-
 interface ParticipantStake {
   initial_report: BigNumber;
   crowdsourcer: BigNumber;
@@ -52,38 +54,57 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
   query.asCallback((err: Error|null, feeWindowRow?: FeeWindowRow): void => {
     if (err) return callback(err);
     if (!feeWindowRow) return fabricateFeeWindow(db, augur, universe, callback);
-    if (reporter == null) {
-      return callback(null, feeWindowRow);
-    } else {
-      const participantQuery = db.select("type", "reporterBalance as amountStaked").from("all_participants")
-        .where("feeWindow", feeWindowRow.feeWindow)
-        .where("reporter", reporter);
+    const participantQuery = db.select("type", "reporterBalance as amountStaked").from("all_participants")
+      .where("feeWindow", feeWindowRow.feeWindow)
+      .where("reporter", reporter);
 
-      const participationTokenQuery = db.first([
-        "participationToken.balance AS amountStaked",
-      ]).from("fee_windows")
-        .join("balances AS participationToken", function () {
-          this
-            .on("participationToken.token", db.raw("fee_windows.feeWindow"))
-            .andOn("participationToken.owner", db.raw("?", [reporter]));
-        })
-        .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
+    const participationTokenQuery = db.first([
+      "participationToken.balance AS amountStaked",
+    ]).from("fee_windows")
+      .join("balances AS participationToken", function () {
+        this
+          .on("participationToken.token", db.raw("fee_windows.feeWindow"))
+          .andOn("participationToken.owner", db.raw("?", [reporter]));
+      })
+      .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
 
-      const feeWindowEthFeesQuery = db("balances").first("balance")
-        .where("owner", feeWindowRow.feeWindow)
-        .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
+    const feeWindowEthFeesQuery = db("balances").first("balance")
+      .where("owner", feeWindowRow.feeWindow)
+      .where("token", augur.contracts.addresses[augur.rpc.getNetworkID()].Cash);
 
-      const feeWindowRepStakedQuery = db("token_supply").first("supply")
-        .join("fee_windows", "token_supply.token", "fee_windows.feeToken")
-        .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
+    const feeWindowRepStakedQuery = db("token_supply").first("supply")
+      .join("fee_windows", "token_supply.token", "fee_windows.feeToken")
+      .where("fee_windows.feeWindow", feeWindowRow.feeWindow);
 
+    series({
+      feeWindowEthFees: (next: AsyncCallback) => {
+        feeWindowEthFeesQuery.asCallback((err: Error|null, results?: { balance: BigNumber }) => {
+          if (err || results == null) return next(err, ZERO);
+          next(null, results.balance);
+        });
+      },
+      feeWindowRepStaked: (next: AsyncCallback) => {
+        feeWindowRepStakedQuery.asCallback((err: Error|null, results?: { supply: BigNumber }) => {
+          if (err || results == null) return next(err, ZERO);
+          next(null, results.supply);
+        });
+      },
+    }, (err: Error|null, stakes: FeeWindowStakes): void => {
+      if (err) return callback(err);
+      const feeWindowResponse = Object.assign({
+        feeWindowEthFees: stakes.feeWindowEthFees.toFixed(),
+        feeWindowRepStaked: stakes.feeWindowRepStaked.toFixed(),
+      }, feeWindowRow);
+      if (reporter == null) {
+        return callback(null, feeWindowResponse);
+      }
       series({
         participantContributions: (next: AsyncCallback) => {
           participantQuery.asCallback((err: Error|null, results?: Array<{ amountStaked: BigNumber; type: string }>) => {
             if (err || results == null) return next(err);
             const pick = _.keyBy(groupByAndSum(results, ["type"], ["amountStaked"]), "type");
             next(null, {
-              initial_report: pick.initial_report ?  pick.initial_report.amountStaked : ZERO,
+              initial_report: pick.initial_report ? pick.initial_report.amountStaked : ZERO,
               crowdsourcer: pick.crowdsourcer ? pick.crowdsourcer.amountStaked : ZERO,
             });
           });
@@ -92,18 +113,6 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
           participationTokenQuery.asCallback((err: Error|null, results?: { amountStaked: BigNumber }) => {
             if (err || results == null) return next(err, ZERO);
             next(null, results.amountStaked);
-          });
-        },
-        feeWindowEthFees: (next: AsyncCallback) => {
-          feeWindowEthFeesQuery.asCallback((err: Error|null, results?: { balance: BigNumber }) => {
-            if (err || results == null) return next(err, ZERO);
-            next(null, results.balance);
-          });
-        },
-        feeWindowRepStaked: (next: AsyncCallback) => {
-          feeWindowRepStakedQuery.asCallback((err: Error|null, results?: { supply: BigNumber }) => {
-            if (err || results == null) return next(err, ZERO);
-            next(null, results.supply);
           });
         },
       }, (err: Error|null, stakes: StakeRows): void => {
@@ -117,12 +126,9 @@ export function getFeeWindowCurrent(db: Knex, augur: Augur, universe: Address, r
             participantContributionsInitialReport: stakes.participantContributions.initial_report.toFixed(),
             participantContributionsCrowdsourcer: stakes.participantContributions.crowdsourcer.toFixed(),
             participationTokens: stakes.participationTokens.toFixed(),
-            feeWindowEthFees: stakes.feeWindowEthFees.toFixed(),
-            feeWindowRepStaked: stakes.feeWindowRepStaked.toFixed(),
-          },
-          feeWindowRow,
+          }, feeWindowResponse,
         ));
       });
-    }
+    });
   });
 }

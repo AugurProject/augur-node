@@ -49,6 +49,8 @@ describe("server/getters/get-fee-window-current", () => {
         feeWindow: "0x2000000000000000000000000000000000000000",
         feeWindowId: 457,
         startTime: 1509065473,
+        feeWindowEthFees: "2000",
+        feeWindowRepStaked: "100",
         universe: "0x000000000000000000000000000000000000000b",
       });
     },
