@@ -166,7 +166,7 @@ describe("blockchain/log-processors/market-created", () => {
             description: null,
           }],
           search: [{
-            content: "0x1111111111111111111111111111111111111111 TEST_CATEGORY this is a test market TEST_TAG_1 TEST_TAG_2 https://www.trusted-third-party-co.com",
+            longDescription: "this is a test market TEST_TAG_1 TEST_TAG_2 https://www.trusted-third-party-co.com",
             marketId: "0x1111111111111111111111111111111111111111",
           }],
           tokens: [{
@@ -337,7 +337,8 @@ describe("blockchain/log-processors/market-created", () => {
             description: "test outcome 3",
           }],
           search: [{
-            content: "0x1111111111111111111111111111111111111112 TEST_CATEGORY this is a test market TEST_TAG_1 TEST_TAG_2 https://www.trusted-third-party-co.com",
+            longDescription: "this is a test market",
+            tags: "TEST_TAG_1 TEST_TAG_2",
             marketId: "0x1111111111111111111111111111111111111112",
           }],
           tokens: [{
@@ -505,7 +506,9 @@ describe("blockchain/log-processors/market-created", () => {
             description: null,
           }],
           search: [{
-            content: "0x1111111111111111111111111111111111111113 TEST_CATEGORY this is a test market TEST_TAG_1 TEST_TAG_2 https://www.trusted-third-party-co.com",
+            longDescription: "this is a test market",
+            category: "TEST_CATEGORY",
+            tags: "TEST_TAG_1 TEST_TAG_2",
             marketId: "0x1111111111111111111111111111111111111113",
           }],
           tokens: [{
@@ -659,7 +662,8 @@ describe("blockchain/log-processors/market-created", () => {
             description: null,
           }],
           search: [{
-            content: "0x1111111111111111111111111111111111111111 TEST_CATEGORY this is a test market",
+            category: "TEST_CATEGORY",
+            shortDescription: "this is a test market",
             marketId: "0x1111111111111111111111111111111111111111",
           }],
           tokens: [{
@@ -821,7 +825,9 @@ describe("blockchain/log-processors/market-created", () => {
             description: null,
           }],
           search: [{
-            content: "0x1111111111111111111111111111111111111111 TEST_CATEGORY this is a test market TEST_TAG_1 TEST_TAG_2 https://www.trusted-third-party-co.com",
+            category: "TEST_CATEGORY",
+            shortDescription: "this is a test market",
+            tags: "TEST_TAG_1 TEST_TAG_2",
             marketId: "0x1111111111111111111111111111111111111111",
           }],
           tokens: [{
