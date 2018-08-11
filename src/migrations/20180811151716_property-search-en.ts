@@ -3,7 +3,7 @@ import { contentSearchBuilder } from "../utils/content-search-builder";
 
 exports.up = async (knex: Knex): Promise<any> => {
   knex.schema.dropTableIfExists("search_en").then((): PromiseLike<any> => {
-    return knex.schema.raw(`CREATE VIRTUAL TABLE search_en USING fts4(marketId, category, tags, shortDescription, longDescription, scalarDenomination, resolutionSource, outcomeDescriptions)`);
+    return knex.schema.raw(`CREATE VIRTUAL TABLE search_en USING fts4(marketId, category, tags, shortDescription, longDescription, scalarDenomination, resolutionSource)`);
   });
 
   const markets = await knex.select("*").from("markets");
