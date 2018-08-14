@@ -21,9 +21,9 @@ export function contentSearchBuilder(marketsDataToInsert: MarketsRow<string|numb
     marketId,
     category,
     tags: filteredTags.length > 0 ? filteredTags : "",
-    shortDescription: shortDescription !== null ? marketsDataToInsert.shortDescription : "",
-    longDescription: longDescription !== null ? marketsDataToInsert.longDescription : "",
-    resolutionSource: resolutionSource !== null ? marketsDataToInsert.resolutionSource : "",
-    scalarDenomination: scalarDenomination !== null ? marketsDataToInsert.scalarDenomination : "",
+    shortDescription: shortDescription || "",
+    longDescription: longDescription || "",
+    resolutionSource: resolutionSource || "",
+    scalarDenomination: scalarDenomination || "",
   };
 }
