@@ -445,7 +445,7 @@ export interface UITrade {
   type: string;
   price: string;
   amount: string;
-  maker: boolean;
+  maker: boolean|null;
   selfFilled: boolean;
   marketCreatorFees: string;
   reporterFees: string;
