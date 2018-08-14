@@ -24,6 +24,6 @@ export function contentSearchBuilder(marketsDataToInsert: MarketsRow<string|numb
     shortDescription: shortDescription !== null ? marketsDataToInsert.shortDescription : "",
     longDescription: longDescription !== null ? marketsDataToInsert.longDescription : "",
     resolutionSource: resolutionSource !== null ? marketsDataToInsert.resolutionSource : "",
-    scalarDenomination: scalarDenomination != null ? marketsDataToInsert.scalarDenomination : "",
+    scalarDenomination: scalarDenomination !== null ? marketsDataToInsert.scalarDenomination : "",
   };
 }
