@@ -1,6 +1,5 @@
 import Augur from "augur.js";
 import * as Knex from "knex";
-import * as _ from "lodash";
 import { FormattedEventLog, ErrorCallback, CategoriesRow, CategoryRow, ReportingState, Address } from "../../types";
 import { rollbackMarketState, updateMarketFeeWindow, updateMarketState } from "./database";
 import { getMarketsWithReportingState } from "../../server/getters/database";
@@ -44,6 +43,7 @@ export function processMarketMigratedLog(db: Knex, augur: Augur, log: FormattedE
               if (categoriesRows && categoriesRows.length) return callback(null);
               db.insert({ category, universe: log.newUniverse }).into("categories").asCallback(callback);
             });
+          });
         });
       });
     });
