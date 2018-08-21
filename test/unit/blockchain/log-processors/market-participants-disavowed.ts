@@ -1,8 +1,12 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { processMarketParticipantsDisavowedLog, processMarketParticipantsDisavowedLogRemoval } = require("../../../../build/blockchain/log-processors/market-participants-disavowed");
+import { assert } from "chai";
+import {
+  processMarketParticipantsDisavowedLog,
+  processMarketParticipantsDisavowedLogRemoval,
+} from "../../../../src/blockchain/log-processors/market-participants-disavowed";
+
+import { setupTestDb } from "../../test.database";
 
 describe("blockchain/log-processors/market-participants-disavowed", () => {
   const test = (t) => {

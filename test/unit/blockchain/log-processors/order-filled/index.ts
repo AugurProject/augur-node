@@ -1,12 +1,20 @@
 "use strict";
 
-const assert = require("chai").assert;
-const { series } = require("async");
-const { BigNumber } = require("bignumber.js");
-const { fix } = require("speedomatic");
-const setupTestDb = require("../../../test.database");
-const { processOrderFilledLog, processOrderFilledLogRemoval } = require("../../../../../build/blockchain/log-processors/order-filled");
-const Augur = require("augur.js");
+import { assert } from "chai";
+import { series } from "async";
+
+import { BigNumber } from "bignumber.js";
+
+import { fix } from "speedomatic";
+
+import {
+  processOrderFilledLog,
+  processOrderFilledLogRemoval,
+} from "../../../../../src/blockchain/log-processors/order-filled";
+
+import Augur from "augur.js";
+
+import { setupTestDb } from "../../../test.database";
 const augur = new Augur();
 
 describe("blockchain/log-processors/order-filled", () => {

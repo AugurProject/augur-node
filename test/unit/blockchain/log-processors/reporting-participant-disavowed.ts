@@ -1,9 +1,14 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {processReportingParticipantDisavowedLog, processReportingParticipantDisavowedLogRemoval} = require("../../../../build/blockchain/log-processors/reporting-participant-disavowed");
-const {series} = require("async");
+import { assert } from "chai";
+import {
+  processReportingParticipantDisavowedLog,
+  processReportingParticipantDisavowedLogRemoval,
+} from "../../../../src/blockchain/log-processors/reporting-participant-disavowed";
+
+import { series } from "async";
+
+import { setupTestDb } from "../../test.database";
 
 const getParticipantState = (db, params, callback) => {
   series({

@@ -1,10 +1,14 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {BigNumber} = require("bignumber.js");
-const {series} = require("async");
-const {processOrderCanceledLog, processOrderCanceledLogRemoval} = require("../../../../build/blockchain/log-processors/order-canceled");
+import { assert } from "chai";
+import { BigNumber } from "bignumber.js";
+import { series } from "async";
+import {
+  processOrderCanceledLog,
+  processOrderCanceledLogRemoval,
+} from "../../../../src/blockchain/log-processors/order-canceled";
+
+import { setupTestDb } from "../../test.database";
 
 describe("blockchain/log-processors/order-canceled", () => {
   const test = (t) => {

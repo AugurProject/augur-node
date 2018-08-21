@@ -1,12 +1,19 @@
 "use strict";
 
-const Augur = require("augur.js");
-const assert = require("chai").assert;
-const {series} = require("async");
-const {BigNumber} = require("bignumber.js");
-const setupTestDb = require("../../test.database");
-const {processMarketCreatedLog, processMarketCreatedLogRemoval} = require("../../../../build/blockchain/log-processors/market-created");
-const {getMarketsWithReportingState} = require("../../../../build/server/getters/database");
+import Augur from "augur.js";
+import { assert } from "chai";
+import { series } from "async";
+
+import { BigNumber } from "bignumber.js";
+
+import {
+  processMarketCreatedLog,
+  processMarketCreatedLogRemoval,
+} from "../../../../src/blockchain/log-processors/market-created";
+
+import { getMarketsWithReportingState } from "../../../../src/server/getters/database";
+
+import { setupTestDb } from "../../test.database";
 
 describe("blockchain/log-processors/market-created", () => {
   const test = (t) => {

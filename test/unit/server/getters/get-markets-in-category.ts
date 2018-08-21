@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getMarketsInCategory } = require("../../../../build/server/getters/get-markets-in-category");
+import { assert } from "chai";
+import { getMarketsInCategory } from "../../../../src/server/getters/get-markets-in-category";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-markets-in-category", () => {
   const test = (t) => {

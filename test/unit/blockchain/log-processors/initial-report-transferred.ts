@@ -1,10 +1,13 @@
 "use strict";
 
-const Augur = require("augur.js");
+import Augur from "augur.js";
+import { assert } from "chai";
+import {
+  processInitialReporterTransferredLog,
+  processInitialReporterTransferredLogRemoval,
+} from "../../../../src/blockchain/log-processors/initial-report-transferred";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { processInitialReporterTransferredLog, processInitialReporterTransferredLogRemoval } = require("../../../../build/blockchain/log-processors/initial-report-transferred");
+import { setupTestDb } from "../../test.database";
 
 const getInitialReport = (db, params, callback) => {
   db("initial_reports").first(["reporter"]).where("initial_reports.marketId", params.log.market).asCallback(callback);

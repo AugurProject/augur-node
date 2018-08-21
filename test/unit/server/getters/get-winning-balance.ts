@@ -1,9 +1,11 @@
 "use strict";
 
-const { BigNumber } = require("bignumber.js");
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getWinningBalance } = require("../../../../build/server/getters/get-winning-balance");
+import { BigNumber } from "bignumber.js";
+
+import { assert } from "chai";
+import { getWinningBalance } from "../../../../src/server/getters/get-winning-balance";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-winning-balance", () => {
   const test = (t) => {

@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getSyncData } = require("../../../../build/server/getters/get-sync-data");
+import { assert } from "chai";
+import { getSyncData } from "../../../../src/server/getters/get-sync-data";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-sync-data", () => {
   const test = (t) => {

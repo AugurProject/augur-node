@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getMarketsClosingInDateRange } = require("../../../../build/server/getters/get-markets-closing-in-date-range");
+import { assert } from "chai";
+import { getMarketsClosingInDateRange } from "../../../../src/server/getters/get-markets-closing-in-date-range";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-markets-closing-in-date-range", () => {
   const test = (t) => {

@@ -1,9 +1,10 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getFeeWindowCurrent } = require("../../../../build/server/getters/get-fee-window-current");
-const { setOverrideTimestamp, removeOverrideTimestamp } = require("../../../../build/blockchain/process-block.js");
+import { assert } from "chai";
+import { getFeeWindowCurrent } from "../../../../src/server/getters/get-fee-window-current";
+import { removeOverrideTimestamp, setOverrideTimestamp } from "../../../../src/blockchain/process-block.js";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-fee-window-current", () => {
   const test = (t) => {

@@ -1,16 +1,21 @@
-const Augur = require("augur.js");
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { calculateEarningsPerTimePeriod, getProfitLoss, bucketRangeByInterval } = require("../../../../build/server/getters/get-profit-loss");
-const sqlite3 = require("sqlite3");
-const Knex = require("knex");
-const { postProcessDatabaseResults } = require("../../../../build/server/post-process-database-results");
+import Augur from "augur.js";
+import { assert } from "chai";
+import {
+  bucketRangeByInterval,
+  calculateEarningsPerTimePeriod,
+  getProfitLoss,
+} from "../../../../src/server/getters/get-profit-loss";
+
+import sqlite3 from "sqlite3";
+import Knex from "knex";
+import { postProcessDatabaseResults } from "../../../../src/server/post-process-database-results";
+import BigNumber from "bignumber.js";
+
+import { setupTestDb } from "../../test.database";
 
 const START_TIME = 1506474500;
 const MINUTE_SECONDS = 60;
 const HOUR_SECONDS = MINUTE_SECONDS * 60;
-
-const BigNumber = require("bignumber.js");
 BigNumber.config({
   MODULO_MODE: BigNumber.EUCLID,
   ROUNDING_MODE: BigNumber.ROUND_HALF_DOWN,
@@ -108,7 +113,7 @@ describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
 
 describe("tests for test/trading-proceeds-claimed-2.db", () => {
   let connection = null;
-  let augur = new Augur();
+  const augur = new Augur();
   const universe = "0x8e9d71cb6e9080bc04f6fd562f5dd68af0163baf";
   const account1 = "0x913da4198e6be1d5f5e4a40d0667f70c0b5430eb";
 
@@ -203,7 +208,7 @@ describe("tests for test/trading-proceeds-claimed-2.db", () => {
 
 describe("tests for test/profitloss.db", () => {
   let connection = null;
-  let augur = new Augur();
+  const augur = new Augur();
 
   beforeEach((done) => {
     sqlite3.verbose();
@@ -265,7 +270,7 @@ describe("tests for test/profitloss.db", () => {
     getProfitLoss(connection, augur, universe, account2, 0, endTime, endTime, (err, results) => {
       try {
 
-        let expected = [{
+        const expected = [{
           lastPrice: "0.1",
           profitLoss: {
             meanOpenPrice: "0",
@@ -291,7 +296,7 @@ describe("tests for test/profitloss.db", () => {
 
 describe("server/getters/get-profit-loss", () => {
   let connection = null;
-  let augur = new Augur();
+  const augur = new Augur();
 
   const testWithDatabase = (t, done) => {
     getProfitLoss(connection, augur, t.params.universe, t.params.account, t.params.startTime, t.params.endTime, t.params.periodInterval, (err, profitLoss) => {
@@ -582,7 +587,7 @@ describe("server/getters/get-profit-loss", () => {
     );
   });
 
-  let trades1 = [
+  const trades1 = [
     {
       timestamp: 10000,
       type: "sell",
@@ -733,7 +738,7 @@ describe("server/getters/get-profit-loss", () => {
   });
 
   it("calculates pl for 1 period, and 4 periods, and verifies last period PLs are equal", (done) => {
-    let buckets1 = [
+    const buckets1 = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -743,10 +748,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    let pls1 = calculateEarningsPerTimePeriod(augur, trades1, buckets1);
+    const pls1 = calculateEarningsPerTimePeriod(augur, trades1, buckets1);
     assert.equal(pls1.length, 1);
 
-    let buckets2 = [
+    const buckets2 = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -768,10 +773,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    let pls2 = calculateEarningsPerTimePeriod(augur, trades1, buckets2);
+    const pls2 = calculateEarningsPerTimePeriod(augur, trades1, buckets2);
     assert.equal(pls2.length, 4);
 
-    let result = {
+    const result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.166666666666666666665",
@@ -786,7 +791,7 @@ describe("server/getters/get-profit-loss", () => {
   });
 
   it("calculates pl for 1 periods and ignores trailing trades", (done) => {
-    let trades2 = trades1.slice();
+    const trades2 = trades1.slice();
     trades2.push({
       timestamp: 10040,
       type: "buy",
@@ -795,7 +800,7 @@ describe("server/getters/get-profit-loss", () => {
       maker: true,
     });
 
-    let buckets = [
+    const buckets = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -805,10 +810,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    const pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    let result = {
+    const result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.166666666666666666665",
@@ -823,7 +828,7 @@ describe("server/getters/get-profit-loss", () => {
 
   it("calculates pl for one period, with basis which nets out", (done) => {
     // These two trades net out, leaving a 0 basis
-    let trades2 = [
+    const trades2 = [
       {
         timestamp: 8000,
         type: "buy",
@@ -840,7 +845,7 @@ describe("server/getters/get-profit-loss", () => {
       },
     ].concat(trades1);
 
-    let buckets = [
+    const buckets = [
       {
         timestamp: 10000,
         lastPrice: "0.3",
@@ -851,10 +856,10 @@ describe("server/getters/get-profit-loss", () => {
       },
     ];
 
-    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    const pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    let result = {
+    const result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.16666666666666666666",
@@ -868,7 +873,7 @@ describe("server/getters/get-profit-loss", () => {
   });
 
   it("calculates pl for one period, with basis doesnt net out", (done) => {
-    let trades2 = [
+    const trades2 = [
       {
         timestamp: 8000,
         type: "buy",
@@ -885,7 +890,7 @@ describe("server/getters/get-profit-loss", () => {
       },
     ].concat(trades1);
 
-    let buckets = [
+    const buckets = [
       {
         timestamp: 10000,
         lastPrice: "0.1",
@@ -896,10 +901,10 @@ describe("server/getters/get-profit-loss", () => {
       },
     ];
 
-    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    const pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    let result = {
+    const result = {
       meanOpenPrice: "0.176923076923076923077",
       position: "8",
       realized: "1.71538461538461538461",

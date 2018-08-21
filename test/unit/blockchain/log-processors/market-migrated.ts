@@ -1,11 +1,15 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {processMarketMigratedLog, processMarketMigratedLogRemoval} = require("../../../../build/blockchain/log-processors/market-migrated");
-const {getMarketsWithReportingState} = require("../../../../build/server/getters/database");
-const ReportingState = require("../../../../build/types").ReportingState;
+import { assert } from "chai";
+import {
+  processMarketMigratedLog,
+  processMarketMigratedLogRemoval,
+} from "../../../../src/blockchain/log-processors/market-migrated";
 
+import { getMarketsWithReportingState } from "../../../../src/server/getters/database";
+import { ReportingState } from "../../../../src/types";
+
+import { setupTestDb } from "../../test.database";
 const getMarket = (db, params, callback) => {
   getMarketsWithReportingState(db, ["markets.marketId", "markets.universe", "markets.needsMigration", "markets.needsDisavowal", "feeWindow", "reportingState"])
     .from("markets").where({"markets.marketId": params.log.market}).asCallback(callback);

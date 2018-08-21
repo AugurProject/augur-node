@@ -1,9 +1,13 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { BigNumber } = require("bignumber.js");
-const { processTokensTransferredLog, processTokensTransferredLogRemoval } = require("../../../../build/blockchain/log-processors/tokens-transferred");
+import { assert } from "chai";
+import { BigNumber } from "bignumber.js";
+import {
+  processTokensTransferredLog,
+  processTokensTransferredLogRemoval,
+} from "../../../../src/blockchain/log-processors/tokens-transferred";
+
+import { setupTestDb } from "../../test.database";
 
 describe("blockchain/log-processors/tokens-transferred", () => {
   const test = (t) => {

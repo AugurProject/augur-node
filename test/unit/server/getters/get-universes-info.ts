@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getUniversesInfo } = require("../../../../build/server/getters/get-universes-info");
+import { assert } from "chai";
+import { getUniversesInfo } from "../../../../src/server/getters/get-universes-info";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-universes-info", () => {
   const test = (t) => {

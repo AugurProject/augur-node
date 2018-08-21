@@ -1,8 +1,14 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../../test.database");
-const { processApprovalLog, processApprovalLogRemoval } = require("../../../../../build/blockchain/log-processors/token/approval");
+import { assert } from "chai";
+import { describe, it } from "mocha";
+
+import {
+  processApprovalLog,
+  processApprovalLogRemoval,
+} from "../../../../../src/blockchain/log-processors/token/approval";
+
+import { setupTestDb } from "../../../test.database";
 
 describe("blockchain/log-processors/token/approval", () => {
   const test = (t) => {

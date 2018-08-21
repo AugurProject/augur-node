@@ -1,9 +1,14 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {processTimestampSetLog, processTimestampSetLogRemoval} = require("../../../../build/blockchain/log-processors/timestamp-set");
-const {getOverrideTimestamp} = require("../../../../build/blockchain/process-block");
+import { assert } from "chai";
+import {
+  processTimestampSetLog,
+  processTimestampSetLogRemoval,
+} from "../../../../src/blockchain/log-processors/timestamp-set";
+
+import { getOverrideTimestamp } from "../../../../src/blockchain/process-block";
+
+import { setupTestDb } from "../../test.database";
 
 function initializeNetwork(db, callback) {
   db.insert({networkId: 9999}).into("network_id").asCallback(callback);

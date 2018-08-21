@@ -1,10 +1,11 @@
-"use strict";
+import * as Knex from "knex";
+// @ts-ignore
+import * as environments from "../../knexfile.js";
 
-const environments = require("../../knexfile.js");
-const Knex = require("knex");
-const { postProcessDatabaseResults } = require("../../build/server/post-process-database-results.js");
+import { postProcessDatabaseResults } from "../../src/server/post-process-database-results";
+import { GenericCallback } from "../../src/types";
 
-module.exports = (callback) => {
+export const setupTestDb = (callback: GenericCallback<Knex>) => {
   const env = Object.assign({}, environments.test, {
     postProcessResponse: postProcessDatabaseResults,
   });

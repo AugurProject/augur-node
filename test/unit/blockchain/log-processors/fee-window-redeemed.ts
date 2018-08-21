@@ -1,8 +1,12 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {processFeeWindowRedeemedLog, processFeeWindowRedeemedLogRemoval} = require("../../../../build/blockchain/log-processors/fee-window-redeemed");
+import { assert } from "chai";
+import {
+  processFeeWindowRedeemedLog,
+  processFeeWindowRedeemedLogRemoval,
+} from "../../../../src/blockchain/log-processors/fee-window-redeemed";
+
+import { setupTestDb } from "../../test.database";
 
 describe("blockchain/log-processors/fee-window-redeemed", () => {
   const test = (t) => {

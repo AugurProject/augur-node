@@ -1,14 +1,21 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { processCompleteSetsPurchasedOrSoldLog, processCompleteSetsPurchasedOrSoldLogRemoval } = require("../../../../build/blockchain/log-processors/completesets");
-const Augur = require("augur.js");
+import { assert } from "chai";
+import {
+  processCompleteSetsPurchasedOrSoldLog,
+  processCompleteSetsPurchasedOrSoldLogRemoval,
+} from "../../../../src/blockchain/log-processors/completesets";
+
+import Augur from "augur.js";
+
+import { setupTestDb } from "../../test.database";
+import { describe, it } from "mocha";
+import Knex = require("knex");
 const augur = new Augur();
 
 describe("blockchain/log-processors/completesets", () => {
   const test = (t) => {
-    const getState = (db, params, callback) => db("completeSets").where({
+    const getState = (db: Knex, params, callback) => db("completeSets").where({
       account: params.log.account,
       marketId: params.log.market,
     }).asCallback(callback);

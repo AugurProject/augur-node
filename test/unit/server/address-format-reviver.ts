@@ -1,9 +1,7 @@
-"use strict";
-
-const fs = require("fs");
-const { expect } = require("chai");
-
-const { inputsExpectedAsAddress, addressFormatReviver } = require("../../../build/server/address-format-reviver");
+import * as fs from "fs";
+import { expect } from "chai";
+import { describe, it } from "mocha";
+import { addressFormatReviver, inputsExpectedAsAddress } from "../../../src/server/address-format-reviver";
 
 describe("server/address-format-reviver", () => {
   describe("addressFormatReviver unit tests", () => {

@@ -1,9 +1,10 @@
 "use strict";
 
-const Augur = require("augur.js");
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getUserTradingPositions } = require("../../../../build/server/getters/get-user-trading-positions");
+import Augur from "augur.js";
+import { assert } from "chai";
+import { getUserTradingPositions } from "../../../../src/server/getters/get-user-trading-positions";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-user-trading-positions", () => {
   const test = (t) => {

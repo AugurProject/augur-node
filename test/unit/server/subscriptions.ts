@@ -1,8 +1,8 @@
 "use strict";
 
-const EventEmitter = require("events").EventEmitter;
-const assert = require("chai").assert;
-const { Subscriptions } = require("../../../build/server/subscriptions");
+import { EventEmitter } from "events";
+import { assert } from "chai";
+import { Subscriptions } from "../../../src/server/subscriptions";
 
 describe("server/subscriptions", () => {
   let emitter;

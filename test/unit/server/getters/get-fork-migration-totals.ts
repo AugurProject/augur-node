@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getForkMigrationTotals } = require("../../../../build/server/getters/get-fork-migration-totals");
+import { assert } from "chai";
+import { getForkMigrationTotals } from "../../../../src/server/getters/get-fork-migration-totals";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-fork-migration-totals", () => {
   const test = (t) => {

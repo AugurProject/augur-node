@@ -1,9 +1,10 @@
 "use strict";
 
-const ReportingState = require("../../../../build/types").ReportingState;
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getMarkets } = require("../../../../build/server/getters/get-markets");
+import { ReportingState } from "../../../../src/types";
+import { assert } from "chai";
+import { getMarkets } from "../../../../src/server/getters/get-markets";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-markets", () => {
   const test = (t) => {

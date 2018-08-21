@@ -1,9 +1,13 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {series} = require("async");
-const {processUniverseForkedLog, processUniverseForkedLogRemoval} = require("../../../../build/blockchain/log-processors/universe-forked");
+import { assert } from "chai";
+import { series } from "async";
+import {
+  processUniverseForkedLog,
+  processUniverseForkedLogRemoval,
+} from "../../../../src/blockchain/log-processors/universe-forked";
+
+import { setupTestDb } from "../../test.database";
 
 const otherMarket = "0x0000000000000000000000000000000000000222";
 

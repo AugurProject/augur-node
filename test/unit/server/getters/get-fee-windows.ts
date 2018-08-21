@@ -1,10 +1,12 @@
 "use strict";
 
-const { BigNumber } = require("bignumber.js");
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getFeeWindows } = require("../../../../build/server/getters/get-fee-windows");
-const { setOverrideTimestamp } = require("../../../../build/blockchain/process-block");
+import { BigNumber } from "bignumber.js";
+
+import { assert } from "chai";
+import { getFeeWindows } from "../../../../src/server/getters/get-fee-windows";
+import { setOverrideTimestamp } from "../../../../src/blockchain/process-block";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-fee-windows", () => {
   const test = (t) => {

@@ -1,17 +1,19 @@
 "use strict";
 
-const Augur = require("augur.js");
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {BigNumber} = require("bignumber.js");
-const {
-  processDisputeCrowdsourcerCreatedLog, processDisputeCrowdsourcerCreatedLogRemoval,
-  processDisputeCrowdsourcerContributionLog, processDisputeCrowdsourcerContributionLogRemoval,
+import Augur from "augur.js";
+import { assert } from "chai";
+import { BigNumber } from "bignumber.js";
+import {
   processDisputeCrowdsourcerCompletedLog, processDisputeCrowdsourcerCompletedLogRemoval,
-}
-  = require("../../../../build/blockchain/log-processors/crowdsourcer");
-const {getMarketsWithReportingState} = require("../../../../build/server/getters/database");
-const {setOverrideTimestamp, removeOverrideTimestamp} = require("../../../../build/blockchain/process-block.js");
+  processDisputeCrowdsourcerContributionLog, processDisputeCrowdsourcerContributionLogRemoval,
+  processDisputeCrowdsourcerCreatedLog,
+  processDisputeCrowdsourcerCreatedLogRemoval,
+} from "../../../../src/blockchain/log-processors/crowdsourcer";
+
+import { getMarketsWithReportingState } from "../../../../src/server/getters/database";
+import { removeOverrideTimestamp, setOverrideTimestamp } from "../../../../src/blockchain/process-block.js";
+
+import { setupTestDb } from "../../test.database";
 
 const getCrowdsourcer = (db, params, callback) => {
   db("crowdsourcers").first(

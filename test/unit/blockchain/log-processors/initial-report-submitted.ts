@@ -1,12 +1,17 @@
 "use strict";
 
-const Augur = require("augur.js");
+import Augur from "augur.js";
+import { assert } from "chai";
+import { BigNumber } from "bignumber.js";
 
-const assert = require("chai").assert;
-const {BigNumber} = require("bignumber.js");
-const setupTestDb = require("../../test.database");
-const {processInitialReportSubmittedLog, processInitialReportSubmittedLogRemoval} = require("../../../../build/blockchain/log-processors/initial-report-submitted");
-const {setOverrideTimestamp, removeOverrideTimestamp} = require("../../../../build/blockchain/process-block.js");
+import {
+  processInitialReportSubmittedLog,
+  processInitialReportSubmittedLogRemoval,
+} from "../../../../src/blockchain/log-processors/initial-report-submitted";
+
+import { removeOverrideTimestamp, setOverrideTimestamp } from "../../../../src/blockchain/process-block.js";
+
+import { setupTestDb } from "../../test.database";
 
 const getReportingState = (db, params, callback) => {
   db("markets").first(["reportingState", "initialReportSize", "marketCreatorFeesBalance"]).where("markets.marketId", params.log.market).join("market_state", "market_state.marketStateId", "markets.marketStateId").asCallback(callback);

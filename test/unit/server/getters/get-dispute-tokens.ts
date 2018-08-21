@@ -1,8 +1,9 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const { getDisputeTokens } = require("../../../../build/server/getters/get-dispute-tokens");
+import { assert } from "chai";
+import { getDisputeTokens } from "../../../../src/server/getters/get-dispute-tokens";
+
+import { setupTestDb } from "../../test.database";
 
 describe("server/getters/get-dispute-tokens", () => {
   const test = (t) => {

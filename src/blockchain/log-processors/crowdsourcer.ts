@@ -184,7 +184,7 @@ export function processDisputeCrowdsourcerCompletedLogRemoval(db: Knex, augur: A
   });
 }
 
-export function processDisputeCrowdsourcerRedeemedLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
+export function processDisputeCrowdsourcerRedeemedLog(db: Knex, augur: Augur | undefined, log: FormattedEventLog, callback: ErrorCallback): void {
   const redeemedToInsert = {
     reporter: log.reporter,
     crowdsourcer: log.disputeCrowdsourcer,
@@ -202,7 +202,7 @@ export function processDisputeCrowdsourcerRedeemedLog(db: Knex, augur: Augur, lo
   });
 }
 
-export function processDisputeCrowdsourcerRedeemedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
+export function processDisputeCrowdsourcerRedeemedLogRemoval(db: Knex, augur: Augur | undefined, log: FormattedEventLog, callback: ErrorCallback): void {
   db.from("crowdsourcer_redeemed").where({ transactionHash: log.transactionHash, logIndex: log.logIndex }).del().asCallback((err: Error|null): void => {
     if (err) return callback(err);
     augurEmitter.emit(SubscriptionEventNames.FeeWindowRedeemed, log);

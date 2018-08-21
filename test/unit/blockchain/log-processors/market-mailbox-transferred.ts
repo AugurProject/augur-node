@@ -1,8 +1,12 @@
 "use strict";
 
-const assert = require("chai").assert;
-const setupTestDb = require("../../test.database");
-const {processMarketMailboxTransferredLog, processMarketMailboxTransferredLogRemoval} = require("../../../../build/blockchain/log-processors/market-mailbox-transferred");
+import { assert } from "chai";
+import {
+  processMarketMailboxTransferredLog,
+  processMarketMailboxTransferredLogRemoval,
+} from "../../../../src/blockchain/log-processors/market-mailbox-transferred";
+
+import { setupTestDb } from "../../test.database";
 
 const getMarket = (db, params, callback) => {
   db.select(["markets.marketId", "markets.marketCreatorMailboxOwner"]).from("markets").where({"markets.marketId": params.log.market}).asCallback(callback);
