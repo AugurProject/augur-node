@@ -57,11 +57,11 @@ describe("server/address-format-reviver", () => {
 
     it("parse and format mock getUnclaimedMarketCreatorFees (Array<Address>)", () => {
       const mockRpcRequest = {
-        "id": "4",
-        "jsonrpc": "2.0",
-        "method": "getUnclaimedMarketCreatorFees",
-        "params": {
-          "marketIds": ["0x0000000000000000000000000000000000000000", "0x1"],
+        id: "4",
+        jsonrpc: "2.0",
+        method: "getUnclaimedMarketCreatorFees",
+        params: {
+          marketIds: ["0x0000000000000000000000000000000000000000", "0x1"],
         },
       };
 
@@ -76,11 +76,11 @@ describe("server/address-format-reviver", () => {
     const addressDefinitions = {};
     const nonAddressDefinitions = {};
     const files = fs.readdirSync("./definitions/server/getters");
-    files.forEach(path => {
+    files.forEach((path) => {
       const content = fs.readFileSync(`./definitions/server/getters/${path}`, "utf8");
-      const publicFunctionDefinitions = content.split("\n").filter(line => line.startsWith("export declare"));
+      const publicFunctionDefinitions = content.split("\n").filter((line) => line.startsWith("export declare"));
       const componentParts = publicFunctionDefinitions.reduce((a, b) => a.concat(b)).split(/[(),]+/);
-      componentParts.forEach(componentPart => {
+      componentParts.forEach((componentPart) => {
         const variableDeclaration = componentPart.split(":", 2);
         if (variableDeclaration.length === 2) {
           const variableName = variableDeclaration[0].trim().replace("?", "");
@@ -94,7 +94,7 @@ describe("server/address-format-reviver", () => {
     it("inputsExpectedAsAddress matches Address variables in definitions/server/getters", () => {
       const actualAddressList = Object.keys(inputsExpectedAsAddress).sort();
       const expectedAddressDefinitions = Object.keys(addressDefinitions)
-        .filter(a => a !== "result") /* Result is used as a variable name of the callback only */
+        .filter((a) => a !== "result") /* Result is used as a variable name of the callback only */
         .sort();
       expect(actualAddressList).to.deep.eq(expectedAddressDefinitions);
     });
@@ -104,7 +104,7 @@ describe("server/address-format-reviver", () => {
       const actualAddressList = Object.keys(inputsExpectedAsAddress).sort();
       const expectedNonAddressDefinitions = Object.keys(nonAddressDefinitions)
         .sort();
-      expectedNonAddressDefinitions.forEach(v => expect(actualAddressList).to.not.include(v));
+      expectedNonAddressDefinitions.forEach((v) => expect(actualAddressList).to.not.include(v));
     });
   });
 });

@@ -4,7 +4,6 @@ const assert = require("chai").assert;
 const setupTestDb = require("../../test.database");
 const {getReportingFees} = require("../../../../build/server/getters/get-reporting-fees");
 
-
 describe("server/getters/get-reporting-fees", () => {
   const test = (t) => {
     it(t.description, (done) => {
@@ -46,12 +45,12 @@ describe("server/getters/get-reporting-fees", () => {
       assert.ifError(err);
       assert.deepEqual(marketsMatched, {
         total: {
-          "unclaimedEth": "1200",
-          "unclaimedRepEarned": "0",
-          "unclaimedRepStaked": "391",
-          "unclaimedForkEth": "0",
-          "unclaimedForkRepStaked": "331",
-          "lostRep": "0",
+          unclaimedEth: "1200",
+          unclaimedRepEarned: "0",
+          unclaimedRepStaked: "391",
+          unclaimedForkEth: "0",
+          unclaimedForkRepStaked: "331",
+          lostRep: "0",
         },
         feeWindows: [
           "0x1000000000000000000000000000000000000000",
@@ -73,13 +72,13 @@ describe("server/getters/get-reporting-fees", () => {
         },
         nonforkedMarkets: [
           {
-            "marketId": "0x0000000000000000000000000000000000000019",
-            "crowdsourcers": ["0x0000000000000000001000000000000000000003"],
-            "crowdsourcersAreDisavowed": false,
-            "initialReporter": "0x0000000000000000000000000000000000abe111",
-            "isFinalized": true,
-            "isMigrated": true,
-            "universe": "0x000000000000000000000000000000000000000b",
+            marketId: "0x0000000000000000000000000000000000000019",
+            crowdsourcers: ["0x0000000000000000001000000000000000000003"],
+            crowdsourcersAreDisavowed: false,
+            initialReporter: "0x0000000000000000000000000000000000abe111",
+            isFinalized: true,
+            isMigrated: true,
+            universe: "0x000000000000000000000000000000000000000b",
           },
         ],
       });
@@ -113,16 +112,16 @@ describe("server/getters/get-reporting-fees", () => {
       assert.ifError(err);
       assert.deepEqual(marketsMatched, {
         total: {
-          "unclaimedEth": "0",
-          "unclaimedRepStaked": "0",
-          "unclaimedRepEarned": "0",
-          "unclaimedForkEth": "0",
-          "unclaimedForkRepStaked": "0",
-          "lostRep": "0",
+          unclaimedEth: "0",
+          unclaimedRepStaked: "0",
+          unclaimedRepEarned: "0",
+          unclaimedForkEth: "0",
+          unclaimedForkRepStaked: "0",
+          lostRep: "0",
         },
         feeWindows: [],
         forkedMarket: undefined,
-        "nonforkedMarkets": [],
+        nonforkedMarkets: [],
       });
     },
   });
@@ -154,19 +153,19 @@ describe("server/getters/get-reporting-fees", () => {
       assert.ifError(err);
       assert.deepEqual(marketsMatched, {
         total: {
-          "unclaimedEth": "0",
-          "unclaimedRepStaked": "0",
-          "unclaimedRepEarned": "0",
-          "unclaimedForkEth": "0",
-          "unclaimedForkRepStaked": "0",
-          "lostRep": "0",
+          unclaimedEth: "0",
+          unclaimedRepStaked: "0",
+          unclaimedRepEarned: "0",
+          unclaimedForkEth: "0",
+          unclaimedForkRepStaked: "0",
+          lostRep: "0",
         },
         feeWindows: [],
         forkedMarket: {
-          "isFinalized": 1,
-          "crowdsourcers": [],
-          "marketId": "0x00000000000000000000000000000000000000f1",
-          "universe": "0x000000000000000000000000000000000000000b",
+          isFinalized: 1,
+          crowdsourcers: [],
+          marketId: "0x00000000000000000000000000000000000000f1",
+          universe: "0x000000000000000000000000000000000000000b",
         },
         nonforkedMarkets: [],
       });

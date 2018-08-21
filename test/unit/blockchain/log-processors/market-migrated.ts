@@ -72,12 +72,12 @@ describe("blockchain/log-processors/market-migrated", () => {
         assert.ifError(err);
         assert.deepEqual(marketRow, [
           {
-            "marketId": "0x0000000000000000000000000000000000000211",
-            "universe": "NEW_UNIVERSE",
-            "needsMigration": 0,
-            "needsDisavowal": 0,
-            "feeWindow": "0x0000000000000000000000000000000000FEE000",
-            "reportingState": ReportingState.CROWDSOURCING_DISPUTE,
+            marketId: "0x0000000000000000000000000000000000000211",
+            universe: "NEW_UNIVERSE",
+            needsMigration: 0,
+            needsDisavowal: 0,
+            feeWindow: "0x0000000000000000000000000000000000FEE000",
+            reportingState: ReportingState.CROWDSOURCING_DISPUTE,
           },
         ]);
       },
@@ -85,12 +85,12 @@ describe("blockchain/log-processors/market-migrated", () => {
         assert.ifError(err);
         assert.deepEqual(marketRow, [
           {
-            "marketId": "0x0000000000000000000000000000000000000211",
-            "universe": "ORIGINAL_UNIVERSE",
-            "needsMigration": 1,
-            "needsDisavowal": 1,
-            "feeWindow": "0x0000000000000000000000000000000000FEE000",
-            "reportingState": ReportingState.CROWDSOURCING_DISPUTE,
+            marketId: "0x0000000000000000000000000000000000000211",
+            universe: "ORIGINAL_UNIVERSE",
+            needsMigration: 1,
+            needsDisavowal: 1,
+            feeWindow: "0x0000000000000000000000000000000000FEE000",
+            reportingState: ReportingState.CROWDSOURCING_DISPUTE,
           },
         ]);
       },

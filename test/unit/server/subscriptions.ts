@@ -15,8 +15,8 @@ describe("server/subscriptions", () => {
 
   it("subscribes to an event", (done) => {
 
-    let params = [];
-    let subscription = subscriptions.subscribe("MarketCreated", null, (data) => {
+    const params = [];
+    const subscription = subscriptions.subscribe("MarketCreated", null, (data) => {
       params.push(data);
     });
 
@@ -30,7 +30,7 @@ describe("server/subscriptions", () => {
 
   it("subscribes to an event and gets outputs", (done) => {
 
-    let params = [];
+    const params = [];
     subscriptions.subscribe("MarketCreated", null, (data) => {
       params.push(data);
     });
@@ -44,8 +44,8 @@ describe("server/subscriptions", () => {
   });
 
   it("unsubscribes from a single event", (done) => {
-    let subscription1 = subscriptions.subscribe("MarketCreated", null, (data) => { });
-    let subscription2 = subscriptions.subscribe("MarketCreated", null, (data) => { });
+    const subscription1 = subscriptions.subscribe("MarketCreated", null, (data) => { });
+    const subscription2 = subscriptions.subscribe("MarketCreated", null, (data) => { });
 
     assert.notEqual(subscription1, subscription2);
 
@@ -63,8 +63,8 @@ describe("server/subscriptions", () => {
   });
 
   it("unsubscribes from all events", (done) => {
-    let subscription1 = subscriptions.subscribe("MarketCreated", null, (data) => { });
-    let subscription2 = subscriptions.subscribe("MarketCreated", null, (data) => { });
+    const subscription1 = subscriptions.subscribe("MarketCreated", null, (data) => { });
+    const subscription2 = subscriptions.subscribe("MarketCreated", null, (data) => { });
 
     assert.notEqual(subscription1, subscription2);
 

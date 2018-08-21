@@ -11,7 +11,7 @@ const {series} = require("async");
 const getMarketState = (db, params, callback) => {
   series({
     market: (next) => getMarketsWithReportingState(db, ["markets.marketId", "market_state.reportingState", "marketCreatorFeesBalance"]).first().where({"markets.marketId": params.log.market}).asCallback(next),
-    winningPayout: (next) => db("payouts").where({marketId: params.log.market, "winning": 1}).first().asCallback(next),
+    winningPayout: (next) => db("payouts").where({marketId: params.log.market, winning: 1}).first().asCallback(next),
   }, callback);
 };
 
@@ -51,7 +51,7 @@ describe("blockchain/log-processors/market-finalized", () => {
         logIndex: 0,
       },
       augur: {
-        constants: constants,
+        constants,
         rpc: {
           eth: {
             getBalance: (p, callback) => {
@@ -72,19 +72,19 @@ describe("blockchain/log-processors/market-finalized", () => {
             marketCreatorFeesBalance: new BigNumber("0x91f", 16),
           },
           winningPayout: {
-            "isInvalid": 0,
-            "marketId": "0x0000000000000000000000000000000000000013",
-            "payout0": new BigNumber(0),
-            "payout1": new BigNumber(10000),
-            "payout2": null,
-            "payout3": null,
-            "payout4": null,
-            "payout5": null,
-            "payout6": null,
-            "payout7": null,
-            "payoutId": 8,
-            "tentativeWinning": 1,
-            "winning": 1,
+            isInvalid: 0,
+            marketId: "0x0000000000000000000000000000000000000013",
+            payout0: new BigNumber(0),
+            payout1: new BigNumber(10000),
+            payout2: null,
+            payout3: null,
+            payout4: null,
+            payout5: null,
+            payout6: null,
+            payout7: null,
+            payoutId: 8,
+            tentativeWinning: 1,
+            winning: 1,
           },
         });
       },
@@ -97,19 +97,19 @@ describe("blockchain/log-processors/market-finalized", () => {
             marketCreatorFeesBalance: new BigNumber("0x91f", 16),
           },
           winningPayout: {
-            "isInvalid": 0,
-            "marketId": "0x0000000000000000000000000000000000000013",
-            "payout0": new BigNumber(0),
-            "payout1": new BigNumber(10000),
-            "payout2": null,
-            "payout3": null,
-            "payout4": null,
-            "payout5": null,
-            "payout6": null,
-            "payout7": null,
-            "payoutId": 8,
-            "tentativeWinning": 1,
-            "winning": 1,
+            isInvalid: 0,
+            marketId: "0x0000000000000000000000000000000000000013",
+            payout0: new BigNumber(0),
+            payout1: new BigNumber(10000),
+            payout2: null,
+            payout3: null,
+            payout4: null,
+            payout5: null,
+            payout6: null,
+            payout7: null,
+            payoutId: 8,
+            tentativeWinning: 1,
+            winning: 1,
           },
         });
       },

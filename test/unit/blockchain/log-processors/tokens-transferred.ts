@@ -205,7 +205,7 @@ describe("blockchain/log-processors/tokens-transferred", () => {
               queued: "0",
             };
           },
-          normalizePrice: p => p.price,
+          normalizePrice: (p) => p.price,
         },
         utils: {
           convertOnChainPriceToDisplayPrice: (onChainPrice, minDisplayPrice, tickSize) => {

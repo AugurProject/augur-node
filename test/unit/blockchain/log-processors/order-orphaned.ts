@@ -55,7 +55,7 @@ describe("order-orphaned", () => {
         utils: augur.utils,
         api: {
           OrdersFinder: {
-            getExistingOrders5: function (data, cb) {
+            getExistingOrders5 (data, cb) {
               return cb(null, ["ORDER_ID_1", "ORDER_ID_3"]);
             },
           },

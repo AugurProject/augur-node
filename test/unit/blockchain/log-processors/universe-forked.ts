@@ -8,9 +8,9 @@ const {processUniverseForkedLog, processUniverseForkedLogRemoval} = require("../
 const otherMarket = "0x0000000000000000000000000000000000000222";
 
 const getForkRows = (db, params, callback) => series({
-  forkingMarket: next => db("markets").where({universe: params.log.universe, forking: 1}).asCallback(next),
-  otherMarket: next => db("markets").where({marketId: otherMarket}).asCallback(next),
-  universe: next => db("universes").where({universe: params.log.universe}).asCallback(next),
+  forkingMarket: (next) => db("markets").where({universe: params.log.universe, forking: 1}).asCallback(next),
+  otherMarket: (next) => db("markets").where({marketId: otherMarket}).asCallback(next),
+  universe: (next) => db("universes").where({universe: params.log.universe}).asCallback(next),
 }, callback);
 
 describe("blockchain/log-processors/universe-forked", () => {

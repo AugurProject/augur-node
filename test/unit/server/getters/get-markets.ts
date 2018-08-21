@@ -5,7 +5,6 @@ const assert = require("chai").assert;
 const setupTestDb = require("../../test.database");
 const { getMarkets } = require("../../../../build/server/getters/get-markets");
 
-
 describe("server/getters/get-markets", () => {
   const test = (t) => {
     it(t.description, (done) => {

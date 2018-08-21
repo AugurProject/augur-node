@@ -26,14 +26,14 @@ describe("server/getters/get-fork-migration-totals", () => {
     assertions: (err, forkMigrationTotals) => {
       assert.ifError(err);
       assert.deepEqual(forkMigrationTotals, {
-        "CHILD_UNIVERSE": {
-          "isInvalid": 0,
-          "payout": [
+        CHILD_UNIVERSE: {
+          isInvalid: 0,
+          payout: [
             "0",
             "10000",
           ],
-          "repTotal": "2000",
-          "universe": "CHILD_UNIVERSE",
+          repTotal: "2000",
+          universe: "CHILD_UNIVERSE",
         },
       });
     },

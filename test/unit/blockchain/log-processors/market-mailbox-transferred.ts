@@ -49,8 +49,8 @@ describe("blockchain/log-processors/market-mailbox-transferred", () => {
         assert.ifError(err);
         assert.deepEqual(marketRow, [
           {
-            "marketId": "0x0000000000000000000000000000000000000211",
-            "marketCreatorMailboxOwner": "0x000000000000000000000000000000000000d00d",
+            marketId: "0x0000000000000000000000000000000000000211",
+            marketCreatorMailboxOwner: "0x000000000000000000000000000000000000d00d",
           },
         ]);
       },
@@ -58,8 +58,8 @@ describe("blockchain/log-processors/market-mailbox-transferred", () => {
         assert.ifError(err);
         assert.deepEqual(marketRow, [
           {
-            "marketId": "0x0000000000000000000000000000000000000211",
-            "marketCreatorMailboxOwner": "0x0000000000000000000000000000000000000b0b",
+            marketId: "0x0000000000000000000000000000000000000211",
+            marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
           },
         ]);
       },

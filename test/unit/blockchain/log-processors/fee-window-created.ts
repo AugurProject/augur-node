@@ -6,8 +6,8 @@ const {series} = require("async");
 const {processFeeWindowCreatedLog, processFeeWindowCreatedLogRemoval} = require("../../../../build/blockchain/log-processors/fee-window-created");
 
 const getFeeWindow = (db, params, callback) => series({
-  fee_windows: next => db("fee_windows").first(["feeWindow", "feeWindowId", "endTime"]).where({feeWindow: params.log.feeWindow}).asCallback(next),
-  tokens: next => db("tokens").select(["contractAddress", "symbol", "feeWindow"])
+  fee_windows: (next) => db("fee_windows").first(["feeWindow", "feeWindowId", "endTime"]).where({feeWindow: params.log.feeWindow}).asCallback(next),
+  tokens: (next) => db("tokens").select(["contractAddress", "symbol", "feeWindow"])
     .where("contractAddress", params.log.feeWindow)
     .orWhere("feeWindow", params.log.feeWindow)
     .asCallback(next),

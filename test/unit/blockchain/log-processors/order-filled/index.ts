@@ -12,11 +12,11 @@ const augur = new Augur();
 describe("blockchain/log-processors/order-filled", () => {
   const test = (t) => {
     const getState = (db, params, aux, callback) => series({
-      orders: next => db("orders").where("orderId", params.log.orderId).asCallback(next),
-      trades: next => db("trades").where("orderId", params.log.orderId).asCallback(next),
-      markets: next => db.first("volume", "sharesOutstanding").from("markets").where("marketId", aux.marketId).asCallback(next),
-      outcomes: next => db.select("price", "volume").from("outcomes").where({ marketId: aux.marketId }).asCallback(next),
-      categories: next => db.first("popularity").from("categories").where("category", aux.category.toUpperCase()).asCallback(next),
+      orders: (next) => db("orders").where("orderId", params.log.orderId).asCallback(next),
+      trades: (next) => db("trades").where("orderId", params.log.orderId).asCallback(next),
+      markets: (next) => db.first("volume", "sharesOutstanding").from("markets").where("marketId", aux.marketId).asCallback(next),
+      outcomes: (next) => db.select("price", "volume").from("outcomes").where({ marketId: aux.marketId }).asCallback(next),
+      categories: (next) => db.first("popularity").from("categories").where("category", aux.category.toUpperCase()).asCallback(next),
     }, callback);
     it(t.description, (done) => {
       setupTestDb((err, db) => {
@@ -89,7 +89,7 @@ describe("blockchain/log-processors/order-filled", () => {
             assert.oneOf(p.address, ["0x0000000000000000000000000000000000000b0b", "FILLER_ADDRESS"]);
             callback(null, ["2", "0", "0", "0", "0", "0", "0", "0"]);
           },
-          normalizePrice: p => p.price,
+          normalizePrice: (p) => p.price,
         },
       },
       utils: {
@@ -259,7 +259,7 @@ describe("blockchain/log-processors/order-filled", () => {
             assert.oneOf(p.address, ["0x0000000000000000000000000000000000000b0b", "FILLER_ADDRESS"]);
             callback(null, ["2", "0", "0", "0", "0", "0", "0", "0"]);
           },
-          normalizePrice: p => p.price,
+          normalizePrice: (p) => p.price,
         },
       },
       utils: {

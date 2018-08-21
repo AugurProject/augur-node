@@ -4,7 +4,6 @@ const assert = require("chai").assert;
 const setupTestDb = require("../../test.database");
 const {getMarketsInfo} = require("../../../../build/server/getters/get-markets-info");
 
-
 describe("server/getters/get-markets-info", () => {
   const test = (t) => {
     it(t.description, (done) => {
@@ -164,7 +163,7 @@ describe("server/getters/get-markets-info", () => {
             price: "0.5",
             description: "outcome 1",
           }],
-        }]
+        }],
       );
     },
   });
@@ -316,7 +315,7 @@ describe("server/getters/get-markets-info", () => {
             price: "0.5",
             description: "outcome 1",
           }],
-        }]
+        }],
       );
     },
   });
@@ -466,7 +465,7 @@ describe("server/getters/get-markets-info", () => {
             price: "0.125",
             description: "outcome 7",
           }],
-        }]
+        }],
       );
     },
   });
@@ -564,7 +563,7 @@ describe("server/getters/get-markets-info", () => {
               price: "0.125",
               description: "outcome 4",
             }],
-        }]
+        }],
       );
     },
   });

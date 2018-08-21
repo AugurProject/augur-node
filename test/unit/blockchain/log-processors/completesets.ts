@@ -79,7 +79,7 @@ describe("blockchain/log-processors/completesets", () => {
             assert.strictEqual(p.address, "0x0000000000000000000000000000000000000b0b");
             callback(null, ["2", "2", "2", "2", "2", "2", "2", "2"]);
           },
-          normalizePrice: p => p.price,
+          normalizePrice: (p) => p.price,
         },
       },
     },

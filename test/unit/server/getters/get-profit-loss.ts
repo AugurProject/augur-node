@@ -107,8 +107,8 @@ describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
 });
 
 describe("tests for test/trading-proceeds-claimed-2.db", () => {
-  var connection = null;
-  var augur = new Augur();
+  let connection = null;
+  let augur = new Augur();
   const universe = "0x8e9d71cb6e9080bc04f6fd562f5dd68af0163baf";
   const account1 = "0x913da4198e6be1d5f5e4a40d0667f70c0b5430eb";
 
@@ -146,50 +146,50 @@ describe("tests for test/trading-proceeds-claimed-2.db", () => {
   });
 
   it("calculates PL for a user for all time", (done) => {
-    getProfitLoss(connection, augur, universe, account1, 1550877478, 1551827939, (1551827939 - 1550877478)/4, (err, results) => {
+    getProfitLoss(connection, augur, universe, account1, 1550877478, 1551827939, (1551827939 - 1550877478) / 4, (err, results) => {
       try {
         assert.deepEqual(results.aggregate, [
           {
-            "lastPrice": "0.5",
-            "profitLoss": {
-              "meanOpenPrice": "0.5",
-              "position": "9.994",
-              "realized": "-0.0000000000000000000000004",
-              "total": "-0.0000000000000000000000004",
-              "unrealized": "0",
+            lastPrice: "0.5",
+            profitLoss: {
+              meanOpenPrice: "0.5",
+              position: "9.994",
+              realized: "-0.0000000000000000000000004",
+              total: "-0.0000000000000000000000004",
+              unrealized: "0",
             },
-            "timestamp": 1551115093.25,
+            timestamp: 1551115093.25,
           },
           {
-            "lastPrice": "0.5",
-            "profitLoss": {
-              "meanOpenPrice": "0.5",
-              "position": "9.994",
-              "realized": "-0.0000000000000000000000004",
-              "total": "-0.0000000000000000000000004",
-              "unrealized": "0",
+            lastPrice: "0.5",
+            profitLoss: {
+              meanOpenPrice: "0.5",
+              position: "9.994",
+              realized: "-0.0000000000000000000000004",
+              total: "-0.0000000000000000000000004",
+              unrealized: "0",
             },
-            "timestamp": 1551352708.5,
+            timestamp: 1551352708.5,
           },
           {
-            "profitLoss": {
-              "meanOpenPrice": "0.5",
-              "position": "9.994",
-              "realized": "0",
-              "total": "4.997",
-              "unrealized": "4.997",
+            profitLoss: {
+              meanOpenPrice: "0.5",
+              position: "9.994",
+              realized: "0",
+              total: "4.997",
+              unrealized: "4.997",
             },
-            "timestamp": 1551590323.75,
+            timestamp: 1551590323.75,
           },
           {
-            "profitLoss": {
-              "meanOpenPrice": "0.99940035978412952229",
-              "position": "-10005999999999999990.006",
-              "realized": "4.997",
-              "total": "4.997",
-              "unrealized": "0",
+            profitLoss: {
+              meanOpenPrice: "0.99940035978412952229",
+              position: "-10005999999999999990.006",
+              realized: "4.997",
+              total: "4.997",
+              unrealized: "0",
             },
-            "timestamp": 1551827939,
+            timestamp: 1551827939,
           },
         ]);
 
@@ -201,10 +201,9 @@ describe("tests for test/trading-proceeds-claimed-2.db", () => {
   });
 });
 
-
 describe("tests for test/profitloss.db", () => {
-  var connection = null;
-  var augur = new Augur();
+  let connection = null;
+  let augur = new Augur();
 
   beforeEach((done) => {
     sqlite3.verbose();
@@ -266,7 +265,7 @@ describe("tests for test/profitloss.db", () => {
     getProfitLoss(connection, augur, universe, account2, 0, endTime, endTime, (err, results) => {
       try {
 
-        var expected = [{
+        let expected = [{
           lastPrice: "0.1",
           profitLoss: {
             meanOpenPrice: "0",
@@ -291,8 +290,8 @@ describe("tests for test/profitloss.db", () => {
 });
 
 describe("server/getters/get-profit-loss", () => {
-  var connection = null;
-  var augur = new Augur();
+  let connection = null;
+  let augur = new Augur();
 
   const testWithDatabase = (t, done) => {
     getProfitLoss(connection, augur, t.params.universe, t.params.account, t.params.startTime, t.params.endTime, t.params.periodInterval, (err, profitLoss) => {
@@ -307,8 +306,8 @@ describe("server/getters/get-profit-loss", () => {
 
   const testWithMockedData = (t, done) => {
     try {
-      var profitLoss = null;
-      var error = null;
+      let profitLoss = null;
+      let error = null;
       try {
         profitLoss = calculateEarningsPerTimePeriod(augur, t.params.trades, t.params.buckets);
       } catch (e) {
@@ -380,10 +379,9 @@ describe("server/getters/get-profit-loss", () => {
           ]);
         },
       },
-      done
+      done,
     );
   });
-
 
   it("buckets datapoints from the first trade the user made", (done) => {
     testWithDatabase(
@@ -431,7 +429,7 @@ describe("server/getters/get-profit-loss", () => {
           ]);
         },
       },
-      done
+      done,
     );
   });
 
@@ -457,7 +455,7 @@ describe("server/getters/get-profit-loss", () => {
           assert.isAtMost(Date.now() - profitLoss.aggregate[29].timestamp, 250);
         },
       },
-      done
+      done,
     );
   });
 
@@ -479,7 +477,7 @@ describe("server/getters/get-profit-loss", () => {
           assert.isAtMost(Date.now() - profitLoss.aggregate[29].timestamp, 250);
         },
       },
-      done
+      done,
     );
   });
 
@@ -559,7 +557,7 @@ describe("server/getters/get-profit-loss", () => {
           ]);
         },
       },
-      done
+      done,
     );
   });
 
@@ -580,11 +578,11 @@ describe("server/getters/get-profit-loss", () => {
           assert.deepEqual(profitLoss.all, {});
         },
       },
-      done
+      done,
     );
   });
 
-  var trades1 = [
+  let trades1 = [
     {
       timestamp: 10000,
       type: "sell",
@@ -648,7 +646,7 @@ describe("server/getters/get-profit-loss", () => {
           ]);
         },
       },
-      done
+      done,
     );
   });
 
@@ -730,12 +728,12 @@ describe("server/getters/get-profit-loss", () => {
           ]);
         },
       },
-      done
+      done,
     );
   });
 
   it("calculates pl for 1 period, and 4 periods, and verifies last period PLs are equal", (done) => {
-    var buckets1 = [
+    let buckets1 = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -745,10 +743,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    var pls1 = calculateEarningsPerTimePeriod(augur, trades1, buckets1);
+    let pls1 = calculateEarningsPerTimePeriod(augur, trades1, buckets1);
     assert.equal(pls1.length, 1);
 
-    var buckets2 = [
+    let buckets2 = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -770,10 +768,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    var pls2 = calculateEarningsPerTimePeriod(augur, trades1, buckets2);
+    let pls2 = calculateEarningsPerTimePeriod(augur, trades1, buckets2);
     assert.equal(pls2.length, 4);
 
-    var result = {
+    let result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.166666666666666666665",
@@ -788,7 +786,7 @@ describe("server/getters/get-profit-loss", () => {
   });
 
   it("calculates pl for 1 periods and ignores trailing trades", (done) => {
-    var trades2 = trades1.slice();
+    let trades2 = trades1.slice();
     trades2.push({
       timestamp: 10040,
       type: "buy",
@@ -797,7 +795,7 @@ describe("server/getters/get-profit-loss", () => {
       maker: true,
     });
 
-    var buckets = [
+    let buckets = [
       {
         timestamp: 10000,
         lastPrice: null,
@@ -807,10 +805,10 @@ describe("server/getters/get-profit-loss", () => {
         lastPrice: "0.3",
       },
     ];
-    var pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    var result = {
+    let result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.166666666666666666665",
@@ -825,7 +823,7 @@ describe("server/getters/get-profit-loss", () => {
 
   it("calculates pl for one period, with basis which nets out", (done) => {
     // These two trades net out, leaving a 0 basis
-    var trades2 = [
+    let trades2 = [
       {
         timestamp: 8000,
         type: "buy",
@@ -842,7 +840,7 @@ describe("server/getters/get-profit-loss", () => {
       },
     ].concat(trades1);
 
-    var buckets = [
+    let buckets = [
       {
         timestamp: 10000,
         lastPrice: "0.3",
@@ -853,10 +851,10 @@ describe("server/getters/get-profit-loss", () => {
       },
     ];
 
-    var pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    var result = {
+    let result = {
       meanOpenPrice: "0.166666666666666666667",
       position: "10",
       realized: "1.16666666666666666666",
@@ -870,7 +868,7 @@ describe("server/getters/get-profit-loss", () => {
   });
 
   it("calculates pl for one period, with basis doesnt net out", (done) => {
-    var trades2 = [
+    let trades2 = [
       {
         timestamp: 8000,
         type: "buy",
@@ -887,7 +885,7 @@ describe("server/getters/get-profit-loss", () => {
       },
     ].concat(trades1);
 
-    var buckets = [
+    let buckets = [
       {
         timestamp: 10000,
         lastPrice: "0.1",
@@ -898,10 +896,10 @@ describe("server/getters/get-profit-loss", () => {
       },
     ];
 
-    var pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
+    let pls1 = calculateEarningsPerTimePeriod(augur, trades2, buckets);
     assert.equal(pls1.length, 1);
 
-    var result = {
+    let result = {
       meanOpenPrice: "0.176923076923076923077",
       position: "8",
       realized: "1.71538461538461538461",

@@ -5,7 +5,6 @@ const setupTestDb = require("../../test.database");
 const { getFeeWindowCurrent } = require("../../../../build/server/getters/get-fee-window-current");
 const { setOverrideTimestamp, removeOverrideTimestamp } = require("../../../../build/blockchain/process-block.js");
 
-
 describe("server/getters/get-fee-window-current", () => {
   const test = (t) => {
     it(t.description, (done) => {

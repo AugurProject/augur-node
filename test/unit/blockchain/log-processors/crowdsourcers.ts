@@ -13,7 +13,6 @@ const {
 const {getMarketsWithReportingState} = require("../../../../build/server/getters/database");
 const {setOverrideTimestamp, removeOverrideTimestamp} = require("../../../../build/blockchain/process-block.js");
 
-
 const getCrowdsourcer = (db, params, callback) => {
   db("crowdsourcers").first(
     ["crowdSourcerId",
@@ -42,7 +41,6 @@ const getCrowdsourcerAndMarket = (db, params, callback) => {
       });
   });
 };
-
 
 describe("blockchain/log-processors/crowdsourcers", () => {
   const test = (t) => {
