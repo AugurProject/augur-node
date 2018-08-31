@@ -12,6 +12,14 @@ interface MarketCreatorFeesRow {
   balance: BigNumber;
 }
 
+// interface getUnclaimedMarketCreatorFeesParams {
+//   marketIds: Array<Address>;
+// }
+//
+// export function isGetUnclaimedMarketCreatorFeesParams(params) {
+//
+// }
+
 export function getUnclaimedMarketCreatorFees(db: Knex, augur: Augur, marketIds: Array<Address>, callback: (err: Error|null, result?: Array<UIMarketCreatorFee>) => void): void {
   if (marketIds == null) return callback(new Error("must include marketIds parameter"));
   let marketsQuery: Knex.QueryBuilder = getMarketsWithReportingState(db, ["markets.marketId", "market_state.reportingState", "markets.marketCreatorFeesBalance", "cash.balance"]);
