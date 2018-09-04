@@ -29,11 +29,11 @@ interface ParticipantStake {
   crowdsourcer: BigNumber;
 }
 
-function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void) {
+function fabricateFeeWindow(db: Knex, augur: Augur, universe: Address, targetTime: number, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void) {
   db("universes").first("universe").where({ universe }).asCallback((err, universeRow) => {
     if (err) return callback(err);
     if (universeRow == null) return callback(new Error("Universe does not exist"), null);
-    const feeWindowId = Math.floor(getCurrentTime() / augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS);
+    const feeWindowId = Math.floor(targetTime / augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS);
     const startTime = feeWindowId * augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS;
     const endTime = (feeWindowId + 1) * augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS;
     callback(null, {
@@ -108,18 +108,22 @@ export function getFeeWindow(db: Knex, augur: Augur, universe: Address, reporter
       "feeToken",
     ]).first().from("fee_windows")
     .where({ universe });
+  let targetTime: number|null = null;
   if (feeWindowState != null) {
     const feeWindowDelta = RELATIVE_FEE_WINDOW_STATE[feeWindowState.toUpperCase()];
     if (feeWindowDelta === undefined) return callback(new Error("Use feeWindowState PREVIOUS, CURRENT, or NEXT"));
     const feeWindowDuration = augur.constants.CONTRACT_INTERVAL.DISPUTE_ROUND_DURATION_SECONDS;
-    const targetTime = getCurrentTime() + feeWindowDuration * feeWindowDelta;
+    targetTime = getCurrentTime() + feeWindowDuration * feeWindowDelta;
     query.whereBetween("startTime", [targetTime - feeWindowDuration, targetTime] );
   }
   if (feeWindow != null) query.where("feeWindow", feeWindow);
 
   query.asCallback((err: Error|null, feeWindowRow?: FeeWindowRow): void => {
     if (err) return callback(err);
-    if (!feeWindowRow) return fabricateFeeWindow(db, augur, universe, callback);
+    if (!feeWindowRow) {
+      if (targetTime == null) return callback(new Error("No feeWindow found and cannot infer targetTime from parameters"));
+      return fabricateFeeWindow(db, augur, universe, targetTime, callback);
+    }
     series({
       feeWindowEthFees: (next: AsyncCallback) => getFeeWindowEthFees(db, augur, feeWindowRow.feeWindow, next),
       feeWindowRepStaked: (next: AsyncCallback) => getFeeWindowRepStaked(db, feeWindowRow.feeWindow, feeWindowRow.feeToken, next),
