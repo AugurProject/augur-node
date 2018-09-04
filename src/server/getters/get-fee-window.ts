@@ -95,7 +95,7 @@ function getParticipationTokens(db: Knex, feeWindow: Address, reporter: Address,
   });
 }
 
-export function getFeeWindow(db: Knex, augur: Augur, universe: Address, reporter: Address|null, feeWindowState: "current"|"next", feeWindow: Address|null, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void): void {
+export function getFeeWindow(db: Knex, augur: Augur, universe: Address, reporter: Address|null, feeWindowState: "previous"|"current"|"next", feeWindow: Address|null, callback: (err?: Error|null, result?: UIFeeWindowCurrent<string>|null) => void): void {
   if (universe == null) return callback(new Error("Must provide universe"));
   if (feeWindowState == null && feeWindow == null) return callback(new Error("Must provide either a feeWindowState OR feeWindow"));
   const query = db.select(
