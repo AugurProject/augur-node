@@ -17,6 +17,7 @@
       "value": "environment"
     },
     "PGSSLMODE": {
+      "description": "SSL required for postgresql",
       "value": "required"
     },
   },
