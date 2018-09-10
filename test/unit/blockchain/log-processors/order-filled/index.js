@@ -14,7 +14,7 @@ describe("blockchain/log-processors/order-filled", () => {
     const getState = (db, params, aux, callback) => series({
       orders: next => db("orders").where("orderId", params.log.orderId).asCallback(next),
       trades: next => db("trades").where("orderId", params.log.orderId).asCallback(next),
-      markets: next => db.first("volume", "sharesOutstanding").from("markets").where("marketId", aux.marketId).asCallback(next),
+      markets: next => db.first("volume", "shareVolume", "sharesOutstanding").from("markets").where("marketId", aux.marketId).asCallback(next),
       outcomes: next => db.select("price", "volume").from("outcomes").where({ marketId: aux.marketId }).asCallback(next),
       categories: next => db.first("popularity").from("categories").where("category", aux.category.toUpperCase()).asCallback(next),
     }, callback);
@@ -149,7 +149,8 @@ describe("blockchain/log-processors/order-filled", () => {
           tradeGroupId: "TRADE_GROUP_ID",
         }]);
         assert.deepEqual(records.markets, {
-          volume: new BigNumber("1", 10),
+          volume: new BigNumber("0.7", 10),
+          shareVolume: new BigNumber("1", 10),
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
@@ -193,6 +194,7 @@ describe("blockchain/log-processors/order-filled", () => {
         assert.deepEqual(records.trades, []);
         assert.deepEqual(records.markets, {
           volume: new BigNumber("0", 10),
+          shareVolume: new BigNumber("0", 10),
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
@@ -319,7 +321,8 @@ describe("blockchain/log-processors/order-filled", () => {
           tradeGroupId: "TRADE_GROUP_ID",
         }]);
         assert.deepEqual(records.markets, {
-          volume: new BigNumber("0.4", 10),
+          volume: new BigNumber("0.28", 10),
+          shareVolume: new BigNumber("0.4", 10),
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
@@ -363,6 +366,7 @@ describe("blockchain/log-processors/order-filled", () => {
         assert.deepEqual(records.trades, []);
         assert.deepEqual(records.markets, {
           volume: new BigNumber("0", 10),
+          shareVolume: new BigNumber("0", 10),
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
