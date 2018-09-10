@@ -153,7 +153,7 @@ describe("blockchain/log-processors/order-filled", () => {
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
-          { price: new BigNumber("0.7", 10), volume: new BigNumber("101", 10) },
+          { price: new BigNumber("0.7", 10), volume: new BigNumber("100.7", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
@@ -323,7 +323,7 @@ describe("blockchain/log-processors/order-filled", () => {
           sharesOutstanding: new BigNumber("2", 10),
         });
         assert.deepEqual(records.outcomes, [
-          { price: new BigNumber("0.7", 10), volume: new BigNumber("100.4", 10) },
+          { price: new BigNumber("0.7", 10), volume: new BigNumber("100.28", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
           { price: new BigNumber("0.125", 10), volume: new BigNumber("100", 10) },
