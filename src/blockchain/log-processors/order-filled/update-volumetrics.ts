@@ -24,16 +24,13 @@ function incrementMarketVolume(db: Knex, marketId: Address, amount: BigNumber, c
 function incrementOutcomeVolume(db: Knex, marketId: Address, outcome: number, amount: BigNumber, price: BigNumber, callback: GenericCallback<BigNumber>) {
   db("outcomes").first("volume", "shareVolume").where({ marketId, outcome }).asCallback((err: Error|null, result: { volume: BigNumber; shareVolume: BigNumber}) => {
     if (err) return callback(err);
-
-    const incrementedShareVolume = amount.plus(result.shareVolume)
-
+    const incrementedShareVolume = amount.plus(result.shareVolume);
     const volume = result.volume;
     const newVolume = amount.multipliedBy(price);
     const incremented = newVolume.plus(volume);
     db("outcomes").update({ volume: incremented.toString(), shareVolume: incrementedShareVolume.toString() }).where({ marketId, outcome }).asCallback((err: Error|null, affectedRowsCount: number) => {
       if (err) return callback(err);
       if (affectedRowsCount === 0) return process.nextTick(() => incrementOutcomeVolume(db, marketId, outcome, amount, price, callback));
-
       callback(null, incremented);
     });
   });
@@ -78,12 +75,10 @@ export function updateVolumetrics(db: Knex, augur: Augur, category: string, mark
               if (!tradesRow) return callback(new Error(`trade not found, orderId: ${orderId}`));
               let amount = tradesRow.amount!;
               if (!isIncrease) amount = amount.negated();
-              let price = tradesRow.price!;
-
               series({
                 market: (next) => incrementMarketVolume(db, marketId, amount, next),
                 marketLastTrade: (next) => setMarketLastTrade(db, marketId, blockNumber, next),
-                outcome: (next) => incrementOutcomeVolume(db, marketId, outcome, amount, price, next),
+                outcome: (next) => incrementOutcomeVolume(db, marketId, outcome, amount, tradesRow.price!, next),
                 category: (next) => incrementCategoryPopularity(db, category, amount, next),
                 openInterest: (next) => updateOpenInterest(db, marketId, next),
               }, callback);
