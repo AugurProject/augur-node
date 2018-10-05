@@ -1,3 +1,4 @@
+
 dist: trusty
 sudo: required
 language: node_js
@@ -12,39 +13,35 @@ branches:
   - master
   - stable
   - mvp
-  - petong/travis-ci
   - "/^v\\d+\\.\\d+\\.\\d+(-\\d+)?$/"
 node_js:
 - '8'
+script:
+  - npm run lint
+  - npm run coveralls
 jobs:
   include:
-  - stage: test travis-ci
-    if: branch = petong/travis-ci
-    script:
-    - npm run lint
-    -
-    deploy:
-      provider: script
-      script: echo "I love travis yml"
-      skip_cleanup: true
-      on:
-        all_branches: true
   - stage: deploy to dev
-    if: branch = master
-    script:
-    - npm run lint
-    - npm run coveralls
+    if: (branch = master) AND (NOT (type IN (pull_request)))
+    script: skip
     deploy:
       provider: script
       script: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"; npm run docker:release -- dev
       skip_cleanup: true
       on:
         all_branches: true
+  - stage: deploy to kovan
+    if: (branch = master) AND (NOT (type IN (pull_request)))
+    script: skip
+    deploy:
+      provider: script
+      script: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"; npm run docker:release -- kovan
+      skip_cleanup: true
+      on:
+        all_branches: true
   - stage: deploy to stable
-    if: branch = stable
-    script:
-    - npm run lint
-    - npm run coveralls
+    if: (branch = stable) AND (NOT (type IN (pull_request)))
+    script: skip
     deploy:
       provider: script
       script: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"; npm run docker:release -- stable
