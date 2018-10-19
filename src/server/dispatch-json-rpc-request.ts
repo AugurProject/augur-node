@@ -114,6 +114,6 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
     case "getMarketsCreatedByUser":
       return getMarketsCreatedByUser(db, request.params.universe, request.params.creator, request.params.earliestCreationTime, request.params.latestCreationTime, request.params.sortBy, request.params.isSortDescending, request.params.limit, request.params.offset, callback);
     default:
-      callback(new Error("unknown json rpc method"));
+      callback(new Error(`unknown json rpc method ${request.method}`));
   }
 }

@@ -29,8 +29,7 @@ import { processReportingParticipantDisavowedLog, processReportingParticipantDis
 import { processMarketMailboxTransferredLog, processMarketMailboxTransferredLogRemoval } from "./market-mailbox-transferred";
 import { processMarketParticipantsDisavowedLog, processMarketParticipantsDisavowedLogRemoval } from "./market-participants-disavowed";
 
-function noop(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback) {
-  callback(null);
+async function noop(db: Knex, augur: Augur, log: FormattedEventLog) {
 }
 
 const passThroughLog: EventLogProcessor = {

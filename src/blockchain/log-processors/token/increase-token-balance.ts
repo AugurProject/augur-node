@@ -8,15 +8,13 @@ interface BalanceResult {
   balance: BigNumber;
 }
 
-export function increaseTokenBalance(db: Knex, augur: Augur, token: Address, owner: Address, amount: BigNumber, callback: ErrorCallback): void {
-  if (isLegacyReputationToken(augur, token)) return callback(null);
-  db.first("balance").from("balances").where({ token, owner }).asCallback((err: Error|null, oldBalance?: BalanceResult): void => {
-    if (err) return callback(err);
-    if (oldBalance == null) {
-      db.insert({ owner, token, balance: amount.toString() }).into("balances").asCallback(callback);
-    } else {
-      const balance = oldBalance.balance.plus(amount);
-      db.update({ balance: balance.toString() }).into("balances").where({ token, owner }).asCallback(callback);
-    }
-  });
+export async function increaseTokenBalance(db: Knex, augur: Augur, token: Address, owner: Address, amount: BigNumber) {
+  if (isLegacyReputationToken(augur, token)) return;
+  const oldBalance: BalanceResult = await db.first("balance").from("balances").where({ token, owner });
+  if (oldBalance == null) {
+    return db.insert({ owner, token, balance: amount.toString() }).into("balances");
+  } else {
+    const balance = oldBalance.balance.plus(amount);
+    return db.update({ balance: balance.toString() }).into("balances").where({ token, owner });
+  }
 }

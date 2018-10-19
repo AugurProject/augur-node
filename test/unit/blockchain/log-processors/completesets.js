@@ -7,10 +7,10 @@ const Augur = require("augur.js");
 const augur = new Augur();
 
 describe("blockchain/log-processors/completesets", () => {
-  const getState = (db, params, callback) => db("completeSets").where({
+  const getState = (db, params) => db("completeSets").where({
     account: params.log.account,
     marketId: params.log.market,
-  }).asCallback(callback);
+  });
 
   it("CompleteSetsPurchased log and removal", (done) => {
     const params = {
@@ -63,37 +63,29 @@ describe("blockchain/log-processors/completesets", () => {
 
     setupTestDb((err, db) => {
       assert.ifError(err);
-      db.transaction((trx) => {
-        processCompleteSetsPurchasedOrSoldLog(trx, params.augur, params.log, (err) => {
-          assert.ifError(err);
-          getState(trx, params, (err, completeSetsRows) => {
-            assert.ifError(err);
-            assert.deepEqual(completeSetsRows, [{
-              account: "0x0000000000000000000000000000000000000b0b",
-              blockNumber: 437,
-              logIndex: 0,
-              eventName: "CompleteSetsPurchased",
-              marketId: "0x0000000000000000000000000000000000000002",
-              numCompleteSets: "2",
-              numPurchasedOrSold: "2",
-              tradeGroupId: 12,
-              transactionHash: "0x00000000000000000000000000000000deadbeef",
-              universe: "0x0000000000000000000000000000000000000001",
-            }]);
-            processCompleteSetsPurchasedOrSoldLogRemoval(trx, params.augur, params.log, (err) => {
-              assert.ifError(err);
-              getState(trx, params, (err, completeSetsRows) => {
-                assert.ifError(err);
-                assert.deepEqual(completeSetsRows, []);
-                db.destroy();
-                done();
-              });
-            });
-          });
-        });
+      db.transaction(async (trx) => {
+        await processCompleteSetsPurchasedOrSoldLog(trx, params.augur, params.log);
+        const completeSetsRows = await getState(trx, params);
+        assert.ifError(err);
+        assert.deepEqual(completeSetsRows, [{
+          account: "0x0000000000000000000000000000000000000b0b",
+          blockNumber: 437,
+          logIndex: 0,
+          eventName: "CompleteSetsPurchased",
+          marketId: "0x0000000000000000000000000000000000000002",
+          numCompleteSets: "2",
+          numPurchasedOrSold: "2",
+          tradeGroupId: 12,
+          transactionHash: "0x00000000000000000000000000000000deadbeef",
+          universe: "0x0000000000000000000000000000000000000001",
+        }]);
+        processCompleteSetsPurchasedOrSoldLogRemoval(trx, params.augur, params.log);
+        assert.ifError(err);
+        const completeSetsRows2 = await getState(trx, params);
+        assert.deepEqual(completeSetsRows2, []);
+        db.destroy();
+        done();
       });
     });
-
-
   });
 });

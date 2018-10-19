@@ -4,18 +4,12 @@ import { FormattedEventLog, ErrorCallback } from "../../types";
 import { augurEmitter } from "../../events";
 import { SubscriptionEventNames } from "../../constants";
 
-export function processInitialReporterRedeemedLog(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
-  db.from("initial_reports").where("marketId", log.market).update({ redeemed: true }).asCallback((err: Error|null): void => {
-    if (err) return callback(err);
-    augurEmitter.emit(SubscriptionEventNames.InitialReporterRedeemed, log);
-    callback(null);
-  });
+export async function processInitialReporterRedeemedLog(db: Knex, augur: Augur, log: FormattedEventLog) {
+  await db.from("initial_reports").where("marketId", log.market).update({ redeemed: true });
+  augurEmitter.emit(SubscriptionEventNames.InitialReporterRedeemed, log);
 }
 
-export function processInitialReporterRedeemedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog, callback: ErrorCallback): void {
-  db.from("initial_reports").where("marketId", log.market).update({ redeemed: false }).asCallback((err: Error|null): void => {
-    if (err) return callback(err);
-    augurEmitter.emit(SubscriptionEventNames.InitialReporterRedeemed, log);
-    callback(null);
-  });
+export async function processInitialReporterRedeemedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog) {
+  await db.from("initial_reports").where("marketId", log.market).update({ redeemed: false });
+  augurEmitter.emit(SubscriptionEventNames.InitialReporterRedeemed, log);
 }
