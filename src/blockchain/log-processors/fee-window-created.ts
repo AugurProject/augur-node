@@ -30,6 +30,7 @@ export async function processFeeWindowCreatedLog(db: Knex, augur: Augur, log: Fo
   await db("tokens").insert(feeWindowTokens);
   // Re-running this is important for if the FeeWindow was created on the same block it started (not pre-created as part of getOrCreateNext)
   await advanceFeeWindowActive(db, augur, log.blockNumber, getCurrentTime());
+  // throw new Error("HI");
 }
 
 export async function processFeeWindowCreatedLogRemoval(db: Knex, augur: Augur, log: FormattedEventLog) {
