@@ -51,9 +51,9 @@ function convertTagsToArray(tagRows: Array<TagRow>): TagCount {
 }
 
 async function getTagsCountByCategory(db: Knex, universe: string): Promise<{ [category: string]: TagCount }> {
-  const tagsRows = await db.select(["tag1", "tag2", "category"]).from("markets").where({ universe });
+  const tagsRows: Array<TagRow> = await db.select(["tag1", "tag2", "category"]).from("markets").where({ universe });
   return _.chain(tagsRows)
-    .groupBy("category")
+    .groupBy((tagRow) => tagRow.category.toUpperCase())
     .mapValues(convertTagsToArray)
     .value();
 }
