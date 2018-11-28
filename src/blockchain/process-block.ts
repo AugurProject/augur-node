@@ -60,7 +60,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     } else {
       logger.info(`block removed: ${parseInt(block.number, 16)} (${block.hash})`);
       await dbWritesFunction(trx);
-      await db("transactionHashes").transacting(trx).where({ blockNumber: block.number }).update({ removed: 1 });
+      await db("transaction_hashes").transacting(trx).where({ blockNumber: block.number }).update({ removed: 1 });
       await db("blocks").transacting(trx).where({ blockHash: block.hash }).del();
       // TODO: un-advance time
     }
@@ -90,9 +90,9 @@ export async function processBlockByBlockDetails(db: Knex, augur: Augur, block: 
 }
 
 export async function insertTransactionHash(db: Knex, blockNumber: number, transactionHash: string) {
-  const txHashRows: Array<TransactionHashesRow> = await db("transactionHashes").where({ transactionHash });
+  const txHashRows: Array<TransactionHashesRow> = await db("transaction_hashes").where({ transactionHash });
   if (!txHashRows || !txHashRows.length) {
-    await db.insert({ blockNumber, transactionHash }).into("transactionHashes");
+    await db.insert({ blockNumber, transactionHash }).into("transaction_hashes");
   }
 }
 
