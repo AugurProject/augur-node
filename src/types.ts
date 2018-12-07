@@ -268,10 +268,15 @@ export interface TokensRow {
   outcome?: number;
 }
 
-export interface CategoriesRow {
-  popularity: string|number;
+// TODO does CategoriesRow need to exist? It's the canonical type for a complete "select * from categories", but it isn't used anywhere.
+export interface CategoriesRow<BigNumberType> {
+  category: string;
+  nonFinalizedOpenInterest: BigNumberType;
+  openInterest: BigNumberType;
+  universe: Address;
 }
 
+// TODO does CategoryRow need to exist?
 export interface CategoryRow {
   category: string;
 }

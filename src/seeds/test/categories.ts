@@ -4,6 +4,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
   // Deletes ALL existing entries
   return knex("categories").del().then(async (): Promise<any> => {
     // Inserts seed entries
+    // TODO update seeds-- remove popularity; add nonFinalizedOpenInterest, openInterest
     const seedData = [{
       category: "TEST CATEGORY",
       popularity: 0,

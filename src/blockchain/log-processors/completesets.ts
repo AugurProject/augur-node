@@ -5,7 +5,7 @@ import { CompleteSetsRow, FormattedEventLog, MarketsRow } from "../../types";
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { augurEmitter } from "../../events";
 import { SubscriptionEventNames } from "../../constants";
-import { updateOpenInterest } from "./order-filled/update-volumetrics";
+import { updateMarketOpenInterest } from "./order-filled/update-volumetrics";
 
 export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
@@ -33,7 +33,7 @@ export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: F
     const eventName = log.eventName as keyof typeof SubscriptionEventNames;
     await db.insert(completeSetPurchasedData).into("completeSets");
     augurEmitter.emit(SubscriptionEventNames[eventName], completeSetPurchasedData);
-    return updateOpenInterest(db, marketId);
+    return updateMarketOpenInterest(db, marketId);
   };
 }
 
@@ -42,6 +42,6 @@ export async function processCompleteSetsPurchasedOrSoldLogRemoval(augur: Augur,
     await db.from("completeSets").where({ transactionHash: log.transactionHash, logIndex: log.logIndex }).del();
     const eventName = log.eventName as keyof typeof SubscriptionEventNames;
     augurEmitter.emit(SubscriptionEventNames[eventName], log);
-    await updateOpenInterest(db, log.market);
+    await updateMarketOpenInterest(db, log.market);
   };
 }
