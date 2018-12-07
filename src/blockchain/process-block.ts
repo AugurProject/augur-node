@@ -3,7 +3,7 @@ import * as Knex from "knex";
 import { each } from "bluebird";
 import Augur, { FormattedEventLog } from "augur.js";
 import { augurEmitter } from "../events";
-import { BlockDetail, BlocksRow, MarketsContractAddressRow, ReportingState, Address, FeeWindowState, MarketIdUniverseFeeWindow, TransactionHashesRow } from "../types";
+import { Address, BlockDetail, BlocksRow, FeeWindowState, MarketIdUniverseFeeWindow, MarketsContractAddressRow, ReportingState, TransactionHashesRow } from "../types";
 import { updateActiveFeeWindows, updateMarketState } from "./log-processors/database";
 import { getMarketsWithReportingState } from "../server/getters/database";
 import { logger } from "../utils/logger";
@@ -43,7 +43,7 @@ export function clearOverrideTimestamp(): void {
   blockHeadTimestamp = 0;
 }
 
-export async function processBlockAndLogs(db: Knex, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>) {
+export async function processBlockAndLogs(db: Knex, pouch: PouchDB.Database, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>) {
   if (!block || !block.timestamp) throw new Error(JSON.stringify(block));
   const dbWritePromises = _.compact(logs.map((log) => processLogByName(augur, log, true)));
   const dbWriteFunctions = await Promise.all(dbWritePromises);
@@ -57,6 +57,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     if (direction === "add") {
       await processBlockByBlockDetails(trx, augur, block, bulkSync);
       await dbWritesFunction(trx);
+      pouchUpsertBlockRow(pouch, block, logs, false);
     } else {
       logger.info(`block removed: ${parseInt(block.number, 16)} (${block.hash})`);
       await dbWritesFunction(trx);
@@ -76,6 +77,30 @@ async function insertBlockRow(db: Knex, blockNumber: number, blockHash: string, 
     query = db("blocks").where({ blockNumber }).update({ blockHash, timestamp, bulkSync });
   }
   return query;
+}
+
+export async function pouchUpsert(pouch: PouchDB.Database, id: string, document: object) {
+  const previousBlockRev = await pouch.get(id).then((document) => document._rev).catch((err) => {
+    if (err.status === 404) {
+      return undefined;
+    }
+    throw err;
+  });
+
+  return pouch.put(Object.assign(
+    previousBlockRev ? { _rev: previousBlockRev } : {},
+    { _id: id },
+    document,
+  ));
+}
+
+export async function pouchUpsertBlockRow(pouch: PouchDB.Database, blockDetail: BlockDetail, logs: Array<FormattedEventLog>, bulkSync: boolean) {
+  const newBlockRow = Object.assign(
+    blockDetail,
+    { logs },
+    bulkSync,
+  );
+  return pouchUpsert(pouch, blockDetail.number, newBlockRow);
 }
 
 export async function processBlockByBlockDetails(db: Knex, augur: Augur, block: BlockDetail, bulkSync: boolean) {

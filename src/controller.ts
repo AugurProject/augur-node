@@ -26,6 +26,7 @@ export class AugurNodeController {
   private running: boolean;
   private controlEmitter: EventEmitter;
   private db: Knex | undefined;
+  private pouch: PouchDB.Database | undefined;
   private serverResult: RunServerResult | undefined;
   private errorCallback: ErrorCallback | undefined;
   private logger = logger;
@@ -43,13 +44,13 @@ export class AugurNodeController {
     this.running = true;
     this.errorCallback = errorCallback;
     try {
-      this.db = await createDbAndConnect(errorCallback, this.augur, this.networkConfig, this.databaseDir);
+      ({knex: this.db, pouch: this.pouch } = await createDbAndConnect(errorCallback, this.augur, this.networkConfig, this.databaseDir));
       this.controlEmitter.emit(ControlMessageType.BulkSyncStarted);
       this.serverResult = runServer(this.db, this.augur, this.controlEmitter);
-      const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur);
+      const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.pouch, this.augur);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
-      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this._shutdownCallback.bind(this));
+      this.blockAndLogsQueue = startAugurListeners(this.db, this.pouch, this.augur, handoffBlockNumber + 1, this._shutdownCallback.bind(this));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
     }
@@ -125,6 +126,10 @@ export class AugurNodeController {
     if (this.db !== undefined) {
       await this.db.destroy();
       this.db = undefined;
+    }
+    if (this.pouch !== undefined) {
+      this.pouch.close();
+      this.pouch = undefined;
     }
     clearOverrideTimestamp();
     this.augur.disconnect();
