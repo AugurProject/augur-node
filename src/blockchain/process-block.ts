@@ -97,8 +97,7 @@ export async function pouchUpsert(pouch: PouchDB.Database, id: string, document:
 export async function pouchUpsertBlockRow(pouch: PouchDB.Database, blockDetail: BlockDetail, logs: Array<FormattedEventLog>, bulkSync: boolean) {
   const newBlockRow = Object.assign(
     blockDetail,
-    { logs },
-    bulkSync,
+    { logs, bulkSync },
   );
   return pouchUpsert(pouch, blockDetail.number, newBlockRow);
 }
