@@ -18,6 +18,7 @@
     "go": "scripts/go.sh",
     "start": "ts-node ./src/runServer",
     "debug": "node --inspect-brk ./build/runServer",
+    "knex": "ts-node ./node_modules/.bin/knex",
     "test": "jest",
     "test:integration": "mocha 'test/integration/**/*.ts'",
     "test:integration:docker": "docker-compose up --force-recreate --abort-on-container-exit",
