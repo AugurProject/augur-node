@@ -105,7 +105,7 @@ async function checkAndUpdateContractUploadBlock(augur: Augur, networkId: string
     const oldUploadBlockNumber = Number(await promisify(readFile)(oldUploadBlockNumberFile));
     if (currentUploadBlockNumber !== oldUploadBlockNumber) {
       console.log(`Deleting existing DB for this configuration as the upload block number is not equal: OLD: ${oldUploadBlockNumber} NEW: ${currentUploadBlockNumber}`);
-      renameDatabaseFile(networkId, dbPath);
+      return renameDatabaseFile(networkId, dbPath);
     }
   }
   await promisify(writeFile)(oldUploadBlockNumberFile, currentUploadBlockNumber);
