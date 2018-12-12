@@ -4,7 +4,7 @@ import { each } from "bluebird";
 import Augur, { FormattedEventLog } from "augur.js";
 import { augurEmitter } from "../events";
 import { Address, BlockDetail, BlocksRow, FeeWindowState, MarketIdUniverseFeeWindow, MarketsContractAddressRow, ReportingState, TransactionHashesRow } from "../types";
-import { updateActiveFeeWindows, updateMarketState } from "./log-processors/database";
+import { getPouchRevFromId, updateActiveFeeWindows, updateMarketState } from "./log-processors/database";
 import { getMarketsWithReportingState } from "../server/getters/database";
 import { logger } from "../utils/logger";
 import { SubscriptionEventNames } from "../constants";
@@ -80,13 +80,7 @@ async function insertBlockRow(db: Knex, blockNumber: number, blockHash: string, 
 }
 
 export async function pouchUpsert(pouch: PouchDB.Database, id: string, document: object) {
-  const previousBlockRev = await pouch.get(id).then((document) => document._rev).catch((err) => {
-    if (err.status === 404) {
-      return undefined;
-    }
-    throw err;
-  });
-
+  const previousBlockRev = await getPouchRevFromId(pouch, id);
   return pouch.put(Object.assign(
     previousBlockRev ? { _rev: previousBlockRev } : {},
     { _id: id },
