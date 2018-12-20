@@ -44,16 +44,15 @@ function getMarkets(universe, m) {
   });
 }
 
-function performTrades(universe) {
+async function performTrades(universe) {
   const m = { scalarMarketsInfo: [], yesNoMarketsInfo: [], categoricalMarketsInfo: [] };
-  getMarkets(universe, m);
-
+  await getMarkets(universe, m);
+  console.log(m);
 }
 
-function genTestLogs() {
+async function genTestLogs() {
   const universe = augur.contracts.addresses[augur.rpc.getNetworkID()].Universe;
-
-  augur.events.startAugurNodeEventListeners({
+  await augur.events.startAugurNodeEventListeners({
     OrderCreated: function (error, result) {
       console.log("A new TokensTransferred event has occurred: ", result);
     },
