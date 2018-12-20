@@ -28,26 +28,28 @@ function sortAndFilterMarketsInfo(marketsInfo, m) {
   });
 }
 
-function getPreReportingMarketsInfo(marketIds, m) {
-  augur.markets.getMarketsInfo({
+async function getPreReportingMarketsInfo(marketIds, m) {
+  await augur.markets.getMarketsInfo({
     marketIds,
   }, function (error, result) {
     sortAndFilterMarketsInfo(result, m);
   });
+  return m;
 }
 
-function getMarkets(universe, m) {
-  augur.markets.getMarkets({
+async function getMarkets(universe, m) {
+  await augur.markets.getMarkets({
     universe,
   }, function (error, result) {
     getPreReportingMarketsInfo(result, m);
   });
+  return m;
 }
 
 async function performTrades(universe) {
-  const m = { scalarMarketsInfo: [], yesNoMarketsInfo: [], categoricalMarketsInfo: [] };
-  await getMarkets(universe, m);
-  console.log(m);
+  let m = { scalarMarketsInfo: [], yesNoMarketsInfo: [], categoricalMarketsInfo: [] };
+  m = await getMarkets(universe, m);
+  return m;
 }
 
 async function genTestLogs() {
