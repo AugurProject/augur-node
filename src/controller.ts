@@ -8,10 +8,12 @@ import { startAugurListeners } from "./blockchain/start-augur-listeners";
 import { createDbAndConnect, renameBulkSyncDatabaseFile } from "./setup/check-and-initialize-augur-db";
 import { clearOverrideTimestamp } from "./blockchain/process-block";
 import { ConnectOptions, ErrorCallback } from "./types";
-import { ControlMessageType } from "./constants";
+import { ControlMessageType, DB_VERSION, DB_FILE } from "./constants";
 import { logger } from "./utils/logger";
 import { LoggerInterface } from "./utils/logger/logger";
 import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
+import { fileCompatible, getFileHash } from "./sync/file-operations";
+import { BackupRestore } from "./sync/backup-restore";
 
 export interface SyncedBlockInfo {
   lastSyncBlockNumber: number;
@@ -55,6 +57,24 @@ export class AugurNodeController {
     }
   }
 
+  public async warpSync(filename: string, errorCallback: ErrorCallback | undefined) {
+    try {
+      if (this.isRunning()) await this.shutdown();
+      if (filename.startsWith(getFileHash(filename))) {
+        const networkId = this.augur.rpc.getNetworkID();
+        if (fileCompatible(filename, networkId, DB_VERSION)) {
+          BackupRestore.import(DB_FILE, networkId, DB_VERSION, filename);
+        } else if (errorCallback) {
+          errorCallback(new Error(`sync file not compatible with current network: ${networkId}`));
+        }
+      } else if (errorCallback) {
+        errorCallback(new Error("file hash is different to file contents hash"));
+      }
+    } catch (err) {
+      if (errorCallback) errorCallback(err);
+    }
+  }
+
   public async shutdown() {
     try {
       await this._shutdown();
@@ -69,7 +89,9 @@ export class AugurNodeController {
 
   public async requestLatestSyncedBlock(): Promise<SyncedBlockInfo> {
     if (!this.running || this.db == null) throw new Error("Not running");
-    const row: { highestBlockNumber: number } = await this.db("blocks").max("blockNumber as highestBlockNumber").first();
+    const row: { highestBlockNumber: number } = await this.db("blocks")
+      .max("blockNumber as highestBlockNumber")
+      .first();
     const lastSyncBlockNumber = row.highestBlockNumber;
     const currentBlock = this.augur.rpc.getCurrentBlock();
     if (currentBlock === null) {
@@ -77,7 +99,7 @@ export class AugurNodeController {
     }
     const highestBlockNumber = parseInt(this.augur.rpc.getCurrentBlock().number, 16);
     const uploadBlockNumber = this.augur.contracts.uploadBlockNumbers[this.augur.rpc.getNetworkID()];
-    return ({ lastSyncBlockNumber, uploadBlockNumber, highestBlockNumber });
+    return { lastSyncBlockNumber, uploadBlockNumber, highestBlockNumber };
   }
 
   public async resetDatabase(id: string, errorCallback: ErrorCallback | undefined) {
@@ -101,7 +123,7 @@ export class AugurNodeController {
     this.logger.clear();
   }
 
-  private _shutdownCallback(err: Error|null) {
+  private _shutdownCallback(err: Error | null) {
     if (err == null) return;
     this.logger.error("Fatal Error, shutting down servers", err);
     if (this.errorCallback) this.errorCallback(err);

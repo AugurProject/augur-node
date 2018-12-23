@@ -18,8 +18,14 @@ export const PRECISION: Precision = {
   multiple: multiple.toString(),
 };
 
-export const ETHER = "ether";
+// WARNING: Update this only if this release requires destroying all existing Augur Node Databases
+export const DB_VERSION = 2;
+export const DB_FILE = "augur-%s-%s.db";
+export const DB_WARP_SYNC_FILE = "%s-%s-%s.warp";
+export const DB_WARP_SYNC_FILE_ENDING = "-%s-%s.warp";
+export const DUMP_EVERY_BLOCKS = 100;
 
+export const ETHER = "ether";
 export const MINIMUM_TRADE_SIZE = "0.000001";
 
 export const BN_WEI_PER_ETHER: BigNumber = new BigNumber(10, 10).exponentiatedBy(18);

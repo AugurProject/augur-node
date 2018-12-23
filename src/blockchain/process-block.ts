@@ -7,10 +7,12 @@ import { BlockDetail, BlocksRow, MarketsContractAddressRow, ReportingState, Addr
 import { updateActiveFeeWindows, updateMarketState } from "./log-processors/database";
 import { getMarketsWithReportingState } from "../server/getters/database";
 import { logger } from "../utils/logger";
-import { SubscriptionEventNames } from "../constants";
+import { SubscriptionEventNames, DB_VERSION, DB_FILE, DB_WARP_SYNC_FILE, DUMP_EVERY_BLOCKS } from "../constants";
 import { processLogByName } from "./process-logs";
+import { BackupRestore } from "../sync/backup-restore";
 
 export type BlockDirection = "add"|"remove";
+
 
 const overrideTimestamps = Array<number>();
 let blockHeadTimestamp: number = 0;
@@ -53,7 +55,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       if (dbWriteFunction != null) await dbWriteFunction(db);
     }
   };
-  db.transaction(async (trx: Knex.Transaction) => {
+  await db.transaction(async (trx: Knex.Transaction) => {
     if (direction === "add") {
       await processBlockByBlockDetails(trx, augur, block, bulkSync);
       await dbWritesFunction(trx);
@@ -65,6 +67,11 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       // TODO: un-advance time
     }
   });
+  if (parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
+    // mod 10000 blocks then export db to file. file name is hash
+    const networkId: string = augur.rpc.getNetworkID();
+    BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE);
+  }
 }
 
 async function insertBlockRow(db: Knex, blockNumber: number, blockHash: string, bulkSync: boolean, timestamp: number) {
