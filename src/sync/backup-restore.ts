@@ -2,17 +2,17 @@ import { removeOldSyncFiles, fileCompatible, restoreWarpSyncFile, compressAndHas
 import { format } from "util";
 
 export class BackupRestore {
-  public static async export(fileTemplate: string, networkId: string, dbVersion: number, syncfileTemplate: string) {
+  public static async export(fileTemplate: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string) {
     const dbFileName = format(fileTemplate, networkId, dbVersion);
 
-    removeOldSyncFiles(networkId, dbVersion);
-    await compressAndHashFile(dbFileName, networkId, dbVersion, syncfileTemplate);
+    removeOldSyncFiles(networkId, dbVersion, directoryDir);
+    await compressAndHashFile(dbFileName, networkId, dbVersion, syncfileTemplate, directoryDir);
   }
 
-  public static async import(fileTemplate: string, networkId: string, dbVersion: number, syncFilename: string) {
+  public static async import(fileTemplate: string, networkId: string, dbVersion: number, syncFilename: string, directoryDir: string) {
     const dbFileName = format(fileTemplate, networkId, dbVersion);
     if (fileCompatible(syncFilename, networkId, dbVersion)) {
-      await restoreWarpSyncFile(syncFilename, dbFileName);
+      await restoreWarpSyncFile(directoryDir, dbFileName, syncFilename);
     }
   }
 }

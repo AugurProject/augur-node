@@ -1,6 +1,8 @@
 import { format } from "util";
 import * as _ from "lodash";
 import * as fs from "fs";
+import * as path from "path";
+import * as zlib from "zlib";
 import { DB_WARP_SYNC_FILE_ENDING } from "../constants";
 
 export function getFileHash(filename: string): string {
@@ -8,20 +10,19 @@ export function getFileHash(filename: string): string {
   return md5File.sync(filename);
 }
 
-export async function compressAndHashFile(dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string) {
+export async function compressAndHashFile(dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string = ".") {
   const WARP_SYNC_FILE = "__temp_sync_file__";
-  await createWarpSyncFile(dbFileName, WARP_SYNC_FILE);
-  const hash = getFileHash(WARP_SYNC_FILE);
+  await createWarpSyncFile(directoryDir, dbFileName, WARP_SYNC_FILE);
+  const hash = getFileHash(path.join(directoryDir, WARP_SYNC_FILE));
   const syncFile = format(syncfileTemplate, hash, networkId, dbVersion);
-  fs.renameSync(WARP_SYNC_FILE, syncFile);
+  fs.renameSync(path.join(directoryDir, WARP_SYNC_FILE), path.join(directoryDir, syncFile));
 }
 
-export async function restoreWarpSyncFile(syncFilename: string, dbFileName: string) {
+export async function restoreWarpSyncFile(directoryDir: string, dbFileName: string, syncFilenameAbsPath: string) {
   return new Promise<any>((resolve, reject) => {
-    const zlib = require("zlib");
     const bigger = zlib.createGunzip();
-    const input = fs.createReadStream(syncFilename);
-    const output = fs.createWriteStream(dbFileName);
+    const input = fs.createReadStream(syncFilenameAbsPath);
+    const output = fs.createWriteStream(path.join(directoryDir, dbFileName));
 
     input
       .pipe(bigger)
@@ -36,13 +37,12 @@ export async function restoreWarpSyncFile(syncFilename: string, dbFileName: stri
   });
 }
 
-export async function createWarpSyncFile(dbFileName: string, syncFilename: string): Promise<any> {
+export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string): Promise<any> {
   return new Promise<any>((resolve, reject) => {
-    const zlib = require("zlib");
     fs.closeSync(fs.openSync(syncFilename, "w"));
     const smaller = zlib.createGzip({ level: 9 });
-    const input = fs.createReadStream(dbFileName);
-    const output = fs.createWriteStream(syncFilename);
+    const input = fs.createReadStream(path.join(directoryDir, dbFileName));
+    const output = fs.createWriteStream(path.join(directoryDir, syncFilename));
 
     input
       .pipe(smaller)
@@ -56,12 +56,12 @@ export async function createWarpSyncFile(dbFileName: string, syncFilename: strin
       });
   });
 }
-export function removeOldSyncFiles(networkId: string, dbVersion: number) {
-  const syncFiles = format(DB_WARP_SYNC_FILE_ENDING, networkId, dbVersion);
 
-  const files = fs.readdirSync(".").filter((fn: string) => fn.endsWith(syncFiles));
+export function removeOldSyncFiles(networkId: string, dbVersion: number, directoryDir: string = ".") {
+  const syncFiles = format(DB_WARP_SYNC_FILE_ENDING, networkId, dbVersion);
+  const files = fs.readdirSync(directoryDir).filter((fn: string) => fn.endsWith(syncFiles));
   if (files) {
-    _.each(files, (file) => fs.unlinkSync(file));
+    _.each(files, (file) => fs.unlinkSync(path.join(directoryDir, file)));
   }
 }
 

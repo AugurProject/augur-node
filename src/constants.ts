@@ -1,4 +1,5 @@
 import BigNumber from "bignumber.js";
+import { string } from "io-ts";
 
 export interface Precision {
   decimals: number;
@@ -66,7 +67,7 @@ export enum SubscriptionEventNames {
   InitialReporterRedeemed = "InitialReporterRedeemed",
   InitialReporterTransferred = "InitialReporterTransferred",
   MarketCreated = "MarketCreated",
-  MarketFinalized  = "MarketFinalized",
+  MarketFinalized = "MarketFinalized",
   MarketMigrated = "MarketMigrated",
   MarketState = "MarketState",
   OrderCanceled = "OrderCanceled",
@@ -87,3 +88,14 @@ export enum MarketType {
   categorical,
   scalar,
 }
+
+export interface NetworkNames {
+  [key: number]: string;
+}
+
+export const NETWORK_NAMES: NetworkNames = {
+  1: "Mainnet",
+  3: "Ropsten",
+  4: "Rinkeby",
+  42: "Kovan",
+};

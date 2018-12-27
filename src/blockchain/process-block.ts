@@ -11,8 +11,7 @@ import { SubscriptionEventNames, DB_VERSION, DB_FILE, DB_WARP_SYNC_FILE, DUMP_EV
 import { processLogByName } from "./process-logs";
 import { BackupRestore } from "../sync/backup-restore";
 
-export type BlockDirection = "add"|"remove";
-
+export type BlockDirection = "add" | "remove";
 
 const overrideTimestamps = Array<number>();
 let blockHeadTimestamp: number = 0;
@@ -35,7 +34,7 @@ export async function removeOverrideTimestamp(db: Knex, overrideTimestamp: numbe
   return db("network_id").update("overrideTimestamp", priorTimestamp);
 }
 
-export function getOverrideTimestamp(): number|null {
+export function getOverrideTimestamp(): number | null {
   if (overrideTimestamps.length === 0) return null;
   return overrideTimestamps[overrideTimestamps.length - 1];
 }
@@ -45,7 +44,7 @@ export function clearOverrideTimestamp(): void {
   blockHeadTimestamp = 0;
 }
 
-export async function processBlockAndLogs(db: Knex, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>) {
+export async function processBlockAndLogs(db: Knex, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>, databaseDir: string) {
   if (!block || !block.timestamp) throw new Error(JSON.stringify(block));
   const dbWritePromises = _.compact(logs.map((log) => processLogByName(augur, log, true)));
   const dbWriteFunctions = await Promise.all(dbWritePromises);
@@ -62,15 +61,25 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     } else {
       logger.info(`block removed: ${parseInt(block.number, 16)} (${block.hash})`);
       await dbWritesFunction(trx);
-      await db("transactionHashes").transacting(trx).where({ blockNumber: block.number }).update({ removed: 1 });
-      await db("blocks").transacting(trx).where({ blockHash: block.hash }).del();
+      await db("transactionHashes")
+        .transacting(trx)
+        .where({ blockNumber: block.number })
+        .update({ removed: 1 });
+      await db("blocks")
+        .transacting(trx)
+        .where({ blockHash: block.hash })
+        .del();
       // TODO: un-advance time
     }
   });
-  if (parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
-    // mod 10000 blocks then export db to file. file name is hash
-    const networkId: string = augur.rpc.getNetworkID();
-    BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE);
+  try {
+    if (parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
+      // every X blocks export db to warp file.
+      const networkId: string = augur.rpc.getNetworkID();
+      BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE, databaseDir);
+    }
+  } catch (err) {
+    console.log("ERROR: could not create warp sync file");
   }
 }
 
@@ -80,7 +89,9 @@ async function insertBlockRow(db: Knex, blockNumber: number, blockHash: string, 
   if (!blocksRows || !blocksRows.length) {
     query = db.insert({ blockNumber, blockHash, timestamp, bulkSync }).into("blocks");
   } else {
-    query = db("blocks").where({ blockNumber }).update({ blockHash, timestamp, bulkSync });
+    query = db("blocks")
+      .where({ blockNumber })
+      .update({ blockHash, timestamp, bulkSync });
   }
   return query;
 }
@@ -91,7 +102,7 @@ export async function processBlockByBlockDetails(db: Knex, augur: Augur, block: 
   const blockHash = block.hash;
   blockHeadTimestamp = parseInt(block.timestamp, 16);
   const timestamp = getOverrideTimestamp() || blockHeadTimestamp;
-  logger.info("new block:", `${blockNumber}, ${timestamp} (${(new Date(timestamp * 1000)).toString()})`);
+  logger.info("new block:", `${blockNumber}, ${timestamp} (${new Date(timestamp * 1000).toString()})`);
   await insertBlockRow(db, blockNumber, blockHash, bulkSync, timestamp);
   await advanceTime(db, augur, blockNumber, timestamp);
 }
@@ -113,7 +124,9 @@ async function advanceTime(db: Knex, augur: Augur, blockNumber: number, timestam
 async function advanceMarketReachingEndTime(db: Knex, augur: Augur, blockNumber: number, timestamp: number) {
   const networkId: string = augur.rpc.getNetworkID();
   const universe: string = augur.contracts.addresses[networkId].Universe;
-  const designatedDisputeQuery = db("markets").select("markets.marketId").join("market_state", "market_state.marketStateId", "markets.marketStateId");
+  const designatedDisputeQuery = db("markets")
+    .select("markets.marketId")
+    .join("market_state", "market_state.marketStateId", "markets.marketStateId");
   designatedDisputeQuery.where("reportingState", augur.constants.REPORTING_STATE.PRE_REPORTING).where("endTime", "<", timestamp);
   const designatedDisputeMarketIds: Array<MarketsContractAddressRow> = await designatedDisputeQuery;
   await each(designatedDisputeMarketIds, async (marketIdRow) => {
@@ -144,7 +157,7 @@ async function advanceMarketMissingDesignatedReport(db: Knex, augur: Augur, bloc
 }
 
 async function advanceMarketsToAwaitingFinalization(db: Knex, augur: Augur, blockNumber: number, expiredFeeWindows: Array<Address>) {
-  const marketIds: Array<{ marketId: Address; universe: Address; }> = await getMarketsWithReportingState(db, ["markets.marketId", "markets.universe"])
+  const marketIds: Array<{ marketId: Address; universe: Address }> = await getMarketsWithReportingState(db, ["markets.marketId", "markets.universe"])
     .join("universes", "markets.universe", "universes.universe")
     .where("universes.forked", 0)
     .whereIn("markets.feeWindow", expiredFeeWindows)
@@ -158,7 +171,9 @@ async function advanceMarketsToAwaitingFinalization(db: Knex, augur: Augur, bloc
       marketId: marketIdRow.marketId,
       reportingState: ReportingState.AWAITING_FINALIZATION,
     });
-    return db("payouts").where({ marketId: marketIdRow.marketId }).update("winning", db.raw(`"tentativeWinning"`));
+    return db("payouts")
+      .where({ marketId: marketIdRow.marketId })
+      .update("winning", db.raw(`"tentativeWinning"`));
   });
 }
 
@@ -193,7 +208,8 @@ async function advanceMarketsToCrowdsourcingDispute(db: Knex, augur: Augur, bloc
 async function advanceIncompleteCrowdsourcers(db: Knex, blockNumber: number, expiredFeeWindows: Array<Address>) {
   // Finds crowdsourcers rows that we don't know the completion of, but are attached to feeWindows that have ended
   // They did not reach their goal, so set completed to 0.
-  return db("crowdsourcers").update("completed", 0)
+  return db("crowdsourcers")
+    .update("completed", 0)
     .whereNull("completed")
     .whereIn("feeWindow", expiredFeeWindows);
 }

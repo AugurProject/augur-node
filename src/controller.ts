@@ -1,18 +1,20 @@
 import Augur from "augur.js";
 import * as Knex from "knex";
+import * as path from "path";
 import { EventEmitter } from "events";
+import { format } from "util";
 import { NetworkConfiguration } from "augur-core";
 import { runServer, RunServerResult, shutdownServers } from "./server/run-server";
 import { bulkSyncAugurNodeWithBlockchain } from "./blockchain/bulk-sync-augur-node-with-blockchain";
 import { startAugurListeners } from "./blockchain/start-augur-listeners";
 import { createDbAndConnect, renameBulkSyncDatabaseFile } from "./setup/check-and-initialize-augur-db";
 import { clearOverrideTimestamp } from "./blockchain/process-block";
-import { ConnectOptions, ErrorCallback } from "./types";
-import { ControlMessageType, DB_VERSION, DB_FILE } from "./constants";
+import { ConnectOptions, ErrorCallback, GenericCallback } from "./types";
+import { ControlMessageType, DB_VERSION, DB_FILE, NETWORK_NAMES } from "./constants";
 import { logger } from "./utils/logger";
 import { LoggerInterface } from "./utils/logger/logger";
 import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
-import { fileCompatible, getFileHash } from "./sync/file-operations";
+import { getFileHash } from "./sync/file-operations";
 import { BackupRestore } from "./sync/backup-restore";
 
 export interface SyncedBlockInfo {
@@ -24,7 +26,7 @@ export interface SyncedBlockInfo {
 export class AugurNodeController {
   private augur: Augur;
   private networkConfig: NetworkConfiguration;
-  private databaseDir: string | undefined;
+  private databaseDir: string;
   private running: boolean;
   private controlEmitter: EventEmitter;
   private db: Knex | undefined;
@@ -33,7 +35,7 @@ export class AugurNodeController {
   private logger = logger;
   private blockAndLogsQueue: BlockAndLogsQueue | undefined;
 
-  constructor(augur: Augur, networkConfig: ConnectOptions, databaseDir?: string) {
+  constructor(augur: Augur, networkConfig: ConnectOptions, databaseDir: string = ".") {
     this.augur = augur;
     this.networkConfig = networkConfig;
     this.databaseDir = databaseDir;
@@ -51,26 +53,34 @@ export class AugurNodeController {
       const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
-      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this._shutdownCallback.bind(this));
+      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this._shutdownCallback.bind(this));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
     }
   }
 
-  public async warpSync(filename: string, errorCallback: ErrorCallback | undefined) {
+  public async warpSync(filename: string, errorCallback: ErrorCallback | undefined, infoCallback: GenericCallback<string>) {
     try {
       if (this.isRunning()) await this.shutdown();
-      if (filename.startsWith(getFileHash(filename))) {
-        const networkId = this.augur.rpc.getNetworkID();
-        if (fileCompatible(filename, networkId, DB_VERSION)) {
-          BackupRestore.import(DB_FILE, networkId, DB_VERSION, filename);
-        } else if (errorCallback) {
-          errorCallback(new Error(`sync file not compatible with current network: ${networkId}`));
-        }
+      const baseName = path.basename(filename);
+      const split = baseName.split("-");
+      const fileNetworkId = split[1];
+      const networkId = parseInt(fileNetworkId, 10);
+      const networkName = NETWORK_NAMES[networkId];
+      const fileHash = getFileHash(filename);
+      console.log(baseName, fileNetworkId, networkId, networkName, fileHash);
+
+      if (baseName.startsWith(fileHash)) {
+        console.log("importing file", filename);
+        infoCallback(null, format("importing file %s for network %s", baseName, networkName));
+        BackupRestore.import(DB_FILE, fileNetworkId, DB_VERSION, filename, this.databaseDir);
+        infoCallback(null, format("Finished importing warp sync file for network %s", networkName));
       } else if (errorCallback) {
-        errorCallback(new Error("file hash is different to file contents hash"));
+        console.log("hash doesn't match file", fileHash);
+        errorCallback(new Error("file hash and contents hashed do not match"));
       }
     } catch (err) {
+      console.log("ERROR: ", err.message);
       if (errorCallback) errorCallback(err);
     }
   }
