@@ -3,7 +3,6 @@ import { ReportingState } from "../../types";
 
 interface MarketOpenInterestChangedParams {
   db: Knex;
-  // alternatively we could pass only `{ db, marketId, oldOpenInterest }` and read `newOpenInterest` and `reportingState` from the db.
   categoryName: string;
   newOpenInterest: BigNumber;
   oldOpenInterest: BigNumber;
@@ -16,22 +15,73 @@ interface MarketFinalizedParams {
 }
 
 export async function updateCategoryAggregationsOnMarketOpenInterestChanged(params: MarketOpenInterestChangedParams): Promise<void> {
-  // TODO add (newOpenInterest - oldOpenInterest) to category.openInterest
+  const row: {
+    openInterest: BigNumber,
+    nonFinalizedOpenInterest: BigNumber,
+  } | undefined = await params.db.first(["openInterest", "nonFinalizedOpenInterest"])
+    .from("categories")
+    .where({ category: params.categoryName });
+  if (row === undefined) throw new Error(`No category found with name ${params.categoryName}`);
+
+  const oiDelta: BigNumber = params.newOpenInterest.minus(params.oldOpenInterest);
+
+  const updates: any = {
+    // 1. update category.openInterest to reflect change in market's OI
+    openInterest: row.openInterest.plus(oiDelta).toString(),
+  };
+
   if (params.reportingState !== ReportingState.FINALIZED) {
-    // by definition, category.nonFinalizedOpenInterest ignores OI on finalized markets
-    // TODO add (newOpenInterest - oldOpenInterest) to category.nonFinalizedOpenInterest
+    // 2. update category.nonFinalizedOpenInterest to reflect change in non-finalized market's OI
+    updates.nonFinalizedOpenInterest = row.nonFinalizedOpenInterest.plus(oiDelta).toString();
   }
-  return Promise.resolve();
+
+  await params.db("categories").update(updates).where({ category: params.categoryName });
 }
 
-// precondition: market finalized in the db
+// precondition: market reportingState == FINALIZED in the db
 export async function updateCategoryAggregationsOnMarketFinalized(params: MarketFinalizedParams): Promise<void> {
-  // TODO subtract market.openInterest from category.nonFinalizedOpenInterest
+  // 1. update category.nonFinalizedOpenInterest because a finalized market is newly excluded from nonFinalizedOpenInterest
+  const v = await marketFinalizedHelper(params.db, params.marketId);
+  await params.db("categories").update({
+    nonFinalizedOpenInterest: v.categoryNonFinalizedOpenInterest.minus(v.marketOpenInterest).toString(),
+  }).where({ category: v.categoryName });
+}
+
+// precondition: market reportingState != FINALIZED in the db
+export async function updateCategoryAggregationsOnMarketFinalizedRollback(params: MarketFinalizedParams): Promise<void> {
+  // 1. update category.nonFinalizedOpenInterest because an un-finalized market is newly included in nonFinalizedOpenInterest
+  const v = await marketFinalizedHelper(params.db, params.marketId);
+  await params.db("categories").update({
+    nonFinalizedOpenInterest: v.categoryNonFinalizedOpenInterest.plus(v.marketOpenInterest).toString(),
+  }).where({ category: v.categoryName });
   return Promise.resolve();
 }
 
-// precondition: market finalization rolled back in the db
-export async function updateCategoryAggregationsOnMarketFinalizedRollback(params: MarketFinalizedParams): Promise<void> {
-  // TODO add market.openInterest to category.nonFinalizedOpenInterest
-  return Promise.resolve();
+async function marketFinalizedHelper(db: Knex, marketId: string): Promise<{
+  categoryName: string,
+  categoryNonFinalizedOpenInterest: BigNumber,
+  marketOpenInterest: BigNumber,
+}> {
+  const mRow: {
+    category: string,
+    openInterest: BigNumber,
+  } | undefined = await db.first([
+    "category",
+    "openInterest",
+  ]).from("markets")
+    .where({ marketId });
+  if (mRow === undefined) throw new Error(`No market with marketId ${marketId}`);
+
+  const cRow: {
+    nonFinalizedOpenInterest: BigNumber,
+  } | undefined = await db.first(["nonFinalizedOpenInterest"])
+    .from("categories")
+    .where({ category: mRow.category });
+  if (cRow === undefined) throw new Error(`No category found with name ${mRow.category}`);
+
+  return Promise.resolve({
+    categoryName: mRow.category,
+    categoryNonFinalizedOpenInterest: cRow.nonFinalizedOpenInterest,
+    marketOpenInterest: mRow.openInterest,
+  });
 }
