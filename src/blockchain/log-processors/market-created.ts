@@ -21,13 +21,13 @@ function getOutcomes(augur: Augur, log: FormattedEventLog) {
     const numOutcomes = parseInt(log.marketType, 10) === MarketType.categorical ? log.outcomes.length : 2;
 
     const shareTokens = new Array(numOutcomes);
-    const outcomeNames: Array<string|number|null> = (log.marketType === "1" && log.outcomes) ? log.outcomes : new Array(numOutcomes).fill(null);
+    const outcomeNames: Array<string | number | null> = (log.marketType === "1" && log.outcomes) ? log.outcomes : new Array(numOutcomes).fill(null);
 
     forEachOf(shareTokens, async (_: null, outcome: number, nextOutcome: ErrorCallback) => {
       const shareToken = await augur.api.Market.getShareToken(Object.assign({ _outcome: outcome }, marketPayload)).catch(nextOutcome);
       shareTokens[outcome] = shareToken;
       nextOutcome(null);
-    }, (err: Error|null): void => {
+    }, (err: Error | null): void => {
       if (err) return reject(err);
       resolve({
         numOutcomes,
@@ -57,7 +57,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
   return async (db: Knex) => {
     const designatedReportStakeRow: { balance: BigNumber } = await db("balances_detail").first("balance").where({ owner: log.market, symbol: "REP" });
     if (designatedReportStakeRow == null) throw new Error(`No REP balance on market: ${log.market} (${log.transactionHash}`);
-    const marketStateDataToInsert: { [index: string]: string|number|boolean } = {
+    const marketStateDataToInsert: { [index: string]: string | number | boolean } = {
       marketId: log.market,
       reportingState: augur.constants.REPORTING_STATE.PRE_REPORTING,
       blockNumber: log.blockNumber,
@@ -72,7 +72,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
     const extraInfo: MarketCreatedLogExtraInfo = (log.extraInfo != null && typeof log.extraInfo === "object") ? log.extraInfo : {};
     const marketType: string = MarketType[log.marketType];
     const marketCategoryName = canonicalizeCategoryName(log.topic);
-    const marketsDataToInsert: MarketsRow<string|number> = {
+    const marketsDataToInsert: MarketsRow<string | number> = {
       marketType,
       transactionHash: log.transactionHash,
       logIndex: log.logIndex,
@@ -174,8 +174,7 @@ function canonicalizeCategoryName(categoryName: string): string {
 export async function createCategoryIfNotExists(db: Knex, universe: string, categoryName: string) {
   // select openInterest as a cheap column to then count results. Might be replaced with Knex.count()
   const categoriesRows = await db.select("openInterest").from("categories").where({ category: categoryName, universe });
-  if (categoriesRows && categoriesRows.length)
-    return; // category already exists
+  if (categoriesRows && categoriesRows.length) return; // category already exists
   return db.insert({ category: categoryName, universe }).into("categories");
 }
 
