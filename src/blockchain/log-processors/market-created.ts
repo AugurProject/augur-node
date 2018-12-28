@@ -173,8 +173,7 @@ function canonicalizeCategoryName(categoryName: string): string {
 
 export async function createCategoryIfNotExists(db: Knex, universe: string, categoryName: string) {
   // select openInterest as a cheap column to then count results. Might be replaced with Knex.count()
-  // TODO s/popularity/openInterest
-  const categoriesRows = await db.select("popularity").from("categories").where({ category: categoryName, universe });
+  const categoriesRows = await db.select("openInterest").from("categories").where({ category: categoryName, universe });
   if (categoriesRows && categoriesRows.length)
     return; // category already exists
   return db.insert({ category: categoryName, universe }).into("categories");

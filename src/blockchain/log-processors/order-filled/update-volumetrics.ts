@@ -56,8 +56,7 @@ export async function updateMarketOpenInterest(db: Knex, marketId: Address) {
   await db("markets").update({ openInterest: newOpenInterestInETHString }).where({ marketId });
 
   const newOpenInterestInETH = new BigNumber(newOpenInterestInETHString, 10);
-  console.log("ryan marketId", marketId, "newOpenInterest", newOpenInterestInETH.toString(), "newOpenInterestString", newOpenInterestInETHString, "oldOpenInterest", marketRow.openInterest.toString(), "reportingState", marketRow.reportingState); // TODO rm
-  updateCategoryAggregationsOnMarketOpenInterestChanged({
+  await updateCategoryAggregationsOnMarketOpenInterestChanged({
     db,
     categoryName: marketRow.category,
     reportingState: marketRow.reportingState,

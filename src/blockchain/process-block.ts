@@ -54,7 +54,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       if (dbWriteFunction != null) await dbWriteFunction(db);
     }
   };
-  db.transaction(async (trx: Knex.Transaction) => {
+  await db.transaction(async (trx: Knex.Transaction) => {
     if (direction === "add") {
       await processBlockByBlockDetails(trx, augur, block, bulkSync);
       await dbWritesFunction(trx);

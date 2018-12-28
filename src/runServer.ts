@@ -39,14 +39,17 @@ function start(retries: number, config: any, databaseDir: any) {
   });
 
   function errorCatch(err: Error) {
+    function fatalError(e: Error) {
+      logger.error("Fatal Error:", e);
+      process.exit(1);
+    }
     if (retries > 0) {
       logger.warn(err.message);
       retries--;
-      augurNodeController.shutdown();
+      augurNodeController.shutdown().catch(fatalError);
       setTimeout(() => start(retries, config, databaseDir), 1000);
     } else {
-      logger.error("Fatal Error:", err);
-      process.exit(1);
+      fatalError(err);
     }
   }
 
