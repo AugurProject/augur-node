@@ -1,6 +1,6 @@
 import Augur from "augur.js";
 import * as Knex from "knex";
-import { FormattedEventLog, CategoryRow, ReportingState, Address } from "../../types";
+import { FormattedEventLog, ReportingState, Address } from "../../types";
 import { rollbackMarketState, updateMarketFeeWindow, updateMarketState } from "./database";
 import { getMarketsWithReportingState } from "../../server/getters/database";
 import { createCategoryIfNotExists } from "./market-created";
@@ -27,7 +27,7 @@ export async function processMarketMigratedLog(augur: Augur, log: FormattedEvent
     await db.update({
       disavowed: db.raw("disavowed + 1"),
     }).into("crowdsourcers").where("marketId", log.market);
-    const categoryRows: CategoryRow = await db.first("category").from("markets").where({ marketId: log.market });
+    const categoryRows: { category: string } = await db.first("category").from("markets").where({ marketId: log.market });
     if (!categoryRows) return; // TODO should this throw an error?
     await createCategoryIfNotExists(db, log.newUniverse, categoryRows.category); // NB `categoryName = categoryRows.category` is expected to already be canonicalized when the market was first ingested into augur-node, see canonicalizeCategoryName().
   };

@@ -276,11 +276,6 @@ export interface CategoriesRow<BigNumberType> {
   universe: Address;
 }
 
-// TODO does CategoryRow need to exist?
-export interface CategoryRow {
-  category: string;
-}
-
 export interface BlocksRow {
   blockNumber: number;
   timestamp: number;
