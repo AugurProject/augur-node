@@ -4,30 +4,35 @@ exports.seed = async (knex: Knex): Promise<any> => {
   // Deletes ALL existing entries
   return knex("categories").del().then(async (): Promise<any> => {
     // Inserts seed entries
-    // TODO update seeds-- remove popularity; add nonFinalizedOpenInterest, openInterest
     const seedData = [{
       category: "TEST CATEGORY",
-      popularity: 0,
+      nonFinalizedOpenInterest: "0",
+      openInterest: "0",
       universe: "0x000000000000000000000000000000000000000b",
     }, {
       category: "POLITICS",
-      popularity: 5000,
+      nonFinalizedOpenInterest: "3",
+      openInterest: "12",
       universe: "0x000000000000000000000000000000000000000b",
     }, {
       category: "ETHEREUM",
-      popularity: 900,
+      nonFinalizedOpenInterest: "4.5",
+      openInterest: "4.5",
       universe: "0x000000000000000000000000000000000000000b",
     }, {
       category: "ethereum",
-      popularity: 100,
+      nonFinalizedOpenInterest: "0",
+      openInterest: "0",
       universe: "0x000000000000000000000000000000000000000b",
     }, {
       category: "AUGUR",
-      popularity: 500,
+      nonFinalizedOpenInterest: "0",
+      openInterest: "3",
       universe: "0x000000000000000000000000000000000000000b",
     }, {
       category: "FINANCE",
-      popularity: 12345,
+      nonFinalizedOpenInterest: "2.5",
+      openInterest: "2.6",
       universe: "0x000000000000000000000000000000000000000b",
     }];
     return knex.batchInsert("categories", seedData, seedData.length);
