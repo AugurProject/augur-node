@@ -28,7 +28,7 @@ export async function processMarketMigratedLog(augur: Augur, log: FormattedEvent
       disavowed: db.raw("disavowed + 1"),
     }).into("crowdsourcers").where("marketId", log.market);
     const categoryRows: { category: string } = await db.first("category").from("markets").where({ marketId: log.market });
-    if (!categoryRows) return;
+    if (!categoryRows || categoryRows.category == null) return;
     await createCategoryIfNotExists(db, log.newUniverse, categoryRows.category); // NB `categoryName = categoryRows.category` is expected to already be canonicalized when the market was first ingested into augur-node, see canonicalizeCategoryName().
   };
 }
