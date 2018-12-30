@@ -44,7 +44,7 @@ export function clearOverrideTimestamp(): void {
   blockHeadTimestamp = 0;
 }
 
-export async function processBlockAndLogs(db: Knex, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>, databaseDir: string) {
+export async function processBlockAndLogs(db: Knex, augur: Augur, direction: BlockDirection, block: BlockDetail, bulkSync: boolean, logs: Array<FormattedEventLog>, databaseDir: string, isWarpSync: boolean) {
   if (!block || !block.timestamp) throw new Error(JSON.stringify(block));
   const dbWritePromises = _.compact(logs.map((log) => processLogByName(augur, log, true)));
   const dbWriteFunctions = await Promise.all(dbWritePromises);
@@ -73,7 +73,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     }
   });
   try {
-    if (parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
+    if (isWarpSync && parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
       // every X blocks export db to warp file.
       const networkId: string = augur.rpc.getNetworkID();
       BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE, databaseDir);

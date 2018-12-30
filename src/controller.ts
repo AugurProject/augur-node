@@ -53,7 +53,7 @@ export class AugurNodeController {
       const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
-      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this._shutdownCallback.bind(this));
+      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.networkConfig.isWarpSync, this._shutdownCallback.bind(this));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
     }
@@ -61,6 +61,7 @@ export class AugurNodeController {
 
   public async warpSync(filename: string, errorCallback: ErrorCallback | undefined, infoCallback: GenericCallback<string>) {
     try {
+      this.logger.info(format("importing warp sync file %s", filename));
       if (this.isRunning()) await this.shutdown();
       const baseName = path.basename(filename);
       const split = baseName.split("-");
@@ -68,19 +69,18 @@ export class AugurNodeController {
       const networkId = parseInt(fileNetworkId, 10);
       const networkName = NETWORK_NAMES[networkId];
       const fileHash = getFileHash(filename);
-      console.log(baseName, fileNetworkId, networkId, networkName, fileHash);
-
       if (baseName.startsWith(fileHash)) {
-        console.log("importing file", filename);
+        infoCallback(null, format("backing up database file for network %s", networkName));
+        await renameBulkSyncDatabaseFile(fileNetworkId, this.databaseDir);
         infoCallback(null, format("importing file %s for network %s", baseName, networkName));
         BackupRestore.import(DB_FILE, fileNetworkId, DB_VERSION, filename, this.databaseDir);
         infoCallback(null, format("Finished importing warp sync file for network %s", networkName));
       } else if (errorCallback) {
-        console.log("hash doesn't match file", fileHash);
+        this.logger.error("Error, import warp sync file hash mismatch");
         errorCallback(new Error("file hash and contents hashed do not match"));
       }
     } catch (err) {
-      console.log("ERROR: ", err.message);
+      this.logger.error("Fatal Error, import warp sync file failed", err);
       if (errorCallback) errorCallback(err);
     }
   }
