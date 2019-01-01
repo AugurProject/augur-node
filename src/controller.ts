@@ -26,6 +26,7 @@ export interface SyncedBlockInfo {
 export class AugurNodeController {
   private augur: Augur;
   private networkConfig: NetworkConfiguration;
+  private isWarpSync: boolean;
   private databaseDir: string;
   private running: boolean;
   private controlEmitter: EventEmitter;
@@ -35,9 +36,10 @@ export class AugurNodeController {
   private logger = logger;
   private blockAndLogsQueue: BlockAndLogsQueue | undefined;
 
-  constructor(augur: Augur, networkConfig: ConnectOptions, databaseDir: string = ".") {
+  constructor(augur: Augur, networkConfig: ConnectOptions, databaseDir: string = ".", isWarpSync: boolean = false) {
     this.augur = augur;
     this.networkConfig = networkConfig;
+    this.isWarpSync = isWarpSync;
     this.databaseDir = databaseDir;
     this.running = false;
     this.controlEmitter = new EventEmitter();
@@ -53,7 +55,7 @@ export class AugurNodeController {
       const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
-      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.networkConfig.isWarpSync, this._shutdownCallback.bind(this));
+      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.isWarpSync, this._shutdownCallback.bind(this));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
     }
