@@ -22,7 +22,7 @@ export async function compressAndHashFile(dbFileName: string, networkId: string,
 
 export async function restoreWarpSyncFile(directoryDir: string, dbFileName: string, syncFilenameAbsPath: string): Promise<void> {
   logger.info(format("restore/import warp sync file %s", syncFilenameAbsPath));
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const bigger = zlib.createGunzip();
     const input = fs.createReadStream(syncFilenameAbsPath);
     const output = fs.createWriteStream(path.join(directoryDir, dbFileName));
@@ -41,7 +41,7 @@ export async function restoreWarpSyncFile(directoryDir: string, dbFileName: stri
 }
 
 export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const smaller = zlib.createGzip({ level: 9 });
     const input = fs.createReadStream(path.join(directoryDir, dbFileName));
     const output = fs.createWriteStream(path.join(directoryDir, syncFilename));
