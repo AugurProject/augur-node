@@ -3,6 +3,7 @@ import * as _ from "lodash";
 import * as fs from "fs";
 import * as path from "path";
 import * as zlib from "zlib";
+import { logger } from "../utils/logger";
 import { DB_WARP_SYNC_FILE_ENDING } from "../constants";
 
 export function getFileHash(filename: string): string {
@@ -16,9 +17,11 @@ export async function compressAndHashFile(dbFileName: string, networkId: string,
   const hash = getFileHash(path.join(directoryDir, WARP_SYNC_FILE));
   const syncFile = format(syncfileTemplate, hash, networkId, dbVersion);
   fs.renameSync(path.join(directoryDir, WARP_SYNC_FILE), path.join(directoryDir, syncFile));
+  logger.info(format("create warp sync file %s", syncFile));
 }
 
 export async function restoreWarpSyncFile(directoryDir: string, dbFileName: string, syncFilenameAbsPath: string) {
+  logger.info(format("restore/import warp sync file %s", syncFilenameAbsPath));
   return new Promise<any>((resolve, reject) => {
     const bigger = zlib.createGunzip();
     const input = fs.createReadStream(syncFilenameAbsPath);
@@ -28,7 +31,7 @@ export async function restoreWarpSyncFile(directoryDir: string, dbFileName: stri
       .pipe(bigger)
       .pipe(output)
       .on("error", (err: any) => {
-        console.error("Error: restoring warp sync file");
+        logger.error("Error: restoring warp sync file");
         reject(err);
       })
       .on("finish", () => {
@@ -48,7 +51,7 @@ export async function createWarpSyncFile(directoryDir: string, dbFileName: strin
       .pipe(smaller)
       .pipe(output)
       .on("error", (err: any) => {
-        console.error("Error: creating warp sync file");
+        logger.error("Error: creating warp sync file");
         reject(err);
       })
       .on("finish", () => {

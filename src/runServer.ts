@@ -5,7 +5,7 @@ import { logger } from "./utils/logger";
 
 const networkName = process.argv[2] || "environment";
 const databaseDir = process.env.AUGUR_DATABASE_DIR;
-const isWarpSync = false;
+const isWarpSync = process.env.IS_WARP_SYNC;
 
 // maxRetries is the maximum number of retries for retryable Ethereum
 // RPC requests. maxRetries is passed to augur.js's augur.connect() and
