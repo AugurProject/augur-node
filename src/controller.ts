@@ -3,7 +3,6 @@ import * as Knex from "knex";
 import * as path from "path";
 import { EventEmitter } from "events";
 import { format } from "util";
-import { NetworkConfiguration } from "augur-core";
 import { runServer, RunServerResult, shutdownServers } from "./server/run-server";
 import { bulkSyncAugurNodeWithBlockchain } from "./blockchain/bulk-sync-augur-node-with-blockchain";
 import { startAugurListeners } from "./blockchain/start-augur-listeners";
