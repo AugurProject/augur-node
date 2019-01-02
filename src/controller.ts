@@ -82,7 +82,6 @@ export class AugurNodeController {
       const networkName = NETWORK_NAMES[networkId];
       const fileHash = getFileHash(filename);
       if (baseName.startsWith(fileHash)) {
-        infoCallback(null, format("backing up database file for network %s", networkName));
         await renameBulkSyncDatabaseFile(fileNetworkId, this.databaseDir);
         infoCallback(null, format("importing file %s for network %s", baseName, networkName));
         BackupRestore.import(DB_FILE, fileNetworkId, DB_VERSION, filename, this.databaseDir);
