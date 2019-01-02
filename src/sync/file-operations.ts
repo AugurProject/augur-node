@@ -40,7 +40,7 @@ export async function restoreWarpSyncFile(directoryDir: string, dbFileName: stri
   });
 }
 
-export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string): Promise<any> {
+export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string) {
   return new Promise((resolve, reject) => {
     const smaller = zlib.createGzip({ level: 9 });
     const input = fs.createReadStream(path.join(directoryDir, dbFileName));
