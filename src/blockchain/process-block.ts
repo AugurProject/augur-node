@@ -10,6 +10,7 @@ import { logger } from "../utils/logger";
 import { SubscriptionEventNames, DB_VERSION, DB_FILE, DB_WARP_SYNC_FILE, DUMP_EVERY_BLOCKS } from "../constants";
 import { processLogByName } from "./process-logs";
 import { BackupRestore } from "../sync/backup-restore";
+import { checkOrphanedOrders } from "./check-orphaned-orders";
 
 export type BlockDirection = "add" | "remove";
 
@@ -72,6 +73,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       // TODO: un-advance time
     }
   });
+  await checkOrphanedOrders(db, augur);
   try {
     if (isWarpSync && parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
       // every X blocks export db to warp file.
@@ -81,6 +83,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
   } catch (err) {
     logger.error("ERROR: could not create warp sync file");
   }
+
 }
 
 async function insertBlockRow(db: Knex, blockNumber: number, blockHash: string, bulkSync: boolean, timestamp: number) {

@@ -50,6 +50,8 @@ export enum ControlMessageType {
   WebsocketClose = "WebsocketClose",
   BulkSyncStarted = "BulkSyncStarted",
   BulkSyncFinished = "BulkSyncFinished",
+  BulkOrphansCheckStarted = "BulkOrphansCheckStarted",
+  BulkOrphansCheckFinished = "BulkOrphansCheckFinished",
 }
 
 export enum SubscriptionEventNames {

@@ -14,8 +14,10 @@ import { ControlMessageType, DB_VERSION, DB_FILE, NETWORK_NAMES } from "./consta
 import { logger } from "./utils/logger";
 import { LoggerInterface } from "./utils/logger/logger";
 import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
+
 import { getFileHash } from "./sync/file-operations";
 import { BackupRestore } from "./sync/backup-restore";
+import { checkOrphanedOrders } from "./blockchain/check-orphaned-orders";
 
 export interface SyncedBlockInfo {
   lastSyncBlockNumber: number;
@@ -25,7 +27,7 @@ export interface SyncedBlockInfo {
 
 export class AugurNodeController {
   private augur: Augur;
-  private networkConfig: NetworkConfiguration;
+  private networkConfig: ConnectOptions;
   private isWarpSync: boolean;
   private databaseDir: string;
   private running: boolean;
@@ -52,9 +54,18 @@ export class AugurNodeController {
       this.db = await createDbAndConnect(errorCallback, this.augur, this.networkConfig, this.databaseDir);
       this.controlEmitter.emit(ControlMessageType.BulkSyncStarted);
       this.serverResult = runServer(this.db, this.augur, this.controlEmitter);
-      const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur);
+      const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur, this.networkConfig.blocksPerChunk);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
+      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.isWarpSync, this._shutdownCallback.bind(this));
+      // We received a shutdown so just return.
+      if (!this.isRunning()) return;
+      this.controlEmitter.emit(ControlMessageType.BulkOrphansCheckStarted);
+      await checkOrphanedOrders(this.db, this.augur);
+      this.controlEmitter.emit(ControlMessageType.BulkOrphansCheckFinished);
+      this.logger.info("Bulk orphaned orders check with blockchain complete.");
+      // We received a shutdown so just return.
+      if (!this.isRunning()) return;
       this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.isWarpSync, this._shutdownCallback.bind(this));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
