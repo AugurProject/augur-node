@@ -3,11 +3,11 @@ import * as _ from "lodash";
 import * as fs from "fs";
 import * as path from "path";
 import * as zlib from "zlib";
+import * as md5File from "md5-file";
 import { logger } from "../utils/logger";
 import { DB_WARP_SYNC_FILE_ENDING } from "../constants";
 
 export function getFileHash(filename: string): string {
-  const md5File = require("md5-file");
   return md5File.sync(filename);
 }
 
@@ -22,7 +22,7 @@ export async function compressAndHashFile(dbFileName: string, networkId: string,
 
 export async function restoreWarpSyncFile(directoryDir: string, dbFileName: string, syncFilenameAbsPath: string) {
   logger.info(format("restore/import warp sync file %s", syncFilenameAbsPath));
-  return new Promise<any>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const bigger = zlib.createGunzip();
     const input = fs.createReadStream(syncFilenameAbsPath);
     const output = fs.createWriteStream(path.join(directoryDir, dbFileName));
@@ -41,8 +41,7 @@ export async function restoreWarpSyncFile(directoryDir: string, dbFileName: stri
 }
 
 export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
-    fs.closeSync(fs.openSync(path.join(directoryDir, syncFilename), "w"));
+  return new Promise((resolve, reject) => {
     const smaller = zlib.createGzip({ level: 9 });
     const input = fs.createReadStream(path.join(directoryDir, dbFileName));
     const output = fs.createWriteStream(path.join(directoryDir, syncFilename));
