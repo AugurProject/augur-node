@@ -79,7 +79,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE, databaseDir);
     }
   } catch (err) {
-    console.log("ERROR: could not create warp sync file");
+    logger.error("ERROR: could not create warp sync file");
   }
 }
 
