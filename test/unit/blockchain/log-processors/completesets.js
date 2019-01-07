@@ -1,4 +1,4 @@
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb } = require("../../test.database");
 const { processCompleteSetsPurchasedOrSoldLog, processCompleteSetsPurchasedOrSoldLogRemoval } = require("src/blockchain/log-processors/completesets");
 const Augur = require("augur.js");
 const augur = new Augur();
@@ -13,7 +13,7 @@ function getState(db, log) {
 describe("blockchain/log-processors/completesets", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

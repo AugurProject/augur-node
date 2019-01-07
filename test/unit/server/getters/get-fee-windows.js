@@ -1,12 +1,12 @@
 const { BigNumber } = require("bignumber.js");
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb } = require("../../test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const { setOverrideTimestamp } = require("src/blockchain/process-block");
 
 describe("server/getters/get-fee-windows", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   afterEach(async () => {

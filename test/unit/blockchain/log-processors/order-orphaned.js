@@ -1,26 +1,24 @@
 const { fix } = require("speedomatic");
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur} = require("../../test.database");
 const { BigNumber } = require("bignumber.js");
 const { processOrderCreatedLog } = require("src/blockchain/log-processors/order-created");
-const Augur = require("augur.js");
 
 function getState(db, orderId) {
   return db("orders").where("orderId", orderId).first("orphaned");
 }
 
-const augur = {
-  utils: new Augur().utils,
+const augur = makeMockAugur({
   api: {
     OrdersFinder: {
       getExistingOrders5: () => Promise.resolve(["ORDER_ID_1", "ORDER_ID_3"]),
     },
   },
-};
+});
 
 describe("order-orphaned", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

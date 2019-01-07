@@ -48,8 +48,9 @@ async function fetchAllBlockDetails(augur: Augur, blockNumbers: Array<number>): 
   });
 }
 
-async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: Array<FormattedEventLog>, blockNumbers: Array<number>, blockDetailsByBlockPromise: Promise<BlockDetailsByBlock>) {
+export async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: Array<FormattedEventLog>, blockNumbers: Array<number>, blockDetailsByBlockPromise: Promise<BlockDetailsByBlock>) {
   const blockDetailsByBlock = await blockDetailsByBlockPromise;
+
   const logsByBlock: { [blockNumber: number]: Array<FormattedEventLog> } = _.groupBy(allAugurLogs, (log) => log.blockNumber);
   await each(blockNumbers, async (blockNumber: number) => {
     const logs = logsByBlock[blockNumber];
@@ -69,7 +70,9 @@ async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: Array<Fo
       await each(logs, async (log) => await insertTransactionHash(trx, blockNumber, log.transactionHash));
       logger.info(`Processing ${dbWriteFunctions.length} logs`);
       for (const dbWriteFunction of dbWriteFunctions) {
-        await dbWriteFunction(trx);
+        await dbWriteFunction(trx).catch((err) => {
+          console.error(err.stack);
+        });
       }
     });
   });
@@ -83,27 +86,27 @@ export function downloadAugurLogs(db: Knex, augur: Augur, fromBlock: number, toB
   logger.info(`Getting Augur logs from block ${fromBlock} to block ${toBlock}`);
   let lastBlockDetails = new Promise<BlockDetailsByBlock>((resolve) => resolve([]));
   augur.events.getAllAugurLogs({ fromBlock, toBlock }, (batchOfAugurLogs: Array<FormattedEventLog>, blockRange: BlockRange): void => {
-      if (!batchOfAugurLogs || batchLogProcessQueue.paused) return;
-      const blockNumbers = batchOfAugurLogs.length > 0 ? extractBlockNumbers(batchOfAugurLogs) : getBlockNumbersInRange(blockRange);
-      const blockDetailPromise = lastBlockDetails.then(() => fetchAllBlockDetails(augur, blockNumbers));
-      lastBlockDetails = blockDetailPromise;
-      batchLogProcessQueue.push(async (nextBatch) => {
-        try {
-          await processBatchOfLogs(db, augur, batchOfAugurLogs, blockNumbers, blockDetailPromise);
-          nextBatch(null);
-        } catch (err) {
-          batchLogProcessQueue.kill();
-          batchLogProcessQueue.pause();
-          callback(err);
-        }
-      });
-    },
-    (err) => {
-      if (!batchLogProcessQueue.paused) {
-        batchLogProcessQueue.push(() => {
-          callback(err);
-          batchLogProcessQueue.kill();
-        });
+    if (!batchOfAugurLogs || batchLogProcessQueue.paused) return;
+    const blockNumbers = batchOfAugurLogs.length > 0 ? extractBlockNumbers(batchOfAugurLogs) : getBlockNumbersInRange(blockRange);
+    const blockDetailPromise = lastBlockDetails.then(() => fetchAllBlockDetails(augur, blockNumbers));
+    lastBlockDetails = blockDetailPromise;
+    batchLogProcessQueue.push(async (nextBatch) => {
+      try {
+        await processBatchOfLogs(db, augur, batchOfAugurLogs, blockNumbers, blockDetailPromise);
+        nextBatch(null);
+      } catch (err) {
+        batchLogProcessQueue.kill();
+        batchLogProcessQueue.pause();
+        callback(err);
       }
     });
+  },
+  (err) => {
+    if (!batchLogProcessQueue.paused) {
+      batchLogProcessQueue.push(() => {
+        callback(err);
+        batchLogProcessQueue.kill();
+      });
+    }
+  });
 }

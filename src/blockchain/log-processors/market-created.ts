@@ -130,10 +130,15 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       outcome,
       description: calls.getOutcomes.outcomeNames[outcome],
     }, outcomesDataToInsert)), calls.getOutcomes.numOutcomes);
-    await db.batchInsert("tokens", calls.getOutcomes.shareTokens.map((contractAddress: Address, outcome: number): Partial<TokensRow> => Object.assign({
-      contractAddress,
-      outcome,
-    }, tokensDataToInsert)), calls.getOutcomes.numOutcomes);
+    await db.batchInsert(
+      "tokens",
+      calls.getOutcomes.shareTokens.map(
+        (contractAddress: Address, outcome: number): Partial<TokensRow> =>
+          Object.assign({
+          contractAddress,
+          outcome,
+        }, tokensDataToInsert)),
+           calls.getOutcomes.numOutcomes);
     await db.batchInsert("token_supply", calls.getOutcomes.shareTokens.map((contractAddress: Address, outcome: number): Partial<TokensRow> => Object.assign({
       token: contractAddress,
       supply: "0",

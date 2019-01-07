@@ -1,4 +1,4 @@
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
 const { processMarketMigratedLog, processMarketMigratedLogRemoval } = require("src/blockchain/log-processors/market-migrated");
 const { getMarketsWithReportingState } = require("src/server/getters/database");
 const ReportingState = require("src/types").ReportingState;
@@ -9,7 +9,7 @@ function getMarket(db, log) {
     .from("markets").where({ "markets.marketId": log.market });
 }
 
-const augur = {
+const augur = makeMockAugur({
   constants: {
     CONTRACT_INTERVAL: {
       DISPUTE_ROUND_DURATION_SECONDS: 999,
@@ -21,12 +21,12 @@ const augur = {
         Promise.resolve("0x0000000000000000000000000000000000FEE000"),
     },
   },
-};
+});
 
 describe("blockchain/log-processors/market-migrated", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

@@ -1,8 +1,7 @@
 const { BigNumber } = require("bignumber.js");
 const { fix } = require("speedomatic");
-const setupTestDb = require("../../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("../../../test.database");
 const { processOrderFilledLog, processOrderFilledLogRemoval } = require("src/blockchain/log-processors/order-filled");
-const Augur = require("augur.js");
 
 async function getState(db, log, aux) {
   return {
@@ -14,7 +13,7 @@ async function getState(db, log, aux) {
   };
 }
 
-const augur = {
+const augur = makeMockAugur({
   api: {
     Orders: {
       getLastOutcomePrice: (p) => {
@@ -43,15 +42,13 @@ const augur = {
       expect(["0x0000000000000000000000000000000000000b0b", "FILLER_ADDRESS"].indexOf(p.address)).toBeGreaterThan(-1);
       callback(null, ["2", "0", "0", "0", "0", "0", "0", "0"]);
     },
-    normalizePrice: p => p.price,
   },
-  utils: new Augur().utils,
-};
+});
 
 describe("blockchain/log-processors/order-filled", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   test("OrderFilled full log and removal", async () => {

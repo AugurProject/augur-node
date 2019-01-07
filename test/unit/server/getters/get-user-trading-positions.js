@@ -1,12 +1,12 @@
 const Augur = require("augur.js");
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb } = require("../../test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const augur = new Augur();
 
 describe("server/getters/get-user-trading-positions", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   afterEach(async () => {

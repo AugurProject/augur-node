@@ -1,4 +1,4 @@
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb } = require("../../test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const { setOverrideTimestamp, removeOverrideTimestamp } = require("src/blockchain/process-block");
 
@@ -23,7 +23,7 @@ const augur = {
 describe("server/getters/get-fee-window", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const runTest = (t) => {

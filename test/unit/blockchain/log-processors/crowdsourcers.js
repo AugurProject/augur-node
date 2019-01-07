@@ -1,5 +1,4 @@
-const Augur = require("augur.js");
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
 const { BigNumber } = require("bignumber.js");
 const {
   processDisputeCrowdsourcerCreatedLog, processDisputeCrowdsourcerCreatedLogRemoval,
@@ -37,7 +36,7 @@ async function getCrowdsourcerAndMarket(db, log) {
 describe("blockchain/log-processors/crowdsourcers", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const runTest = (t) => {
@@ -77,8 +76,7 @@ describe("blockchain/log-processors/crowdsourcers", () => {
         transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000B00",
         logIndex: 0,
       },
-      augur: {
-        constants: new Augur().constants,
+      augur: makeMockAugur({
         api: {
           Universe: {
             getFeeWindowByTimestamp: (p, callback) => {
@@ -93,7 +91,7 @@ describe("blockchain/log-processors/crowdsourcers", () => {
             },
           },
         },
-      },
+      }),
       overrideTimestamp: 1509085473,
     },
     assertions: {

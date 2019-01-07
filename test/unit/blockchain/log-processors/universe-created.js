@@ -1,4 +1,4 @@
-const setupTestDb = require("../../test.database");
+const { setupTestDb } = require("../../test.database");
 const { processUniverseCreatedLog, processUniverseCreatedLogRemoval } = require("src/blockchain/log-processors/universe-created");
 
 function getUniverse(db, log) {
@@ -16,7 +16,7 @@ const augur = {
 describe("blockchain/log-processors/universe-created", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb(augur);
   });
 
   const log = {

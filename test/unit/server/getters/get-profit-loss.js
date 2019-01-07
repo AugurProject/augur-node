@@ -2,7 +2,7 @@ const Augur = require("augur.js");
 const sqlite3 = require("sqlite3");
 const path = require("path");
 const Knex = require("knex");
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb } = require("../../test.database");
 const { calculateEarningsPerTimePeriod, getProfitLoss, bucketRangeByInterval } = require("src/server/getters/get-profit-loss");
 const { postProcessDatabaseResults } = require("src/server/post-process-database-results");
 
@@ -316,7 +316,7 @@ describe("server/getters/get-profit-loss", () => {
   };
 
   beforeEach(async () => {
-    connection = await setupTestDb();
+    connection = await setupTestDb().then(seedDb);
   });
 
   afterEach(async () => {

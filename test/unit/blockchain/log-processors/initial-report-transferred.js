@@ -1,19 +1,16 @@
-const Augur = require("augur.js");
-
-const setupTestDb = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
 const { processInitialReporterTransferredLog, processInitialReporterTransferredLogRemoval } = require("src/blockchain/log-processors/initial-report-transferred");
 
 function getInitialReport(db, log) {
   return db("initial_reports").first(["reporter"]).where("initial_reports.marketId", log.market);
 }
 
-const augur = {
-  constants: new Augur().constants,
-};
+const augur = makeMockAugur();
+
 describe("blockchain/log-processors/initial-report-transferred", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {
