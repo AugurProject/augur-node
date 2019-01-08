@@ -4,7 +4,7 @@ TODO it appears that market.openInterest isn't correctly rolled back on processO
 
 const { BigNumber } = require("bignumber.js");
 const { fix } = require("speedomatic");
-const setupTestDb = require("../../../test.database");
+const setupTestDb = require("test.database");
 const { processOrderFilledLog, processOrderFilledLogRemoval } = require("src/blockchain/log-processors/order-filled");
 const Augur = require("augur.js");
 
@@ -80,7 +80,7 @@ describe("blockchain/log-processors/order-filled", () => {
       category: "TEST CATEGORY",
     };
     return db.transaction(async (trx) => {
-      console.log('processOrderFilledLog');
+      console.log("processOrderFilledLog");
       await(await processOrderFilledLog(augur, log))(trx);
 
       const records = await getState(trx, log, aux);
@@ -181,7 +181,7 @@ describe("blockchain/log-processors/order-filled", () => {
         openInterest: new BigNumber("2", 10),
         universe: "0x000000000000000000000000000000000000000b",
       });
-      console.log('processOrderFilledLogRemoval');
+      console.log("processOrderFilledLogRemoval");
       await(await processOrderFilledLogRemoval(augur, log))(trx);
 
       const recordsAfterRemoval = await getState(trx, log, aux);
