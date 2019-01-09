@@ -1,5 +1,4 @@
 import * as Knex from "knex";
-import { promisify } from "util";
 import { updateMarketOpenInterest } from "../blockchain/log-processors/order-filled/update-volumetrics";
 
 exports.up = async (knex: Knex): Promise<any> => {
@@ -7,7 +6,7 @@ exports.up = async (knex: Knex): Promise<any> => {
     if (!exists) await knex.schema.table("markets", (t) => t.string("openInterest").defaultTo("0"));
     const markets = await knex.select("marketId").from("markets");
     for (const market of markets) {
-      await promisify(updateMarketOpenInterest)(knex, market.marketId);
+      await updateMarketOpenInterest(knex, market.marketId);
     }
     return;
   });

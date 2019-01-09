@@ -100,5 +100,5 @@ export async function getCategories(db: Knex, augur: Augur, params: t.TypeOf<typ
   const p2: Promise<Array<MarketsTagRow>> = getMarketsTagRows(db, params.universe);
   const cs: Array<CategoriesRow<BigNumber>> = await p1;
   const ts: Array<MarketsTagRow> = await p2;
-  return Promise.resolve(buildUICategories(cs, ts));
+  return buildUICategories(cs, ts);
 }
