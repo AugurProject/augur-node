@@ -15,7 +15,6 @@ interface MarketFinalizedParams {
 }
 
 export async function updateCategoryAggregationsOnMarketOpenInterestChanged(params: MarketOpenInterestChangedParams): Promise<void> {
-  console.log("updateCategoryAggregationsOnMarketOpenInterestChanged", params.categoryName, "new:", params.newOpenInterest.toString(), "old:", params.oldOpenInterest.toString());
   const row: {
     openInterest: BigNumber,
     nonFinalizedOpenInterest: BigNumber,
