@@ -5,24 +5,36 @@ import { Address, Bytes32, TradesRow} from "../../../types";
 import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-to-decimal";
 import { WEI_PER_ETHER } from "../../../constants";
 
-async function incrementMarketVolume(db: Knex, marketId: Address, amount: BigNumber, price: BigNumber): Promise<BigNumber> {
-  const result: { volume: BigNumber; shareVolume: BigNumber } = await db("markets").first("volume", "shareVolume").where({ marketId });
-  const incrementedShareVolume = amount.plus(result.shareVolume);
-  const volume = result.volume;
-  const newVolume = amount.multipliedBy(price);
-  const incremented = newVolume.plus(volume);
-  await db("markets").update({ volume: incremented.toString(), shareVolume: incrementedShareVolume.toString() }).where({ marketId });
-  return incremented;
+function volumeForTrade(numTicks: BigNumber, p: {
+  numCreatorTokens: BigNumber;
+  numCreatorShares: BigNumber;
+  numFillerTokens: BigNumber;
+  numFillerShares: BigNumber;
+}): BigNumber {
+  return p.numCreatorTokens.plus(p.numFillerTokens).plus(
+      BigNumber.min(p.numCreatorShares, p.numFillerShares).multipliedBy(numTicks));
 }
 
-async function incrementOutcomeVolume(db: Knex, marketId: Address, outcome: number, amount: BigNumber, price: BigNumber): Promise<BigNumber> {
-  const result: { volume: BigNumber; shareVolume: BigNumber } = await db("outcomes").first("volume", "shareVolume").where({ marketId, outcome });
-  const incrementedShareVolume = amount.plus(result.shareVolume);
-  const volume = result.volume;
-  const newVolume = amount.multipliedBy(price);
-  const incremented = newVolume.plus(volume);
-  await db("outcomes").update({ volume: incremented.toString(), shareVolume: incrementedShareVolume.toString() }).where({ marketId, outcome });
-  return incremented;
+async function incrementMarketVolume(db: Knex, marketId: Address, amount: BigNumber, tradesRow: TradesRow<BigNumber>, isIncrease: boolean): Promise<void> {
+  const marketsRow: { numTicks: BigNumber, volume: BigNumber; shareVolume: BigNumber }|undefined = await db("markets").first("numTicks", "volume", "shareVolume").where({ marketId });
+  if (marketsRow === undefined) throw new Error(`No marketId for incrementMarketVolume: ${marketId}`);
+  const newShareVolume = amount.plus(marketsRow.shareVolume);
+  let vft = volumeForTrade(marketsRow.numTicks, tradesRow);
+  if (!isIncrease) vft = vft.negated();
+  const newVolume = marketsRow.volume.plus(vft);
+  await db("markets").update({ volume: newVolume.toString(), shareVolume: newShareVolume.toString() }).where({ marketId });
+}
+
+async function incrementOutcomeVolume(db: Knex, marketId: Address, outcome: number, amount: BigNumber, tradesRow: TradesRow<BigNumber>, isIncrease: boolean): Promise<void> {
+  const marketsRow: { numTicks: BigNumber }|undefined = await db("markets").first("numTicks").where({ marketId });
+  if (marketsRow === undefined) throw new Error(`No marketId for incrementOutcomeVolume: ${marketId}`);
+  const outcomesRow: { volume: BigNumber; shareVolume: BigNumber }|undefined = await db("outcomes").first("volume", "shareVolume").where({ marketId, outcome });
+  if (outcomesRow === undefined) throw new Error(`No outcome for incrementOutcomeVolume: marketId=${marketId} outcome=${outcome}`);
+  const newShareVolume = amount.plus(outcomesRow.shareVolume);
+  let vft = volumeForTrade(marketsRow.numTicks, tradesRow);
+  if (!isIncrease) vft = vft.negated();
+  const newVolume = outcomesRow.volume.plus(vft);
+  await db("outcomes").update({ volume: newVolume.toString(), shareVolume: newShareVolume.toString() }).where({ marketId, outcome });
 }
 
 function incrementCategoryPopularity(db: Knex, category: string, amount: BigNumber) {
@@ -51,14 +63,13 @@ export async function updateVolumetrics(db: Knex, augur: Augur, category: string
   if (shareTokenRow == null) throw new Error(`No shareToken found for market: ${marketId} outcome: ${outcome}`);
   const sharesOutstanding = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(shareTokenRow.supply, 10), tickSize).toString();
   await db("markets").where({ marketId }).update({ sharesOutstanding });
-  const tradesRow: TradesRow<BigNumber>|undefined = await db.first("numCreatorShares", "numCreatorTokens", "price", "orderType", "amount").from("trades")
+  const tradesRow: TradesRow<BigNumber>|undefined = await db.first("numCreatorShares", "numCreatorTokens", "numFillerTokens", "numFillerShares", "amount").from("trades")
     .where({ marketId, outcome, orderId, blockNumber });
   if (!tradesRow) throw new Error(`trade not found, orderId: ${orderId}`);
   let amount = tradesRow.amount!;
   if (!isIncrease) amount = amount.negated();
-  const price = tradesRow.price!.minus(minPrice);
-  await incrementMarketVolume(db, marketId, amount, price);
-  await incrementOutcomeVolume(db, marketId, outcome, amount, price);
+  await incrementMarketVolume(db, marketId, amount, tradesRow, isIncrease);
+  await incrementOutcomeVolume(db, marketId, outcome, amount, tradesRow, isIncrease);
   await setMarketLastTrade(db, marketId, blockNumber);
   await incrementCategoryPopularity(db, category, amount);
   await updateOpenInterest(db, marketId);
