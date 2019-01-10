@@ -6,7 +6,8 @@ import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-t
 import { WEI_PER_ETHER } from "../../../constants";
 import { updateCategoryAggregationsOnMarketOpenInterestChanged } from "../category-aggregations";
 
-function volumeForTrade(numTicks: BigNumber, p: {
+// volumeForTrade is exported only for unit test purposes
+export function volumeForTrade(numTicks: BigNumber, p: {
   numCreatorTokens: BigNumber;
   numCreatorShares: BigNumber;
   numFillerTokens: BigNumber;
