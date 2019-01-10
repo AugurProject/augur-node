@@ -56,7 +56,6 @@ export class AugurNodeController {
       const handoffBlockNumber = await bulkSyncAugurNodeWithBlockchain(this.db, this.augur, this.networkConfig.blocksPerChunk);
       this.controlEmitter.emit(ControlMessageType.BulkSyncFinished);
       this.logger.info("Bulk sync with blockchain complete.");
-      this.blockAndLogsQueue = startAugurListeners(this.db, this.augur, handoffBlockNumber + 1, this.databaseDir, this.isWarpSync, this._shutdownCallback.bind(this));
       // We received a shutdown so just return.
       if (!this.isRunning()) return;
       this.controlEmitter.emit(ControlMessageType.BulkOrphansCheckStarted);
@@ -84,7 +83,7 @@ export class AugurNodeController {
       if (baseName.startsWith(fileHash)) {
         await renameBulkSyncDatabaseFile(fileNetworkId, this.databaseDir);
         infoCallback(null, format("importing file %s for network %s", baseName, networkName));
-        BackupRestore.import(DB_FILE, fileNetworkId, DB_VERSION, filename, this.databaseDir);
+        await BackupRestore.import(DB_FILE, fileNetworkId, DB_VERSION, filename, this.databaseDir);
         infoCallback(null, format("Finished importing warp sync file for network %s", networkName));
       } else if (errorCallback) {
         this.logger.error("Error, import warp sync file hash mismatch");

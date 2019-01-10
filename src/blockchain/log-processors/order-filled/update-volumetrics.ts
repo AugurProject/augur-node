@@ -1,9 +1,10 @@
 import { Augur } from "augur.js";
 import BigNumber from "bignumber.js";
 import * as Knex from "knex";
-import { Address, Bytes32, TradesRow} from "../../../types";
+import { Address, Bytes32, TradesRow, ReportingState} from "../../../types";
 import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-to-decimal";
 import { WEI_PER_ETHER } from "../../../constants";
+import { updateCategoryAggregationsOnMarketOpenInterestChanged } from "../category-aggregations";
 
 function volumeForTrade(numTicks: BigNumber, p: {
   numCreatorTokens: BigNumber;
@@ -37,25 +38,43 @@ async function incrementOutcomeVolume(db: Knex, marketId: Address, outcome: numb
   await db("outcomes").update({ volume: newVolume.toString(), shareVolume: newShareVolume.toString() }).where({ marketId, outcome });
 }
 
-function incrementCategoryPopularity(db: Knex, category: string, amount: BigNumber) {
-  return db.raw(`UPDATE categories SET popularity = popularity + :amount WHERE category = :category`, { amount: amount.toString(), category });
-}
-
 function setMarketLastTrade(db: Knex, marketId: Address, blockNumber: number) {
   return db("markets").update("lastTradeBlockNumber", blockNumber).where({ marketId });
 }
 
-export async function updateOpenInterest(db: Knex, marketId: Address) {
-  const marketRow: { numTicks: BigNumber }|undefined = await db.first("numTicks").from("markets").where({ marketId });
+export async function updateMarketOpenInterest(db: Knex, marketId: Address) {
+  const marketRow: {
+    category: string,
+    numTicks: BigNumber,
+    openInterest: BigNumber,
+    reportingState: ReportingState,
+  }|undefined = await db.first([
+    "markets.category as category",
+    "markets.numTicks as numTicks",
+    "markets.openInterest as openInterest",
+    "market_state.reportingState as reportingState",
+  ]).from("markets")
+    .leftJoin("market_state", "markets.marketStateId", "market_state.marketStateId")
+    .where({ "markets.marketId": marketId });
   if (marketRow == null) throw new Error(`No marketId for openInterest: ${marketId}`);
-  const numTicks = marketRow.numTicks;
+
   const shareTokenRow: { supply: BigNumber }|undefined = await db.first("supply").from("token_supply").join("tokens", "token_supply.token", "tokens.contractAddress").where({
     marketId,
     symbol: "shares",
   });
   if (shareTokenRow == null) throw new Error(`No shareToken supply found for market: ${marketId}`);
-  const openInterest = shareTokenRow.supply.multipliedBy(numTicks);
-  await db("markets").update({ openInterest: convertFixedPointToDecimal(openInterest, WEI_PER_ETHER) }).where({ marketId });
+
+  const newOpenInterestInETHString: string = convertFixedPointToDecimal(shareTokenRow.supply.multipliedBy(marketRow.numTicks), WEI_PER_ETHER);
+  await db("markets").update({ openInterest: newOpenInterestInETHString }).where({ marketId });
+
+  const newOpenInterestInETH = new BigNumber(newOpenInterestInETHString, 10);
+  await updateCategoryAggregationsOnMarketOpenInterestChanged({
+    db,
+    categoryName: marketRow.category,
+    reportingState: marketRow.reportingState,
+    newOpenInterest: newOpenInterestInETH,
+    oldOpenInterest: marketRow.openInterest,
+  });
 }
 
 export async function updateVolumetrics(db: Knex, augur: Augur, category: string, marketId: Address, outcome: number, blockNumber: number, orderId: Bytes32, orderCreator: Address, tickSize: BigNumber, minPrice: BigNumber, maxPrice: BigNumber, isIncrease: boolean) {
@@ -71,6 +90,5 @@ export async function updateVolumetrics(db: Knex, augur: Augur, category: string
   await incrementMarketVolume(db, marketId, amount, tradesRow, isIncrease);
   await incrementOutcomeVolume(db, marketId, outcome, amount, tradesRow, isIncrease);
   await setMarketLastTrade(db, marketId, blockNumber);
-  await incrementCategoryPopularity(db, category, amount);
-  await updateOpenInterest(db, marketId);
+  await updateMarketOpenInterest(db, marketId);
 }

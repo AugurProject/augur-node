@@ -53,7 +53,7 @@ async function renameDatabaseFile(networkId: string, dbPath: string) {
 }
 
 async function getFreshDatabase(db: Knex|null, networkId: string, dbPath: string): Promise<Knex> {
-  if (db != null) db.destroy();
+  if (db != null) await db.destroy();
   await renameDatabaseFile(networkId, dbPath);
   return createKnex(networkId, dbPath);
 }
@@ -101,7 +101,8 @@ async function checkAndUpdateContractUploadBlock(augur: Augur, networkId: string
 }
 
 export async function renameBulkSyncDatabaseFile(networkId: string, databaseDir?: string) {
-  return renameDatabaseFile(networkId, getDatabasePathFromNetworkId(networkId, DB_FILE, databaseDir));
+  const dbPath = getDatabasePathFromNetworkId(networkId, DB_FILE, databaseDir);
+  if (existsSync(dbPath)) return renameDatabaseFile(networkId, dbPath);
 }
 
 export async function createDbAndConnect(errorCallback: ErrorCallback|undefined, augur: Augur, network: ConnectOptions, databaseDir?: string): Promise<Knex> {
