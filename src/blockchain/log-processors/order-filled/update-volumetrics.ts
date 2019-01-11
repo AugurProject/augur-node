@@ -17,7 +17,12 @@ export function volumeForTrade(numTicks: BigNumber, p: {
   numFillerTokens: BigNumber;
   numFillerShares: BigNumber;
 }): BigNumber {
-  return p.numCreatorTokens.plus(p.numFillerTokens).plus(
+  // Our buiness definition for volume is "currency/token changing hands". We include "escrowed" as one of the "hands":
+  // numCreatorTokens is currency being escrowed to create complete sets, or currency going to the counterparty. Either way this contributes to volume.
+  return p.numCreatorTokens.plus(
+    // numFillerTokens follows same reasoning as numCreatorTokens.
+    p.numFillerTokens).plus(
+      // When complete sets are destroyed, currency is unlocked from escrow and sent to the parties' wallets. To be destroyed, a complete set must be, in fact, "complete". If Bob provides 12 YES shares, and Jim provides 5 NO shares, we can only make 5 complete sets; Bob's 7 YES shares are excess, and cannot be matched with NO shares to become a complete set for destruction. (Bob's 7 YES shares become Jim's property.) That's why we use min() to determine the number of complete sets destroyed. We multiply by numTicks because (numOfCompleteSets*numTicks) is the currency/token (Ether) amount released from escrow when those complete sets are destroyed.
       BigNumber.min(p.numCreatorShares, p.numFillerShares).multipliedBy(numTicks));
 }
 
