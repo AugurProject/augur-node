@@ -6,7 +6,11 @@ import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-t
 import { WEI_PER_ETHER } from "../../../constants";
 import { updateCategoryAggregationsOnMarketOpenInterestChanged } from "../category-aggregations";
 
-// volumeForTrade is exported only for unit test purposes
+// volumeForTrade owns the business definition for the incremental financial
+// volume produced by one Augur transaction. Traditional finance uses `volume`
+// to describe number of shares changing hands; Augur is different: our
+// db.{markets,outcomes}.volume is amount of currency/tokens changing hands (not
+// number of shares). volumeForTrade is exported only for unit test purposes.
 export function volumeForTrade(numTicks: BigNumber, p: {
   numCreatorTokens: BigNumber;
   numCreatorShares: BigNumber;
