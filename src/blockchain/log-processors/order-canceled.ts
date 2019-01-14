@@ -26,7 +26,7 @@ export async function processOrderCanceledLog(augur: Augur, log: FormattedEventL
     await  db.into("orders_canceled").insert({ orderId: log.orderId, transactionHash: log.transactionHash, logIndex: log.logIndex, blockNumber: log.blockNumber });
     const ordersRow: MarketIDAndOutcomeAndPrice = await  db.first("marketId", "outcome", "price", "sharesEscrowed", "orderCreator").from("orders").where("orderId", log.orderId);
 
-    if (!ordersRow.sharesEscrowed.eq(0)) {
+    if (ordersRow.sharesEscrowed.gt(0)) {
       const marketNumOutcomes: MarketNumOutcomes = await db.first("numOutcomes").from("markets").where({ marketId: ordersRow.marketId });
       const numOutcomes = marketNumOutcomes.numOutcomes;
       const otherOutcomes = Array.from(Array(numOutcomes).keys());
