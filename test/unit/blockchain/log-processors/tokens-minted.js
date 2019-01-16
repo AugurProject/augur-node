@@ -9,7 +9,7 @@ function getTokenBalances(db, log) {
 describe("blockchain/log-processors/tokens-minted", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb(makeMockAugur());
+    db = await setupTestDb();
   });
 
   const log = {
@@ -33,6 +33,7 @@ describe("blockchain/log-processors/tokens-minted", () => {
         supply: new BigNumber("10", 10),
       }]);
 
+      // await(await processMintLogRemoval(augur, log))(trx);
       await(await processMintLogRemoval(augur, log))(trx);
 
       await expect(getTokenBalances(trx, log)).resolves.toEqual([{

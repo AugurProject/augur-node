@@ -18,17 +18,12 @@ async function getState(db, log) {
 describe("blockchain/log-processors/market-created", () => {
   let db;
   beforeEach(async () => {
-    const universe = "0x000000000000000000000000000000000000000b";
-
-    const L = makeLogFactory();
+    const L = makeLogFactory("0x000000000000000000000000000000000000000b");
     const logs = [
-      L.UniverseCreated({
-        childUniverse: universe,
-      }),
+      L.UniverseCreated(),
       L.TokensMinted({
         token: "REP_TOKEN",
         target: "0x1111111111111111111111111111111111111111",
-        universe,
         market: "0x0000000000000000000000000000000000000000",
         amount: "16777216000000000000000000",
         transactionHash: "minting1",
@@ -36,7 +31,6 @@ describe("blockchain/log-processors/market-created", () => {
       L.TokensMinted({
         token: "REP_TOKEN",
         target: "0x1111111111111111111111111111111111111112",
-        universe,
         market: "0x0000000000000000000000000000000000000000",
         amount: "16777216000000000000000000",
         transactionHash: "minting2",
@@ -44,7 +38,6 @@ describe("blockchain/log-processors/market-created", () => {
       L.TokensMinted({
         token: "REP_TOKEN",
         target: "0x1111111111111111111111111111111111111113",
-        universe,
         market: "0x0000000000000000000000000000000000000000",
         amount: "16777216000000000000000000",
         transactionHash: "minting3",

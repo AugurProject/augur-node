@@ -15,17 +15,12 @@ async function getState(db, log) {
 describe("blockchain/log-processors/tokens-transferred", () => {
   let db;
   beforeEach(async () => {
-    const universe = "0x000000000000000000000000000000000000000b";
-
-    const L = makeLogFactory();
+    const L = makeLogFactory("0x000000000000000000000000000000000000000b");
     const logs = [
-      L.UniverseCreated({
-        childUniverse: universe,
-      }),
+      L.UniverseCreated(),
       L.TokensMinted({
         token: "TOKEN_ADDRESS",
         target: "FROM_ADDRESS",
-        universe,
         market: "0x0000000000000000000000000000000000000000",
         amount: "9001",
       }),
