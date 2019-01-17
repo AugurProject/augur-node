@@ -70,9 +70,7 @@ export async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: A
       await each(logs, async (log) => await insertTransactionHash(trx, blockNumber, log.transactionHash));
       logger.info(`Processing ${dbWriteFunctions.length} logs`);
       for (const dbWriteFunction of dbWriteFunctions) {
-        await dbWriteFunction(trx).catch((err) => {
-          console.error(err.stack);
-        });
+        await dbWriteFunction(trx);
       }
     });
   });
