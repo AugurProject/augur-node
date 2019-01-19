@@ -43,6 +43,7 @@ export interface ProfitLossResult extends Timestamped {
   realized: BigNumber;
   unrealized: BigNumber;
   total: BigNumber;
+  numEscrowed: BigNumber;
 }
 
 const GetProfitLossSharedParams = t.type({
@@ -95,13 +96,17 @@ export function bucketRangeByInterval(startTime: number, endTime: number, period
 export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right: T): T {
   const leftPosition = new BigNumber(left.position, 10);
   const rightPosition = new BigNumber(right.position, 10);
+  const leftEscrowed = new BigNumber(left.numEscrowed, 10);
+  const rightEscrowed = new BigNumber(right.numEscrowed, 10);
 
   const position = leftPosition.plus(rightPosition);
   const realized = left.realized.plus(right.realized);
+  const escrowed = leftEscrowed.plus(rightEscrowed);
   const unrealized = left.unrealized.plus(right.unrealized);
   const total = realized.plus(unrealized);
   const cost = left.cost.plus(right.cost);
-  const averagePrice = position.gt(ZERO) ? cost.dividedBy(position) : ZERO;
+  const totalPosition = position.plus(escrowed)
+  const averagePrice = position.gt(ZERO) ? cost.dividedBy(totalPosition) : ZERO;
 
   return Object.assign(_.clone(left), {
     position,
@@ -161,13 +166,16 @@ function getProfitAtTimestamps(pl: Array<ProfitLossTimeseries>, outcomeValues: A
         total: ZERO,
         cost: ZERO,
         averagePrice: ZERO,
+        numEscrowed: ZERO,
       };
     }
 
     const position = plResult!.numOwned;
     const realized = plResult!.profit;
     const cost = plResult!.moneySpent;
-    const averagePrice = position.gt(ZERO) ? cost.dividedBy(position) : ZERO;
+    const numEscrowed = plResult!.numEscrowed;
+    const totalPosition = position.plus(numEscrowed);
+    const averagePrice = totalPosition.gt(ZERO) ? cost.dividedBy(totalPosition) : ZERO;
 
     let lastPrice = ZERO;
     let unrealized = ZERO;
@@ -188,6 +196,7 @@ function getProfitAtTimestamps(pl: Array<ProfitLossTimeseries>, outcomeValues: A
       total,
       averagePrice,
       cost,
+      numEscrowed,
     };
   });
 }
@@ -249,6 +258,7 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       total: ZERO,
       cost: ZERO,
       averagePrice: ZERO,
+      numEscrowed: ZERO,
     }));
   }
 
@@ -295,6 +305,7 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       total: startProfit.total.negated(),
       cost: startProfit.cost.negated(),
       averagePrice: startProfit.averagePrice,
+      numEscrowed: startProfit.numEscrowed.negated(),
     };
 
     result[days] = sumProfitLossResults(endProfit, negativeStartProfit);

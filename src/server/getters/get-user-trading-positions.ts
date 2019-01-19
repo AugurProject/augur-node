@@ -26,6 +26,7 @@ interface TradingPosition extends ProfitLossResult {
   marketId: string;
   outcome: number;
   netPosition: BigNumber;
+  totalPosition: BigNumber;
 }
 
 async function queryUniverse(db: Knex, marketId: Address): Promise<Address> {
@@ -61,11 +62,13 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     .mapValues((profits: Array<ProfitLossResult>, key: string) => {
       const [marketId, outcome] = key.split(",");
       const lastProfit = _.last(profits)!;
+      const totalPosition = lastProfit.position.plus(lastProfit.numEscrowed);
       return Object.assign(
         {
           marketId,
           outcome: parseInt(outcome, 10),
-          netPosition: lastProfit.position,
+          netPosition: totalPosition,
+          totalPosition: totalPosition,
         },
         lastProfit,
       );
@@ -84,7 +87,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       const marketType = marketTypesByMarket[marketId];
 
       const sortedOutcomes = _.sortBy(outcomes, "outcome")!;
-      const outcomesWithZeroPosition = _.filter(outcomes, (outcome) => outcome.position.eq(ZERO));
+      const outcomesWithZeroPosition = _.filter(outcomes, (outcome) => outcome.totalPosition.eq(ZERO));
 
       const isMissingOneOutcome = numOutcomes === sortedOutcomes.length + 1;
       const hasOneZeroPosition = outcomesWithZeroPosition.length === 1;
@@ -110,21 +113,28 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
           total: ZERO,
           cost: ZERO,
           averagePrice: ZERO,
+          numEscrowed: ZERO,
+          totalPosition: ZERO,
           timestamp: _.first(sortedOutcomes)!.timestamp,
         });
       }
 
+      // If we're "shorting" No or Short we don't consider that shorting.
+      if (outcomesWithZeroPosition[0].outcome === 0) return sortedOutcomes;
+
       const nonZeroPositionOutcomePls = _.filter(sortedOutcomes, (outcome) => !outcome.position.eq(ZERO));
-      const minimumPosition = BigNumber.minimum(..._.map(nonZeroPositionOutcomePls, "position"));
-      const adjustedOutcomePls = _.map(nonZeroPositionOutcomePls, (outcomePl) => Object.assign({}, outcomePl, { netPosition: outcomePl.netPosition.minus(minimumPosition) }));
+      const minimumPosition = BigNumber.minimum(..._.map(nonZeroPositionOutcomePls, (position) => position.totalPosition));
+      const adjustedOutcomePls = _.map(nonZeroPositionOutcomePls, (outcomePl) => Object.assign({}, outcomePl, { netPosition: outcomePl.totalPosition.minus(minimumPosition) }));
       const shortOutcome = Object.assign({}, _.first(outcomesWithZeroPosition)!, { netPosition: minimumPosition.negated() });
 
       if (marketType === "categorical") return _.concat(adjustedOutcomePls, shortOutcome);
+
       if (shortOutcome.outcome === 1) {
         const result = sumProfitLossResults(shortOutcome, _.first(adjustedOutcomePls)!);
         result.position = shortOutcome.position;
         return [result];
       }
+
       return nonZeroPositionOutcomePls;
     })
     .values()
