@@ -5,6 +5,7 @@ const { processBatchOfLogs } = require("src/blockchain/download-augur-logs");
 const Augur = require("augur.js");
 const uuid = require("uuid");
 const deepmerge = require("deepmerge");
+const _ = require("lodash");
 
 
 function getEnv() {
@@ -13,22 +14,11 @@ function getEnv() {
   });
 }
 
-function contains(container, element) {
-  for (let i = 0; i < container.length; i++) {
-    if (container[i] === element) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function required(args, ...params) {
   args = Object.keys(args);
-  for (let p = 0; p < params.length; p++) {
-    const param = params[p];
-    if (!contains(args, param)) {
-      throw Error(`Required param "${param}" was not provided.`);
-    }
+  const requiredButNotProvided = _.difference(params, args);
+  if (requiredButNotProvided.length > 0) {
+    throw Error(`Required params were not provided: ${requiredButNotProvided}`);
   }
 }
 
@@ -221,7 +211,7 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
-const setupTestDb = (augur, logs, blockDetails) => {
+function setupTestDb(augur, logs, blockDetails) {
   augur = augur || new Augur();
   logs = logs || [];
   blockDetails = blockDetails || { "2": makeFakeBlock(2) };
@@ -233,9 +223,8 @@ const setupTestDb = (augur, logs, blockDetails) => {
       const blockNumbers = Object.keys(blockDetails);
       return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
     })
-    .catch(err => console.error(err.stack))
     .then(() => db);
-};
+}
 
 module.exports = {
   setupTestDb,
