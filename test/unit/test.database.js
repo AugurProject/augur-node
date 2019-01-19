@@ -22,20 +22,15 @@ function required(args, ...params) {
   }
 }
 
-function seedDb(db) {
-  return Promise.resolve(null).then(async () => {
-    const env = getEnv();
-    await db.seed.run(env.seeds);
-    return db;
-  });
+async function seedDb(db) {
+  const env = getEnv();
+  await db.seed.run(env.seeds);
+  return db;
 }
 
-function dumpTable(db, tableName) {
-  return Promise.resolve(null)
-    .then(() => db.from(tableName).select("*"))
-    .then(rows => {
-      console.log(`##### ${tableName} #####\n${JSON.stringify(rows, null, 2)}`);
-    });
+async function dumpTable(db, tableName) {
+  const rows = await db.from(tableName).select("*");
+  console.log(`##### ${tableName} #####\n${JSON.stringify(rows, null, 2)}`);
 }
 
 async function dumpTables(db, ...tableNames) {
