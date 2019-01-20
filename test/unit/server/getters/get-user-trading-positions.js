@@ -60,7 +60,7 @@ describe("server/getters/get-user-trading-positions", () => {
         totalPosition: "0",
         numEscrowed: "0",
         unrealized: "0.188401012373453296690002",
-      }
+      },
     ]);
   });
 
