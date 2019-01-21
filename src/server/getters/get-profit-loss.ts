@@ -260,7 +260,6 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
 function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>, marketOutcomeValues: Array<Array<OutcomeValueTimeseries>>, buckets: Array<Timestamped>): Array<Array<ProfitLossResult>> {
   return _.map(marketPls, (outcomePLsAtTimestamp, timestampIndex) => {
-    const outcomeValuesAtTimestamp = marketOutcomeValues[timestampIndex];
     const timestamp = buckets[timestampIndex].timestamp;
     const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => (outcome.numOwned.plus(outcome.numEscrowed)).gt(ZERO));
     const outcomesWithZeroPosition = _.filter(outcomePLsAtTimestamp, (outcome) => outcome.numOwned.plus(outcome.numEscrowed).eq(ZERO));
@@ -282,6 +281,7 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
 
     const numOutcomes = nonZeroPositionOutcomePls[0].numOutcomes;
     const marketId = nonZeroPositionOutcomePls[0].marketId;
+    const outcomeValuesAtTimestamp = marketOutcomeValues ? marketOutcomeValues[timestampIndex] : _.fill(Array(numOutcomes), getDefaultOVTimeseries());
 
     // turn outcome values into real list
     const sortedOutcomeValues = _.reduce(_.range(numOutcomes), (result, outcomeIndex) => {
