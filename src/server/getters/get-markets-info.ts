@@ -30,9 +30,8 @@ export async function getUIMarketsInfo(db: Knex, marketIds: Array<Address>): Pro
   if (!marketsRows) return [];
   const outcomesRowsByMarket = _.groupBy(outcomesRows, (r: OutcomesRow<BigNumber>): string => r.marketId);
   const winningPayoutByMarket = _.keyBy(winningPayoutRows, (r: PayoutRow<BigNumber> & MarketsContractAddressRow): string => r.marketId);
-  const marketsInfo: Array<UIMarketInfo<string>> = _.map(marketsRows, (market): UIMarketInfo<string> => {
+  return _.map(marketsRows, (market): UIMarketInfo<string> => {
     const outcomes = _.map(outcomesRowsByMarket[market.marketId], (outcomesRow: OutcomesRow<BigNumber>): UIOutcomeInfo<BigNumber> => reshapeOutcomesRowToUIOutcomeInfo(outcomesRow));
     return reshapeMarketsRowToUIMarketInfo(market, outcomes, winningPayoutByMarket[market.marketId]);
   });
-  return marketsInfo;
 }

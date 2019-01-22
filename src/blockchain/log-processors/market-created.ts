@@ -24,8 +24,7 @@ function getOutcomes(augur: Augur, log: FormattedEventLog) {
     const outcomeNames: Array<string | number | null> = (log.marketType === "1" && log.outcomes) ? log.outcomes : new Array(numOutcomes).fill(null);
 
     forEachOf(shareTokens, async (_: null, outcome: number, nextOutcome: ErrorCallback) => {
-      const shareToken = await augur.api.Market.getShareToken(Object.assign({ _outcome: outcome }, marketPayload)).catch(nextOutcome);
-      shareTokens[outcome] = shareToken;
+      shareTokens[outcome] = await augur.api.Market.getShareToken(Object.assign({ _outcome: outcome }, marketPayload)).catch(nextOutcome);
       nextOutcome(null);
     }, (err: Error | null): void => {
       if (err) return reject(err);

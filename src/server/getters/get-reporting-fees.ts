@@ -330,7 +330,7 @@ async function getParticipationTokenEthFees(db: Knex, augur: Augur, reporter: Ad
     .where("fee_windows.state", FeeWindowState.PAST)
     .where("fee_windows.universe", universe);
   const participationTokens: Array<ParticipationTokensEthFeeRow> = await participationTokenQuery;
-  const participationTokenEthFees = _.map(participationTokens, (participationToken) => {
+  return _.map(participationTokens, (participationToken) => {
     const totalFeeTokensInFeeWindow = new BigNumber(participationToken.feeTokenSupply).plus(new BigNumber(participationToken.participationTokenSupply));
     const cashInFeeWindow = new BigNumber(participationToken.cashFeeWindow);
     const participationTokens = new BigNumber(participationToken.participationTokens);
@@ -342,7 +342,6 @@ async function getParticipationTokenEthFees(db: Knex, augur: Augur, reporter: Ad
       participationTokens,
     };
   });
-  return participationTokenEthFees;
 }
 
 async function getParticipantEthFees(db: Knex, augur: Augur, reporter: Address, universe: Address): Promise<Array<ParticipantEthFee>> {
@@ -426,7 +425,7 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
   const redeemableFeeWindows = _.map(participationTokenEthFees, "feeWindow");
   const participationTokenRepStaked = _.reduce(participationTokenEthFees, (acc, cur) => acc.plus(cur.participationTokens), ZERO);
   const unclaimedRepStaked = repStakeResults.fees.unclaimedRepStaked.plus(participationTokenRepStaked);
-  const response = {
+  return {
     total: {
       unclaimedEth: unclaimedParticipantEthFees.plus(unclaimedParticipationTokenEthFees).toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedRepStaked: unclaimedRepStaked.toFixed(0, BigNumber.ROUND_DOWN),
@@ -439,5 +438,4 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
     forkedMarket: result.forkedMarket,
     nonforkedMarkets: result.nonforkedMarkets,
   };
-  return response;
 }
