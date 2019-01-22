@@ -1,6 +1,6 @@
 const Augur = require("augur.js");
 const { BigNumber } = require("bignumber.js");
-const { setupTestDb, makeLogFactory, makeMockAugur, makeFakeBlock } = require("../../test.database");
+const { setupTestDb, makeLogFactory, makeMockAugur } = require("../../test.database");
 const { processMarketCreatedLog, processMarketCreatedLogRemoval } = require("src/blockchain/log-processors/market-created");
 const { getMarketsWithReportingState } = require("src/server/getters/database");
 
@@ -44,11 +44,7 @@ describe("blockchain/log-processors/market-created", () => {
         blockNumber: 7,  // blocks don't get processed if they don't have any logs
       }),
     ];
-    const blockDetails = {
-      "2": makeFakeBlock(2),
-      "7": makeFakeBlock(7),
-    };
-    db = await setupTestDb(makeMockAugur(), logs, blockDetails);
+    db = await setupTestDb(makeMockAugur(), logs, L.getBlockDetails());
   });
 
   afterEach(async () => {
@@ -151,7 +147,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -355,7 +351,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -456,7 +452,7 @@ describe("blockchain/log-processors/market-created", () => {
           }],
           transfers: [
             {
-              blockNumber: 2,
+              blockNumber: 3,
               logIndex: 0,
               recipient: "0x1111111111111111111111111111111111111112",
               sender: null,
@@ -488,7 +484,7 @@ describe("blockchain/log-processors/market-created", () => {
           search: [],
           tokens: [],
           transfers: [{
-            blockNumber: 2,
+            blockNumber: 3,
             logIndex: 0,
             recipient: "0x1111111111111111111111111111111111111112",
             sender: null,
@@ -581,7 +577,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -780,7 +776,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -988,7 +984,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             openInterest: new BigNumber("0", 10),
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,

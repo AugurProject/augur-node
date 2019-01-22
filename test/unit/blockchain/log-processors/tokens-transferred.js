@@ -25,7 +25,7 @@ describe("blockchain/log-processors/tokens-transferred", () => {
         amount: "9001",
       }),
     ];
-    db = await setupTestDb(makeMockAugur(), logs);
+    db = await setupTestDb(makeMockAugur(), logs, L.getBlockDetails());
   });
 
   afterEach(async () => {

@@ -6,7 +6,12 @@ const Augur = require("augur.js");
 const uuid = require("uuid");
 const deepmerge = require("deepmerge");
 const _ = require("lodash");
+const { BigNumber } = require("bignumber.js");
 
+
+function hexify(integer) {
+  return "0x" + (integer).toString(16);
+}
 
 function getEnv() {
   return Object.assign({}, environments.test, {
@@ -40,105 +45,6 @@ async function dumpTables(db, ...tableNames) {
   }
 }
 
-function makeLogFactory(universe) {
-  function common() {
-    return {
-      transactionHash: uuid.v4(),
-      transactionIndex: 0,
-      logIndex: 0,
-      blockNumber: 2,
-      blockHash: uuid.v4(),
-      removed: false,
-      invalid: false,
-      address: "AUGUR_CONTRACT",
-      contractName: "Augur",
-    };
-  }
-
-  return Object.assign({}, {
-    UniverseCreated: args => {
-      return Object.assign(common(), {
-        eventName: "UniverseCreated",
-        parentUniverse: null,  // leave null for root universe
-        childUniverse: universe,  // the universe you're creating
-        payoutNumerators: [],
-
-      }, args || {});
-    },
-    UniverseForked: args => {
-      required(args, "universe");  // forking tests should be explicit about their universes
-      return Object.assign(common(), {
-        eventName: "UniverseForked",
-        universe,
-      }, args || {});
-    },
-    TokensMinted: args => {
-      required(args, "token", "target", "amount", "market");
-      return Object.assign(common(), {
-        eventName: "TokensMinted",
-        universe,
-      }, args || {});
-    },
-    FeeWindowCreated: args => {
-      required(args, "id", "feeWindow", "startTime", "endTime");
-      return Object.assign(common(), {
-        eventName: "FeeWindowCreated",
-        universe,
-      }, args || {});
-    },
-    TokensTransferred: args => {
-      required(args, "token", "from", "to", "value", "market");
-      return Object.assign(common(), {
-        eventName: "TokensTransferred",
-        universe,
-      }, args || {});
-    },
-    MarketCreated: args => {
-      required(args, "market", "marketCreator");
-      return Object.assign(common(), {
-        eventName: "MarketCreated",
-        universe,
-        topic: uuid.v4(),
-        description: uuid.v4(),
-        extraInfo: {
-          resolutionSource: "",
-          tags: [],
-        },
-        marketCreationFee: "0.01",  // how much is extracted from trades as market creator
-        minPrice: "0",
-        maxPrice: "1",
-        // See constants.ts/MarketType enum for details.
-        // 0 -> yesNo aka binary
-        // 1 -> categorical aka 3-8 outcomes. Log must include "outcomes".
-        marketType: "0",
-        outcomes: [],  // if marketType=1 then this must be specified
-      }, args || {});
-    },
-    OrderCreated: args => {
-      required(
-        args,
-        "shareToken",
-        "amount",
-        "price",
-        "creator",
-        "moneyEscrowed",
-        "sharesEscrowed",
-        "tradeGroupId",
-      );
-      return Object.assign(common(), {
-        eventName: "OrderCreated",
-        universe,
-        orderType: "0",
-        orderId: uuid.v4(),
-      }, args || {});
-    },
-  });
-}
-
-function hexify(integer) {
-  return "0x" + (integer).toString(16);
-}
-
 function makeFakeBlock(number, overrides) {
   return deepmerge({
     difficulty: "0x2",
@@ -150,13 +56,13 @@ function makeFakeBlock(number, overrides) {
     miner: "0x0000000000000000000000000000000000000000",
     mixHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
     nonce: "0x0000000000000000",
-    number: hexify(number || 2),
+    number: hexify(number),
+    timestamp: hexify(number),
     parentHash: "0xb23952935adf39ec4198575fb16cdffe54be970fba0e264eb900896dcae7e2b0",
     receiptsRoot: "0x54f1a38f3fde228e85dab1f53f31be6eeb06391cc98ff7110819adf0907bfd92",
     sha3Uncles: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
     size: "0x12ce",
     stateRoot: "0x840d89f25125ecbc0c308be4ec99376be568fead2a791907b3493ea0810e4e21",
-    timestamp: hexify(10000000),
     totalDifficulty: "0x4d903e",
     transactions: [
       "0xef88f2cef652f5005348ff99c68c0152e2dda275753fe1cfc50f912f24d8aabf",
@@ -173,6 +79,112 @@ function makeFakeBlock(number, overrides) {
     transactionsRoot: "0x2ad5b79ead3919e9a7ab6cdc9aa4034ef9d1b147ea5deefec90c2b8a9e2f5eaa",
     uncles: [],
   }, overrides || {});
+}
+
+function makeLogFactory(universe) {
+  const state = {
+    nextBlockNumber: 1,
+    blockNumbers: [],
+  };
+
+  function buildLog(defaults, overrides) {
+    const log = Object.assign({
+      transactionHash: uuid.v4(),
+      transactionIndex: 0,
+      logIndex: 0,
+      blockNumber: state.nextBlockNumber++,
+      blockHash: uuid.v4(),
+      removed: false,
+      invalid: false,
+      address: "AUGUR_CONTRACT",
+      contractName: "Augur",
+    }, defaults || {}, overrides || {});
+    state.blockNumbers.push(log.blockNumber);
+    return log;
+  }
+
+  return Object.assign({}, {
+    getBlockDetails: () => {
+      const blocks = _.map(state.blockNumbers, makeFakeBlock);
+      return _.zipObject(state.blockNumbers, blocks);
+    },
+
+    UniverseCreated: args => {
+      return buildLog({
+        eventName: "UniverseCreated",
+        parentUniverse: null,  // leave null for root universe
+        childUniverse: universe,  // the universe you're creating
+        payoutNumerators: [],
+      }, args);
+    },
+    UniverseForked: args => {
+      required(args, "universe");  // forking tests should be explicit about their universes
+      return buildLog({
+        eventName: "UniverseForked",
+        universe,
+      }, args);
+    },
+    TokensMinted: args => {
+      required(args, "token", "target", "amount", "market");
+      return buildLog({
+        eventName: "TokensMinted",
+        universe,
+      }, args);
+    },
+    FeeWindowCreated: args => {
+      required(args, "id", "feeWindow", "startTime", "endTime");
+      return Object.assign(buildLog({
+        eventName: "FeeWindowCreated",
+        universe,
+      }, args));
+    },
+    TokensTransferred: args => {
+      required(args, "token", "from", "to", "value", "market");
+      return buildLog({
+        eventName: "TokensTransferred",
+        universe,
+      }, args);
+    },
+    MarketCreated: args => {
+      required(args, "market", "marketCreator");
+      return buildLog({
+        eventName: "MarketCreated",
+        universe,
+        topic: uuid.v4(),
+        description: uuid.v4(),
+        extraInfo: {
+          resolutionSource: "",
+          tags: [],
+        },
+        marketCreationFee: "0.01",  // how much is extracted from trades as market creator
+        minPrice: "0",
+        maxPrice: "1",
+        // See constants.ts/MarketType enum for details.
+        // 0 -> yesNo aka binary
+        // 1 -> categorical aka 3-8 outcomes. Log must include "outcomes".
+        marketType: "0",
+        outcomes: [],  // if marketType=1 then this must be specified
+      }, args);
+    },
+    OrderCreated: args => {
+      required(
+        args,
+        "shareToken",
+        "amount",
+        "price",
+        "creator",
+        "moneyEscrowed",
+        "sharesEscrowed",
+        "tradeGroupId",
+      );
+      return buildLog({
+        eventName: "OrderCreated",
+        universe,
+        orderType: "0",
+        orderId: uuid.v4(),
+      }, args);
+    },
+  });
 }
 
 function makeMockAugur(additional) {
@@ -206,16 +218,25 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
+function sortIntegers(ints) {
+  const BASE = 10;
+  // assumes that the ints are strings but also works if they're numbers
+  ints = _.map(ints, n => BigNumber(n, BASE));
+  ints.sort((left, right) => left.comparedTo(right));
+  ints = _.map(ints, n => n.toString(BASE));
+  return ints;
+}
+
 function setupTestDb(augur, logs, blockDetails) {
   augur = augur || new Augur();
   logs = logs || [];
-  blockDetails = blockDetails || { "2": makeFakeBlock(2) };
+  blockDetails = blockDetails || {};
 
   const env = getEnv();
   const db = Knex(env);
   return db.migrate.latest(env.migrations)
     .then(() => {
-      const blockNumbers = Object.keys(blockDetails);
+      const blockNumbers = sortIntegers(Object.keys(blockDetails));
       return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
     })
     .then(() => db);
