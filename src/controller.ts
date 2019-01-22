@@ -146,8 +146,9 @@ export class AugurNodeController {
   public highestUserDbVersion(): number {
     const version = 0;
     try {
-      // only interested in mainnet databases
-      return getHighestDbVersion(this.databaseDir, "augur-1-");
+      // default to mainnet if not currently connected to augur
+      const networkId = this.augur.rpc.getNetworkID() || "1";
+      return getHighestDbVersion(this.databaseDir, format("augur-%s-", networkId));
     } catch (err) {
       if (this.errorCallback) this.errorCallback(err);
     }
