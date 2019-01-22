@@ -69,12 +69,13 @@ export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Add
     const numOwned = updateData.numOwned || ZERO;
     const oldMoneySpent = updateData.moneySpent || ZERO;
     const oldProfit = updateData.profit || ZERO;
-    const numEscrowed = updateData.numEscrowed || ZERO;
+    const originalNumEscrowed = updateData.numEscrowed || ZERO;
     const originalNumOwned = numShares.plus(numOwned);
-    const totalOwned = originalNumOwned.plus(numEscrowed);
-    const profit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned)))).toString();
-    const moneySpent = oldMoneySpent.multipliedBy(numOwned.dividedBy(totalOwned)).toString();
-    const newNumEscrowed = numEscrowed.minus(numShares).toString();
+    const originalTotalOwned = originalNumOwned.plus(originalNumEscrowed);
+    const newNumEscrowed = originalNumEscrowed.minus(numShares);
+    const newTotalOwned = numOwned.plus(newNumEscrowed);
+    const moneySpent = oldMoneySpent.multipliedBy(newTotalOwned.dividedBy(originalTotalOwned)).toString();
+    const profit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(originalTotalOwned)))).toString();
     const insertData = {
       marketId,
       account,
@@ -82,7 +83,7 @@ export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Add
       transactionHash,
       timestamp,
       numOwned: numOwned.toString(),
-      numEscrowed: newNumEscrowed,
+      numEscrowed: newNumEscrowed.toString(),
       moneySpent,
       profit,
     };
