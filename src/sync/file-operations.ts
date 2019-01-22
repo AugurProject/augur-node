@@ -71,3 +71,20 @@ export function fileCompatible(filename: string, networkId: string, dbVersion: n
   const compSyncfile = format(DB_WARP_SYNC_FILE_ENDING, networkId, dbVersion);
   return filename.endsWith(compSyncfile);
 }
+
+export function getHighestDbVersions(directoryDir: string, dbFileName: string): number {
+  let version = 0;
+  const files = fs.readdirSync(directoryDir).filter((fn: string) => fn.startsWith(dbFileName));
+  if (files) {
+    _.each(files, (file) => {
+      const parts = file.split("-");
+      if (parts.length > 2) {
+        const fileVersion = parseInt(parts[2], 10);
+        if (fileVersion > version) {
+          version = fileVersion;
+        }
+      }
+    });
+  }
+  return version;
+}

@@ -14,7 +14,7 @@ import { logger } from "./utils/logger";
 import { LoggerInterface } from "./utils/logger/logger";
 import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
 
-import { getFileHash } from "./sync/file-operations";
+import { getFileHash, getHighestDbVersions } from "./sync/file-operations";
 import { BackupRestore } from "./sync/backup-restore";
 import { checkOrphanedOrders } from "./blockchain/check-orphaned-orders";
 
@@ -137,6 +137,21 @@ export class AugurNodeController {
 
   public addLogger(logger: LoggerInterface) {
     this.logger.addLogger(logger);
+  }
+
+  public systemDbVersion(): number {
+    return DB_VERSION;
+  }
+
+  public highestUserDbVersion(): number {
+    const version = 0;
+    try {
+      // only interested in mainnet databases
+      return getHighestDbVersions(this.databaseDir, "augur-1-");
+    } catch (err) {
+      if (this.errorCallback) this.errorCallback(err);
+    }
+    return version;
   }
 
   public clearLoggers() {
