@@ -72,7 +72,7 @@ export function fileCompatible(filename: string, networkId: string, dbVersion: n
   return filename.endsWith(compSyncfile);
 }
 
-export function getHighestDbVersions(directoryDir: string, dbFileName: string): number {
+export function getHighestDbVersion(directoryDir: string, dbFileName: string): number {
   let version = 0;
   const files = fs.readdirSync(directoryDir).filter((fn: string) => fn.startsWith(dbFileName));
   if (files) {
