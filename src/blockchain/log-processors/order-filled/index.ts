@@ -77,7 +77,7 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
 
     await updateVolumetrics(db, augur, category, marketId, outcome, blockNumber, orderId, orderCreator, tickSize, minPrice, maxPrice, true);
 
-    await updateOrder(db, augur, marketId, orderId, amount, orderCreator, filler, tickSize, minPrice);
+    await updateOrder(db, augur, marketId, orderId, amount, orderCreator, filler, tickSize, minPrice, numCreatorShares);
 
     await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, orderType === "buy" ? price : maxPrice.minus(price));
     if (numOutcomes === 2) {
@@ -137,7 +137,7 @@ export async function processOrderFilledLogRemoval(augur: Augur, log: FormattedE
 
     await updateVolumetrics(db, augur, category, marketId, outcome, blockNumber, orderId, orderCreator, tickSize, minPrice, maxPrice, false);
     await db.from("trades").where({ marketId, outcome, orderId, blockNumber }).del();
-    await updateOrder(db, augur, marketId, orderId, amount.negated(), orderCreator, log.filler, tickSize, minPrice);
+    await updateOrder(db, augur, marketId, orderId, amount.negated(), orderCreator, log.filler, tickSize, minPrice, numCreatorShares.negated());
     augurEmitter.emit(SubscriptionEventNames.OrderFilled, Object.assign({}, log, {
       marketId,
       outcome,

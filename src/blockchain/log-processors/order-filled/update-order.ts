@@ -13,12 +13,13 @@ interface OrderFilledRow {
   price: BigNumber;
 }
 
-export async function updateOrder(db: Knex, augur: Augur, marketId: Address, orderId: Bytes32, amount: BigNumber, creator: Address, filler: Address, tickSize: BigNumber, minPrice: BigNumber) {
-  const orderRow: OrderFilledRow = await db("orders").first("fullPrecisionAmount", "outcome", "price").where({ orderId });
+export async function updateOrder(db: Knex, augur: Augur, marketId: Address, orderId: Bytes32, amount: BigNumber, creator: Address, filler: Address, tickSize: BigNumber, minPrice: BigNumber, numCreatorShares: BigNumber) {
+  const orderRow: OrderFilledRow = await db("orders").first("fullPrecisionAmount", "outcome", "price", "sharesEscrowed").where({ orderId });
   if (orderRow == null) throw new Error(`Could not fetch order amount for order ${orderId}`);
   const fullPrecisionAmountRemainingInOrder = orderRow.fullPrecisionAmount.minus(amount);
   const amountRemainingInOrder = formatOrderAmount(fullPrecisionAmountRemainingInOrder);
-  const updateAmountsParams = { fullPrecisionAmount: fullPrecisionAmountRemainingInOrder, amount: amountRemainingInOrder };
+  const numEscrowedRemainingInOrder = orderRow.sharesEscrowed.minus(numCreatorShares);
+  const updateAmountsParams = { fullPrecisionAmount: fullPrecisionAmountRemainingInOrder, amount: amountRemainingInOrder, sharesEscrowed: numEscrowedRemainingInOrder };
   const orderState = fullPrecisionAmountRemainingInOrder.eq(ZERO) ? OrderState.FILLED : OrderState.OPEN;
   const updateParams = Object.assign({ orderState }, updateAmountsParams);
   const lastOutcomePrice: Int256 = await augur.api.Orders.getLastOutcomePrice({ _market: marketId, _outcome: orderRow.outcome });
