@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb } = require("../../test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processOrderCanceledLog, processOrderCanceledLogRemoval } = require("src/blockchain/log-processors/order-canceled");
 

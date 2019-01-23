@@ -1,4 +1,5 @@
-const { setupTestDb, makeMockAugur, makeLogFactory } = require("../../test.database");
+const { setupTestDb, makeMockAugur/*, makeLogFactory*/ } = require("test.database");
+const { seedDb } = require("test.database");  // TODO
 const { BigNumber } = require("bignumber.js");
 const { processTokensTransferredLog, processTokensTransferredLogRemoval } = require("src/blockchain/log-processors/tokens-transferred");
 
@@ -15,17 +16,18 @@ async function getState(db, log) {
 describe("blockchain/log-processors/tokens-transferred", () => {
   let db;
   beforeEach(async () => {
-    const L = makeLogFactory("0x000000000000000000000000000000000000000b");
-    const logs = [
-      L.UniverseCreated(),
-      L.TokensMinted({
-        token: "TOKEN_ADDRESS",
-        target: "FROM_ADDRESS",
-        market: "0x0000000000000000000000000000000000000000",
-        amount: "9001",
-      }),
-    ];
-    db = await setupTestDb(makeMockAugur(), logs, L.getBlockDetails());
+    // const L = makeLogFactory("0x000000000000000000000000000000000000000b");
+    // const logs = [
+    //   L.UniverseCreated(),
+    //   L.TokensMinted({
+    //     token: "TOKEN_ADDRESS",
+    //     target: "FROM_ADDRESS",
+    //     market: "0x0000000000000000000000000000000000000000",
+    //     amount: "9001",
+    //   }),
+    // ];
+    // db = await setupTestDb(makeMockAugur(), logs, L.getBlockDetails());
+    db = await setupTestDb().then(seedDb);
   });
 
   afterEach(async () => {

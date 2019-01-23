@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb } = require("../../test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const { setOverrideTimestamp, removeOverrideTimestamp } = require("src/blockchain/process-block");
 

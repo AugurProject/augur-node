@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { processInitialReporterTransferredLog, processInitialReporterTransferredLogRemoval } = require("src/blockchain/log-processors/initial-report-transferred");
 
 function getInitialReport(db, log) {

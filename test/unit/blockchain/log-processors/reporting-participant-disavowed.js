@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb } = require("../../test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processReportingParticipantDisavowedLog, processReportingParticipantDisavowedLogRemoval } = require("src/blockchain/log-processors/reporting-participant-disavowed");
 
 async function getParticipantState(db, log) {

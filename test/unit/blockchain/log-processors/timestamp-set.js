@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb } = require("../../test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processTimestampSetLog, processTimestampSetLogRemoval } = require("src/blockchain/log-processors/timestamp-set");
 const { getOverrideTimestamp } = require("src/blockchain/process-block");
 

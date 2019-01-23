@@ -2,9 +2,11 @@ import Augur from "augur.js";
 import { NetworkConfiguration } from "augur-core";
 import { AugurNodeController } from "./controller";
 import { logger } from "./utils/logger";
+import { ConnectOptions } from "./types";
 
 const networkName = process.argv[2] || "environment";
-const databaseDir = process.env.AUGUR_DATABASE_DIR;
+const databaseDir = process.env.AUGUR_DATABASE_DIR || ".";
+const isWarpSync = process.env.IS_WARP_SYNC  === "true";
 
 // maxRetries is the maximum number of retries for retryable Ethereum
 // RPC requests. maxRetries is passed to augur.js's augur.connect() and
@@ -25,9 +27,9 @@ if (maxRetries) config = Object.assign({}, config, { maxRetries });
 if (propagationDelayWaitMillis) config = Object.assign({}, config, { propagationDelayWaitMillis });
 const retries: number = parseInt(maxSystemRetries || "1", 10);
 
-function start(retries: number, config: any, databaseDir: any) {
+function start(retries: number, config: ConnectOptions, databaseDir: string, isWarpSync: boolean) {
   const augur = new Augur();
-  const augurNodeController = new AugurNodeController(augur, config, databaseDir);
+  const augurNodeController = new AugurNodeController(augur, config, databaseDir, isWarpSync);
 
   augur.rpc.setDebugOptions({ broadcast: false });
   augur.events.nodes.ethereum.on("disconnect", (event) => {
@@ -39,18 +41,24 @@ function start(retries: number, config: any, databaseDir: any) {
   });
 
   function errorCatch(err: Error) {
+    function fatalError(e: Error) {
+      logger.error("Fatal Error:", e);
+      process.exit(1);
+    }
     if (retries > 0) {
       logger.warn(err.message);
+      if (err.stack !== undefined) {
+        logger.warn(err.stack);
+      }
       retries--;
-      augurNodeController.shutdown();
-      setTimeout(() => start(retries, config, databaseDir), 1000);
+      augurNodeController.shutdown().catch(fatalError);
+      setTimeout(() => start(retries, config, databaseDir, isWarpSync), 1000);
     } else {
-      logger.error("Fatal Error:", err);
-      process.exit(1);
+      fatalError(err);
     }
   }
 
   augurNodeController.start(errorCatch).catch(errorCatch);
 }
 
-start(retries, config, databaseDir);
+start(retries, config, databaseDir, isWarpSync);

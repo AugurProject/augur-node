@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This script intended to be run with pwd at augur-node root.
+
+# This helper script will _overwrite_ your current augur-node cli database
+# with the DB from your OSX installed Augur App, and apply latest migrations
+# to the new cli db.
+
+# Why? In my workflow, my OSX installed Augur App is often at HEAD of
+# blockstream, but I frequently need to reset my augur-node CLI database.
+
+set -e;
+
+LATEST_DB=$(ls -t ~/Library/Application\ Support/augur/augur*db | head -1);
+
+echo -e "copying installed Augur App db to augur-node cli\nsrc db: $LATEST_DB";
+
+cp "$LATEST_DB" .;
+
+sqlite3 "$(basename "$LATEST_DB")" "update knex_migrations set name = substr(name,1, length(name)-2) || 'ts';";
+
+DEBUG=knex:tx yarn knex migrate:latest --env prod-test;

@@ -1,5 +1,5 @@
 const { fix } = require("speedomatic");
-const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processOrderCreatedLog, processOrderCreatedLogRemoval } = require("src/blockchain/log-processors/order-created");
 
@@ -14,6 +14,11 @@ const augur = makeMockAugur({
     },
   },
 });
+
+function getPendingOrphansState(db, marketId) {
+  return db("pending_orphan_checks").where("marketId", marketId);
+}
+
 
 describe("blockchain/log-processors/order-created", () => {
   let db;
@@ -59,6 +64,11 @@ describe("blockchain/log-processors/order-created", () => {
         sharesEscrowed: new BigNumber("0", 10),
         tradeGroupId: "TRADE_GROUP_ID",
         orphaned: 0,
+      }]);
+      expect(await getPendingOrphansState(trx, "0x0000000000000000000000000000000000000001")).toEqual([{
+        marketId: "0x0000000000000000000000000000000000000001",
+        outcome: 0,
+        orderType: "buy",
       }]);
       await(await processOrderCreatedLogRemoval(augur, log))(trx);
       expect(await getState(trx, log)).toEqual([]);

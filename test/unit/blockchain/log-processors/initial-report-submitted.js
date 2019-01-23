@@ -1,5 +1,5 @@
 const { BigNumber } = require("bignumber.js");
-const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { processInitialReportSubmittedLog, processInitialReportSubmittedLogRemoval } = require("src/blockchain/log-processors/initial-report-submitted");
 const { setOverrideTimestamp, removeOverrideTimestamp } = require("src/blockchain/process-block");
 

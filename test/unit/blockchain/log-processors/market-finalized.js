@@ -1,4 +1,4 @@
-const { setupTestDb, seedDb, makeMockAugur } = require("../../test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processMarketFinalizedLog, processMarketFinalizedLogRemoval } = require("src/blockchain/log-processors/market-finalized");
 const { getMarketsWithReportingState } = require("src/server/getters/database");
