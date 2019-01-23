@@ -1,7 +1,5 @@
-const Augur = require("augur.js");
-
 const { BigNumber } = require("bignumber.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { processInitialReportSubmittedLog, processInitialReportSubmittedLogRemoval } = require("src/blockchain/log-processors/initial-report-submitted");
 const { setOverrideTimestamp, removeOverrideTimestamp } = require("src/blockchain/process-block");
 
@@ -11,8 +9,7 @@ function getReportingState(db, log) {
 function getInitialReport(db, log) {
   return db("initial_reports").first(["reporter", "amountStaked", "initialReporter"]).where("initial_reports.marketId", log.market);
 }
-const augur = {
-  constants: new Augur().constants,
+const augur = makeMockAugur({
   api: {
     Market: {
       getInitialReporter: () => Promise.resolve("0x0000000000000000000000000000000000abe123"),
@@ -38,12 +35,12 @@ const augur = {
       },
     },
   },
-};
+});
 
 describe("blockchain/log-processors/initial-report-submitted", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

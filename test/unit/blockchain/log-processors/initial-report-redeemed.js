@@ -1,6 +1,6 @@
 const Augur = require("augur.js");
 
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processInitialReporterRedeemedLog, processInitialReporterRedeemedLogRemoval } = require("src/blockchain/log-processors/initial-report-redeemed");
 const augur = new Augur();
 
@@ -10,7 +10,7 @@ function getInitialReport(db, log) {
 describe("blockchain/log-processors/initial-report-redeemed", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processBurnLog, processBurnLogRemoval } = require("src/blockchain/log-processors/token/burn");
 
@@ -9,7 +9,7 @@ function getTokenBalances(db, log) {
     .where("balances.token", log.token);
 }
 
-const augur = {
+const augur = makeMockAugur({
   contracts: {
     addresses: {
       974: {
@@ -20,12 +20,12 @@ const augur = {
   rpc: {
     getNetworkID: () => 974,
   },
-};
+});
 
 describe("blockchain/log-processors/tokens-burned", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

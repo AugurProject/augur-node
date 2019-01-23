@@ -108,6 +108,7 @@
     "babel-jest": "23.6.0",
     "babel-loader": "8.0.4",
     "coveralls": "3.0.1",
+    "deepmerge": "^3.0.0",
     "eslint": "^5.7.0",
     "eslint-plugin-jest": "^21.26.0",
     "genversion": "^2.1.0",

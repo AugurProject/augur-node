@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processTimestampSetLog, processTimestampSetLogRemoval } = require("src/blockchain/log-processors/timestamp-set");
 const { getOverrideTimestamp } = require("src/blockchain/process-block");
 
@@ -13,7 +13,7 @@ function getTimestampState(db) {
 describe("blockchain/log-processors/timestamp-set", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
     await initializeNetwork(db);
   });
 

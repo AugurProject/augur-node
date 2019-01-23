@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processApprovalLog, processApprovalLogRemoval } = require("src/blockchain/log-processors/token/approval");
 
 function getState(db, log) {
@@ -8,7 +8,7 @@ function getState(db, log) {
 describe("blockchain/log-processors/token/approval", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

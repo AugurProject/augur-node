@@ -1,5 +1,4 @@
-const Augur = require("augur.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processMarketFinalizedLog, processMarketFinalizedLogRemoval } = require("src/blockchain/log-processors/market-finalized");
 const { getMarketsWithReportingState } = require("src/server/getters/database");
@@ -10,8 +9,7 @@ async function getMarketState(db, log) {
     winningPayout: await db("payouts").where({ marketId: log.market, "winning": 1 }).first(),
   };
 }
-const augur = {
-  constants: new Augur().constants,
+const augur = makeMockAugur({
   rpc: {
     eth: {
       getBalance: (p, callback) => {
@@ -20,12 +18,12 @@ const augur = {
       },
     },
   },
-};
+});
 
 describe("blockchain/log-processors/market-finalized", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {
