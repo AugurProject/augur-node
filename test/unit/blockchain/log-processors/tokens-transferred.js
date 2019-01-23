@@ -153,6 +153,7 @@ describe("blockchain/log-processors/tokens-transferred", () => {
         tokenType: 1,
         market: "0x0000000000000000000000000000000000000002",
         blockNumber: 1400101,
+        transactionIndex: 1,
       },
     },
     assertions: {

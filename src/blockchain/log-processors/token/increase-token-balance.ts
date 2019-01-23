@@ -22,6 +22,6 @@ export async function increaseTokenBalance(db: Knex, augur: Augur, token: Addres
   }
 
   if (parseInt(log.tokenType, 10) === TokenType.ShareToken) {
-    await updateProfitLossChangeShareBalance(db, augur, token, balance, owner, log.transactionHash);
+    await updateProfitLossChangeShareBalance(db, augur, token, balance, owner, log.transactionHash, log.blockNumber, log.transactionIndex);
   }
 }
