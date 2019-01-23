@@ -6,7 +6,6 @@ const Augur = require("augur.js");
 const uuid = require("uuid");
 const deepmerge = require("deepmerge");
 const _ = require("lodash");
-const { BigNumber } = require("bignumber.js");
 
 
 function hexify(integer) {
@@ -218,15 +217,6 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
-function sortIntegers(ints) {
-  const BASE = 10;
-  // assumes that the ints are strings but also works if they're numbers
-  ints = _.map(ints, n => BigNumber(n, BASE));
-  ints.sort((left, right) => left.comparedTo(right));
-  ints = _.map(ints, n => n.toString(BASE));
-  return ints;
-}
-
 function setupTestDb(augur, logs, blockDetails) {
   augur = augur || new Augur();
   logs = logs || [];
@@ -236,7 +226,7 @@ function setupTestDb(augur, logs, blockDetails) {
   const db = Knex(env);
   return db.migrate.latest(env.migrations)
     .then(() => {
-      const blockNumbers = sortIntegers(Object.keys(blockDetails));
+      const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
       return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
     })
     .then(() => db);
