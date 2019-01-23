@@ -38,6 +38,10 @@ interface MarketData {
   minPrice: BigNumber;
 }
 
+export function getBlockTransactionIndex(blockNumber: number, transactionIndex: number): number {
+  return blockNumber * 1000000 + transactionIndex;
+}
+
 export async function updateProfitLossBuyShares(db: Knex, marketId: Address, account: Address, tokensSpent: BigNumber, outcomes: Array<number>, transactionHash: string): Promise<void> {
   const tokensSpentPerOutcome = tokensSpent.dividedBy(outcomes.length);
   const moneySpentRows: Array<OutcomeMoneySpent> = await db
@@ -45,7 +49,7 @@ export async function updateProfitLossBuyShares(db: Knex, marketId: Address, acc
     .from("profit_loss_timeseries")
     .where({ account, transactionHash, marketId })
     .whereIn("outcome", outcomes)
-    .orderBy("timestamp", "DESC");
+    .orderBy("blockTransactionIndex", "DESC");
   for (const moneySpentRow of moneySpentRows) {
     const newMoneySpent = tokensSpentPerOutcome.plus(moneySpentRow.moneySpent || ZERO).toString();
     await db("profit_loss_timeseries")
@@ -54,16 +58,17 @@ export async function updateProfitLossBuyShares(db: Knex, marketId: Address, acc
   }
 }
 
-export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string): Promise<void> {
+export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string, blockNumber: number, transactionIndex: number): Promise<void> {
   const tokensReceivedPerOutcome = tokensReceived.dividedBy(outcomes.length);
   const timestamp = getCurrentTime();
+  const blockTransactionIndex = getBlockTransactionIndex(blockNumber, transactionIndex);
 
   for (const outcome of outcomes) {
     const updateData: UpdateData = await db
       .first(["account", "numOwned", "moneySpent", "profit", "transactionHash", "outcome", "numEscrowed"])
       .from("profit_loss_timeseries")
       .where({ account, marketId, outcome })
-      .orderBy("timestamp", "DESC");
+      .orderBy("blockTransactionIndex", "DESC");
 
     const sellPrice = tokensReceivedPerOutcome.dividedBy(numShares);
     const numOwned = updateData.numOwned || ZERO;
@@ -82,6 +87,7 @@ export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Add
       outcome: updateData.outcome,
       transactionHash,
       timestamp,
+      blockTransactionIndex,
       numOwned: numOwned.toString(),
       numEscrowed: newNumEscrowed.toString(),
       moneySpent,
@@ -123,10 +129,11 @@ export async function updateProfitLossSellShares(db: Knex, marketId: Address, nu
   }
 }
 
-export async function updateProfitLossChangeShareBalance(db: Knex, augur: Augur, token: Address, numShares: BigNumber, account: Address, transactionHash: string): Promise<void> {
+export async function updateProfitLossChangeShareBalance(db: Knex, augur: Augur, token: Address, numShares: BigNumber, account: Address, transactionHash: string, blockNumber: number, transactionIndex: number): Promise<void> {
   // Don't record FillOrder
   if (account === augur.contracts.addresses[augur.rpc.getNetworkID()].FillOrder) return;
   const timestamp = getCurrentTime();
+  const blockTransactionIndex = getBlockTransactionIndex(blockNumber, transactionIndex);
   const shareData: ShareData = await db
     .first(["marketId", "outcome"])
     .from("tokens")
@@ -140,7 +147,7 @@ export async function updateProfitLossChangeShareBalance(db: Knex, augur: Augur,
     .first(["account", "numOwned", "moneySpent", "profit", "transactionHash", "outcome", "numEscrowed"])
     .from("profit_loss_timeseries")
     .where({ account, marketId, outcome })
-    .orderBy("timestamp", "DESC");
+    .orderBy("blockTransactionIndex", "DESC");
   const marketData: MarketData = await db
     .first(["numTicks", "minPrice", "maxPrice"])
     .from("markets")
@@ -160,6 +167,7 @@ export async function updateProfitLossChangeShareBalance(db: Knex, augur: Augur,
     outcome,
     transactionHash,
     timestamp,
+    blockTransactionIndex,
     numOwned,
     numEscrowed: "0",
     moneySpent: "0",
@@ -198,7 +206,7 @@ export async function updateProfitLossNumEscrowed(db: Knex, marketId: Address, n
     .from("profit_loss_timeseries")
     .where({ account, transactionHash, marketId })
     .whereIn("outcome", outcomes)
-    .orderBy("timestamp", "DESC");
+    .orderBy("blockTransactionIndex", "DESC");
   for (const numEscrowedRow of numEscrowedRows) {
     const newNumEscrowed = new BigNumber(numEscrowedDelta).plus(numEscrowedRow.numEscrowed || 0).toString();
     await db("profit_loss_timeseries")
