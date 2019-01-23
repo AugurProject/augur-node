@@ -40,7 +40,7 @@ interface MarketData {
 
 export function getBlockTransactionIndex(blockNumber: number, transactionIndex: number): number {
   return blockNumber * 1000000 + transactionIndex;
-} 
+}
 
 export async function updateProfitLossBuyShares(db: Knex, marketId: Address, account: Address, tokensSpent: BigNumber, outcomes: Array<number>, transactionHash: string): Promise<void> {
   const tokensSpentPerOutcome = tokensSpent.dividedBy(outcomes.length);
