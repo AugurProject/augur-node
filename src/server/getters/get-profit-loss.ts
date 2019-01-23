@@ -25,7 +25,6 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     numEscrowed: ZERO,
     numOutcomes: 2,
     profit: ZERO,
-    maxPrice: ZERO,
   };
 }
 
@@ -53,7 +52,6 @@ export interface ProfitLossTimeseries extends Timestamped {
   numEscrowed: BigNumber;
   numOutcomes: number;
   profit: BigNumber;
-  maxPrice: BigNumber;
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -156,7 +154,7 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
 
 async function queryProfitLossTimeseries(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Array<ProfitLossTimeseries>> {
   const query = db("profit_loss_timeseries")
-    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "markets.maxPrice")
+    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes")
     .join("markets", "profit_loss_timeseries.marketId", "markets.marketId")
     .where({ account: params.account, universe: params.universe })
     .orderBy("timestamp");
@@ -217,14 +215,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
     // A short position exists
     if (shortPosition) {
-      // This outcome is the short position
-      if (shortPosition.outcome === outcome) {
-        netPosition = shortPosition.position.negated();
-        const otherOutcomes = _.filter(plsAtTimestamp, (pl) => pl.outcome !== outcome);
-        averagePrice = _.reduce(otherOutcomes, (total, pl) => total.plus(pl.moneySpent.dividedBy(pl.numOwned.plus(pl.numEscrowed))), ZERO);
-      } else {
-        netPosition = totalPosition.minus(shortPosition.position);
-      }
+      netPosition = shortPosition.outcome === outcome ? shortPosition.position.negated() : totalPosition.minus(shortPosition.position);
     }
 
     let unrealized = ZERO;
@@ -316,19 +307,13 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
       position: minimumPosition,
     };
     // add entry for the short position in the timestamp frame and the outcomevalues frame
-    const maxPrice = nonZeroPositionOutcomePls[0].maxPrice;
     if (shortOutcomeIsMissing) {
       outcomePLsAtTimestamp.push(Object.assign(getDefaultPLTimeseries(), {
         outcome: missingOutcome,
         timestamp,
-        maxPrice,
         marketId,
       }));
     }
-
-    // The value of the short is the inverse of the value of the long for that outcome which is what our outcome value frame holds
-    const missingOutcomeValue = maxPrice.minus(sortedOutcomeValues[missingOutcome].value);
-    sortedOutcomeValues[missingOutcome].value = maxPrice.minus(missingOutcomeValue);
 
     return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, shortPosition);
   });

@@ -122,6 +122,9 @@ export async function updateProfitLossSellShares(db: Knex, marketId: Address, nu
     const originalNumOwned = numShares.plus(numOwned);
     const totalOwned = originalNumOwned.plus(numEscrowed);
     const profit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned)))).toString();
+    if (transactionHash === "0x20ccd19fd73871642273b0658f1cc60e994034e302fc57adebd9b25718bab7fc") {
+      throw new Error(`XXX ${profit} ${sellPrice} ${oldMoneySpent} ${totalOwned}`);
+    }
     const moneySpent = oldMoneySpent.multipliedBy(numOwned.dividedBy(totalOwned)).toString();
     await db("profit_loss_timeseries")
       .update({ moneySpent, profit })
