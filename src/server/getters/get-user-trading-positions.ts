@@ -41,7 +41,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   const endTime = params.endTime || Date.now() / 1000;
   const universeId = params.universe || (await queryUniverse(db, params.marketId!));
-  const { profit: profitsPerMarket, marketOutcomes: numOutcomesByMarket } = await getAllOutcomesProfitLoss(db, augur, {
+  const { profit: profitsPerMarket } = await getAllOutcomesProfitLoss(db, augur, {
     universe: universeId,
     account: params.account,
     marketId: params.marketId || null,
@@ -54,12 +54,6 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   const positions = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>, marketId: string) => {
     const lastTimestampPls = _.last(outcomePls)!;
-    const numOutcomes = numOutcomesByMarket[marketId];
-    // For display purposes only we want 2 outcome markets to sum their realized profit since we hide the other outcome's information
-    if (numOutcomes !== 2 || lastTimestampPls.length < 2) return lastTimestampPls;
-    const totalRealized = lastTimestampPls[0].realized.plus(lastTimestampPls[1].realized);
-    lastTimestampPls[0].realized = totalRealized;
-    lastTimestampPls[1].realized = totalRealized;
     return lastTimestampPls;
   }));
 
