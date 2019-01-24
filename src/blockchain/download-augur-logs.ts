@@ -46,8 +46,9 @@ async function fetchAllBlockDetails(augur: Augur, blockNumbers: Array<number>): 
   });
 }
 
-async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: Array<FormattedEventLog>, blockNumbers: Array<number>, blockDetailsByBlockPromise: Promise<BlockDetailsByBlock>) {
+export async function processBatchOfLogs(db: Knex, augur: Augur, allAugurLogs: Array<FormattedEventLog>, blockNumbers: Array<number>, blockDetailsByBlockPromise: Promise<BlockDetailsByBlock>) {
   const blockDetailsByBlock = await blockDetailsByBlockPromise;
+
   const logsByBlock: { [blockNumber: number]: Array<FormattedEventLog> } = _.groupBy(allAugurLogs, (log) => log.blockNumber);
   await each(blockNumbers, async (blockNumber: number) => {
     const logs = logsByBlock[blockNumber];

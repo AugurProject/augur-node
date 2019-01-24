@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { processUniverseForkedLog, processUniverseForkedLogRemoval } = require("src/blockchain/log-processors/universe-forked");
 
 const otherMarket = "0x0000000000000000000000000000000000000222";
@@ -11,18 +11,18 @@ async function getForkRows(db, log) {
   };
 }
 
-const augur = {
+const augur = makeMockAugur({
   api: {
     Universe: {
       getForkingMarket: () => Promise.resolve("0x0000000000000000000000000000000000000211"),
     },
   },
-};
+});
 
 describe("blockchain/log-processors/universe-forked", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

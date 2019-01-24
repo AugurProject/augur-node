@@ -1,11 +1,11 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const { version } = require("src/version");
 
 describe("server/getters/get-sync-data", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   afterEach(async () => {

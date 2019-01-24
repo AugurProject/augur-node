@@ -1,6 +1,6 @@
 jest.mock("src/blockchain/process-block");
 const Augur = require("augur.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const processBlock= require("src/blockchain/process-block");
 const augur = new Augur();
@@ -8,7 +8,7 @@ const augur = new Augur();
 describe("server/getters/get-user-trading-positions", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
   });
 

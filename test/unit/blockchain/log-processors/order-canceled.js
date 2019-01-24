@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { BigNumber } = require("bignumber.js");
 const { processOrderCanceledLog, processOrderCanceledLogRemoval } = require("src/blockchain/log-processors/order-canceled");
 
@@ -12,7 +12,7 @@ async function getState(db, log) {
 describe("blockchain/log-processors/order-canceled", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

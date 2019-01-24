@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processMarketParticipantsDisavowedLog, processMarketParticipantsDisavowedLogRemoval } = require("src/blockchain/log-processors/market-participants-disavowed");
 
 function getMarketCrowdsourcers(db, log) {
@@ -8,7 +8,7 @@ function getMarketCrowdsourcers(db, log) {
 describe("blockchain/log-processors/market-participants-disavowed", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

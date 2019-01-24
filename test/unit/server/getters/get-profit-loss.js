@@ -1,6 +1,6 @@
 jest.mock("src/blockchain/process-block");
 const Augur = require("augur.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { getProfitLoss, getProfitLossSummary, bucketRangeByInterval } = require("src/server/getters/get-profit-loss");
 const processBlock = require("src/blockchain/process-block");
 
@@ -133,7 +133,7 @@ describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
   var augur = new Augur();
 
   beforeEach(async () => {
-    connection = await setupTestDb();
+    connection = await setupTestDb().then(seedDb);
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
   });
 

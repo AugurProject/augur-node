@@ -1,4 +1,4 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processReportingParticipantDisavowedLog, processReportingParticipantDisavowedLogRemoval } = require("src/blockchain/log-processors/reporting-participant-disavowed");
 
 async function getParticipantState(db, log) {
@@ -7,10 +7,11 @@ async function getParticipantState(db, log) {
     crowdsourcer: await db("crowdsourcers").first(["crowdsourcerId", "disavowed"]).where("crowdsourcerId", log.reportingParticipant),
   };
 }
+
 describe("blockchain/log-processors/reporting-participant-disavowed", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   test("initialReporter", async () => {

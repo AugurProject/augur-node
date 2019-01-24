@@ -1,12 +1,12 @@
 const { BigNumber } = require("bignumber.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb, makeMockAugur } = require("test.database");
 const { processTradingProceedsClaimedLog, processTradingProceedsClaimedLogRemoval } = require("src/blockchain/log-processors/trading-proceeds-claimed");
 
 function getTradingProceeds(db) {
   return db.select(["marketId", "shareToken", "account", "numShares", "numPayoutTokens"]).from("trading_proceeds");
 }
 
-const augur =       {
+const augur = makeMockAugur({
   utils: {
     convertOnChainPriceToDisplayPrice: (onChainPrice, minDisplayPrice, tickSize) => {
       return onChainPrice.times(tickSize).plus(minDisplayPrice);
@@ -17,12 +17,12 @@ const augur =       {
       callback(null, ["2", "0", "0", "0", "0", "0", "0", "0"]);
     },
   },
-};
+});
 
 describe("blockchain/log-processors/trading-proceeds-claimed", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log =        {
