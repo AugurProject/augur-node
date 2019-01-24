@@ -26,6 +26,7 @@ export const TradingHistoryParams = t.intersection([
 export async function getTradingHistory(db: Knex, augur: Augur, params: t.TypeOf<typeof TradingHistoryParams>): Promise<Array<UITrade>> {
   const userTradingHistory: Array<TradingHistoryRow> = await queryTradingHistoryParams(db, params);
   return userTradingHistory.map((trade: TradingHistoryRow): UITrade => {
+    const isMaker: boolean | null = params.account == null ? null : params.account === trade.creator; // ie. true if and only if this invocation of getTradingHistory is from perspective of creator/maker of this trade's order.
     return Object.assign(_.pick(trade, [
       "transactionHash",
       "logIndex",
@@ -38,10 +39,10 @@ export async function getTradingHistory(db: Knex, augur: Augur, params: t.TypeOf
       "timestamp",
       "tradeGroupId",
     ]), {
-      type: trade.orderType === "buy" ? "sell" : "buy",
+      type: isMaker ? trade.orderType : (trade.orderType === "buy" ? "sell" : "buy"), // in the db, trades.orderType is from perspective of order creator/maker, so if we just use value of trades.orderType then the UITrade.type will always be from perspective of order creator/maker. As a UX concern, we want to default to the perspective of filler/taker, so we flip buy/sell unless isMaker.
       price: trade.price.toString(),
       amount: trade.amount.toString(),
-      maker: params.account == null ? null : params.account === trade.creator,
+      maker: isMaker,
       selfFilled: trade.creator === trade.filler,
       marketCreatorFees: trade.marketCreatorFees.toString(),
       reporterFees: trade.reporterFees.toString(),
