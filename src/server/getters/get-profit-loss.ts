@@ -24,6 +24,7 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     numOwned: ZERO,
     numEscrowed: ZERO,
     numOutcomes: 2,
+    maxPrice: ZERO,
     profit: ZERO,
   };
 }
@@ -51,6 +52,7 @@ export interface ProfitLossTimeseries extends Timestamped {
   numOwned: BigNumber;
   numEscrowed: BigNumber;
   numOutcomes: number;
+  maxPrice: BigNumber;
   profit: BigNumber;
 }
 
@@ -154,7 +156,7 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
 
 async function queryProfitLossTimeseries(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Array<ProfitLossTimeseries>> {
   const query = db("profit_loss_timeseries")
-    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes")
+    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "maxPrice")
     .join("markets", "profit_loss_timeseries.marketId", "markets.marketId")
     .where({ account: params.account, universe: params.universe })
     .orderBy("timestamp");
@@ -199,8 +201,8 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
   });
 }
 
-function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>, shortPosition: ShortPosition|null): Array<ProfitLossResult> {
-  const unsortedResults = plsAtTimestamp.map((outcomePl, timestampIndex) => {
+function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>|null, shortPosition: ShortPosition|null): Array<ProfitLossResult> {
+  const unsortedResults = plsAtTimestamp.map((outcomePl) => {
     const position = outcomePl!.numOwned;
     const realized = outcomePl!.profit;
     const cost = outcomePl!.moneySpent;
@@ -215,7 +217,15 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
     // A short position exists
     if (shortPosition) {
-      netPosition = shortPosition.outcome === outcome ? shortPosition.position.negated() : totalPosition.minus(shortPosition.position);
+      if (shortPosition.outcome === outcome) {
+        const maxPrice = outcomePl!.maxPrice;
+        const otherOutcomes = _.filter(plsAtTimestamp, (pl) => pl.outcome !== outcome);
+        const averagePaidPrice = _.reduce(otherOutcomes, (total, pl) => total.plus(pl.moneySpent.dividedBy(pl.numOwned.plus(pl.numEscrowed))), ZERO);
+        averagePrice = maxPrice.minus(averagePaidPrice);
+        netPosition = shortPosition.position.negated();
+      } else {
+        netPosition = totalPosition.minus(shortPosition.position);
+      }
     }
 
     let unrealized = ZERO;
@@ -226,7 +236,8 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       const ovResult = outcomeValuesAtTimestamp[outcome];
       const lastPrice = ovResult.value;
       const absPosition = netPosition.abs();
-      unrealized = lastPrice.eq(ZERO) ? ZERO : lastPrice.times(absPosition).minus(absPosition.times(averagePrice));
+      unrealized = lastPrice.times(absPosition).minus(absPosition.times(averagePrice));
+      if (shortPosition && shortPosition.outcome === outcome && !unrealized.eq(ZERO)) unrealized = unrealized.negated();
     }
 
     const total = realized.plus(unrealized);
@@ -255,20 +266,9 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
     const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => (outcome.numOwned.plus(outcome.numEscrowed)).gt(ZERO));
     const outcomesWithZeroPosition = _.filter(outcomePLsAtTimestamp, (outcome) => outcome.numOwned.plus(outcome.numEscrowed).eq(ZERO));
 
-    if (nonZeroPositionOutcomePls.length < 1) return [{
-      timestamp,
-      position: ZERO,
-      realized: ZERO,
-      unrealized: ZERO,
-      total: ZERO,
-      cost: ZERO,
-      averagePrice: ZERO,
-      numEscrowed: ZERO,
-      totalPosition: ZERO,
-      outcome: 0,
-      netPosition: ZERO,
-      marketId: "",
-    }];
+    if (nonZeroPositionOutcomePls.length < 1) {
+      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null, null);
+    }
 
     const numOutcomes = nonZeroPositionOutcomePls[0].numOutcomes;
     const marketId = nonZeroPositionOutcomePls[0].marketId;
@@ -307,10 +307,12 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
       position: minimumPosition,
     };
     // add entry for the short position in the timestamp frame and the outcomevalues frame
+    const maxPrice = nonZeroPositionOutcomePls[0].maxPrice;
     if (shortOutcomeIsMissing) {
       outcomePLsAtTimestamp.push(Object.assign(getDefaultPLTimeseries(), {
         outcome: missingOutcome,
         timestamp,
+        maxPrice,
         marketId,
       }));
     }

@@ -42,7 +42,7 @@ export async function processTradingProceedsClaimedLog(augur: Augur, log: Format
     const numShares = new BigNumber(log.numShares, 10).dividedBy(tickSize).dividedBy(10 ** 18);
     const payoutTokens = new BigNumber(log.numPayoutTokens).dividedBy(10 ** 18);
 
-    await updateProfitLossSellShares(db, log.market, numShares, log.sender, [shareTokenOutcome.outcome], payoutTokens, log.transactionHash);
+    await updateProfitLossSellShares(db, log.market, numShares, log.sender, [shareTokenOutcome.outcome], payoutTokens, log.transactionHash, log.blockNumber, log.transactionIndex, shareTokenOutcome.outcome);
     augurEmitter.emit(SubscriptionEventNames.TradingProceedsClaimed, log);
   };
 }

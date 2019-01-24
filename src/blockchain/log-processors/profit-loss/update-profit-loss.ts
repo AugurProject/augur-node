@@ -58,10 +58,52 @@ export async function updateProfitLossBuyShares(db: Knex, marketId: Address, acc
   }
 }
 
-export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string, blockNumber: number, transactionIndex: number): Promise<void> {
+async function updateProfit(db: Knex, marketId: Address, account: Address, outcome: number, transactionHash: string, totalProfit: BigNumber, blockTransactionIndex: number): Promise<void> {
+  const timestamp = getCurrentTime();
+  const updateData: UpdateData | undefined = await db
+    .first(["account", "numOwned", "moneySpent", "profit", "transactionHash", "outcome", "numEscrowed"])
+    .from("profit_loss_timeseries")
+    .where({ account, marketId, outcome })
+    .orderBy("blockTransactionIndex", "DESC");
+  let upsertEntry: QueryBuilder;
+  const profit = totalProfit.plus(updateData ? updateData.profit : ZERO).toString();
+  const insertData = {
+    marketId,
+    account,
+    outcome,
+    transactionHash,
+    timestamp,
+    blockTransactionIndex,
+    numOwned: "0",
+    numEscrowed: "0",
+    moneySpent: "0",
+    profit,
+  };
+  if (!updateData) {
+    // No entries for this user for this outcome
+    upsertEntry = db.insert(insertData).into("profit_loss_timeseries");
+  } else if (updateData.transactionHash === transactionHash) {
+    // Previous entry was from the same transaction. Just update the profit for it
+    upsertEntry = db
+      .from("profit_loss_timeseries")
+      .where({ account, transactionHash, marketId, outcome })
+      .update({ profit });
+  } else {
+    // New tx for this account and outcome. Make a new row with previous row's data
+    if (updateData.moneySpent) insertData.moneySpent = updateData.moneySpent.toString();
+    if (updateData.numOwned) insertData.numOwned = updateData.numOwned.toString();
+    if (updateData.numEscrowed) insertData.numEscrowed = updateData.numEscrowed.toString();
+    upsertEntry = db.insert(insertData).into("profit_loss_timeseries");
+  }
+  await upsertEntry;
+}
+
+export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string, blockNumber: number, transactionIndex: number, profitOutcome: number): Promise<void> {
   const tokensReceivedPerOutcome = tokensReceived.dividedBy(outcomes.length);
   const timestamp = getCurrentTime();
   const blockTransactionIndex = getBlockTransactionIndex(blockNumber, transactionIndex);
+
+  let totalProfit = ZERO;
 
   for (const outcome of outcomes) {
     const updateData: UpdateData = await db
@@ -80,7 +122,7 @@ export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Add
     const newNumEscrowed = originalNumEscrowed.minus(numShares);
     const newTotalOwned = numOwned.plus(newNumEscrowed);
     const moneySpent = oldMoneySpent.multipliedBy(newTotalOwned.dividedBy(originalTotalOwned)).toString();
-    const profit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(originalTotalOwned)))).toString();
+    totalProfit = totalProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(originalTotalOwned))));
     const insertData = {
       marketId,
       account,
@@ -91,27 +133,33 @@ export async function updateProfitLossSellEscrowedShares(db: Knex, marketId: Add
       numOwned: numOwned.toString(),
       numEscrowed: newNumEscrowed.toString(),
       moneySpent,
-      profit,
+      profit: oldProfit.toString(),
     };
     let upsertEntry: QueryBuilder;
     if (updateData.transactionHash !== transactionHash) {
       upsertEntry = db.insert(insertData).into("profit_loss_timeseries");
     } else {
       upsertEntry = db("profit_loss_timeseries")
-        .update({ moneySpent, profit })
+        .update({ moneySpent, profit: oldProfit.toString() })
         .where({ account, transactionHash, marketId, outcome: updateData.outcome });
     }
     await upsertEntry;
   }
+
+  if (!totalProfit.eq(ZERO)) {
+    await updateProfit(db, marketId, account, profitOutcome, transactionHash, totalProfit, blockTransactionIndex);
+  }
 }
 
-export async function updateProfitLossSellShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string): Promise<void> {
+export async function updateProfitLossSellShares(db: Knex, marketId: Address, numShares: BigNumber, account: Address, outcomes: Array<number>, tokensReceived: BigNumber, transactionHash: string, blockNumber: number, transactionIndex: number, profitOutcome: number|null): Promise<void> {
   const tokensReceivedPerOutcome = tokensReceived.dividedBy(outcomes.length);
   const updateDataRows: Array<UpdateData> = await db
     .select(["account", "numOwned", "moneySpent", "profit", "transactionHash", "outcome", "numEscrowed"])
     .from("profit_loss_timeseries")
     .where({ account, marketId, transactionHash })
     .whereIn("outcome", outcomes);
+
+  let totalProfit = ZERO;
 
   for (const updateData of updateDataRows) {
     const sellPrice = tokensReceivedPerOutcome.dividedBy(numShares);
@@ -121,14 +169,22 @@ export async function updateProfitLossSellShares(db: Knex, marketId: Address, nu
     const numEscrowed = new BigNumber(updateData.numEscrowed || 0);
     const originalNumOwned = numShares.plus(numOwned);
     const totalOwned = originalNumOwned.plus(numEscrowed);
-    const profit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned)))).toString();
-    if (transactionHash === "0x20ccd19fd73871642273b0658f1cc60e994034e302fc57adebd9b25718bab7fc") {
-      throw new Error(`XXX ${profit} ${sellPrice} ${oldMoneySpent} ${totalOwned}`);
+    let newProfit = oldProfit;
+    // In the case of complete sets each outcome profits instead of it being based on an order outcome
+    if (profitOutcome) {
+      totalProfit = totalProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned))));
+    } else {
+      newProfit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned))));
     }
     const moneySpent = oldMoneySpent.multipliedBy(numOwned.dividedBy(totalOwned)).toString();
     await db("profit_loss_timeseries")
-      .update({ moneySpent, profit })
+      .update({ moneySpent, profit: newProfit.toString() })
       .where({ account, transactionHash, marketId, outcome: updateData.outcome });
+  }
+
+  if (profitOutcome && !totalProfit.eq(ZERO)) {
+    const blockTransactionIndex = getBlockTransactionIndex(blockNumber, transactionIndex);
+    await updateProfit(db, marketId, account, profitOutcome, transactionHash, totalProfit, blockTransactionIndex);
   }
 }
 

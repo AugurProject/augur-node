@@ -48,18 +48,18 @@ describe("server/getters/get-user-trading-positions", () => {
         unrealized: "0",
       },
       {
-        averagePrice: "13.49831271091117218333",
+        averagePrice: "386.50168728908882781667",
         cost: "0",
         marketId: "0x0000000000000000000000000000000000000ff1",
         netPosition: "-0.0006",
         outcome: 1,
         position: "0",
-        realized: "54999999999.56442531007152770894",
+        realized: "0",
         timestamp: 1534435013,
-        total: "0.188401012373453296690002",
+        total: "0.035401012373453296690002",
         totalPosition: "0",
         numEscrowed: "0",
-        unrealized: "0.188401012373453296690002",
+        unrealized: "0.035401012373453296690002",
       },
     ]);
   });
@@ -78,18 +78,18 @@ describe("server/getters/get-user-trading-positions", () => {
     });
 
     expect(userTradingPositions).toEqual([{
-      "averagePrice": "13.49831271091117218333",
+      "averagePrice": "386.50168728908882781667",
       "cost": "0",
       "marketId": "0x0000000000000000000000000000000000000ff1",
       "netPosition": "-0.0006",
       "outcome": 1,
       "position": "0",
-      "realized": "54999999999.56442531007152770894",
+      "realized": "0",
       "timestamp": 1534435013,
-      "total": "0.188401012373453296690002",
+      "total": "0.035401012373453296690002",
       "totalPosition": "0",
       "numEscrowed": "0",
-      "unrealized": "0.188401012373453296690002",
+      "unrealized": "0.035401012373453296690002",
     }]);
   });
 
