@@ -1,13 +1,14 @@
-const setupTestDb = require("test.database");
+const { setupTestDb, seedDb } = require("test.database");
 const { processMarketMailboxTransferredLog, processMarketMailboxTransferredLogRemoval } = require("src/blockchain/log-processors/market-mailbox-transferred");
 
 function getMarket(db, log) {
   return db.select(["markets.marketId", "markets.marketCreatorMailboxOwner"]).from("markets").where({ "markets.marketId": log.market });
 }
+
 describe("blockchain/log-processors/market-mailbox-transferred", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    db = await setupTestDb().then(seedDb);
   });
 
   const log = {

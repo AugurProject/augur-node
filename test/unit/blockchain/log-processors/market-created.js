@@ -1,6 +1,6 @@
 const Augur = require("augur.js");
 const { BigNumber } = require("bignumber.js");
-const setupTestDb = require("test.database");
+const { setupTestDb, makeLogFactory, makeMockAugur } = require("test.database");
 const { processMarketCreatedLog, processMarketCreatedLogRemoval } = require("src/blockchain/log-processors/market-created");
 const { getMarketsWithReportingState } = require("src/server/getters/database");
 
@@ -18,7 +18,33 @@ async function getState(db, log) {
 describe("blockchain/log-processors/market-created", () => {
   let db;
   beforeEach(async () => {
-    db = await setupTestDb();
+    const L = makeLogFactory("0x000000000000000000000000000000000000000b");
+    const logs = [
+      L.UniverseCreated(),
+      L.TokensMinted({
+        token: "REP_TOKEN",
+        target: "0x1111111111111111111111111111111111111111",
+        market: "0x0000000000000000000000000000000000000000",
+        amount: "16777216000000000000000000",
+        transactionHash: "minting1",
+      }),
+      L.TokensMinted({
+        token: "REP_TOKEN",
+        target: "0x1111111111111111111111111111111111111112",
+        market: "0x0000000000000000000000000000000000000000",
+        amount: "16777216000000000000000000",
+        transactionHash: "minting2",
+      }),
+      L.TokensMinted({
+        token: "REP_TOKEN",
+        target: "0x1111111111111111111111111111111111111113",
+        market: "0x0000000000000000000000000000000000000000",
+        amount: "16777216000000000000000000",
+        transactionHash: "minting3",
+        blockNumber: 7,  // blocks don't get processed if they don't have any logs
+      }),
+    ];
+    db = await setupTestDb(makeMockAugur(), logs, L.getBlockDetails());
   });
 
   afterEach(async () => {
@@ -62,7 +88,7 @@ describe("blockchain/log-processors/market-created", () => {
           resolutionSource: "https://www.trusted-third-party-co.com",
         },
       },
-      augur: {
+      augur: makeMockAugur({
         api: {
           Market: {
             getFeeWindow: (p) => {
@@ -104,11 +130,10 @@ describe("blockchain/log-processors/market-created", () => {
           },
         },
         constants,
-      },
+      }),
     },
     assertions: {
       onAdded: (records, isReAdded) => {
-
         expect(records).toEqual({
           markets: [{
             marketId: "0x1111111111111111111111111111111111111111",
@@ -122,7 +147,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -143,7 +168,7 @@ describe("blockchain/log-processors/market-created", () => {
             endTime: 4886718345,
             finalizationBlockNumber: null,
             lastTradeBlockNumber: null,
-            marketStateId: isReAdded ? 19 : 18,
+            marketStateId: isReAdded ? 2 : 1,
             shortDescription: "this is a test market",
             longDescription: "this is the long description of a test market",
             scalarDenomination: null,
@@ -198,19 +223,29 @@ describe("blockchain/log-processors/market-created", () => {
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 1,
           }],
-          transfers: [{
-            blockNumber: 7,
-            logIndex: 0,
-            recipient: "0x1111111111111111111111111111111111111111",
-            sender: "0x0000000000000000000000000000000000000b0b",
-            token: "ether",
-            transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A000",
-            value: new BigNumber("800", 10),
-          }],
+          transfers: [
+            {
+              blockNumber: 2,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: null,
+              token: "REP_TOKEN",
+              value: new BigNumber("16777216000000000000000000", 10),
+              transactionHash: "minting1",
+            },
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: "0x0000000000000000000000000000000000000b0b",
+              token: "ether",
+              transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A000",
+              value: new BigNumber("800", 10),
+            },
+          ],
         });
       },
       onRemoved: (records) => {
-
         expect(records).toEqual({
           markets: [],
           categories: [{
@@ -222,7 +257,15 @@ describe("blockchain/log-processors/market-created", () => {
           outcomes: [],
           search: [],
           tokens: [],
-          transfers: [],
+          transfers: [{
+            blockNumber: 2,
+            logIndex: 0,
+            recipient: "0x1111111111111111111111111111111111111111",
+            sender: null,
+            token: "REP_TOKEN",
+            value: new BigNumber("16777216000000000000000000", 10),
+            transactionHash: "minting1",
+          }],
         });
       },
     },
@@ -250,7 +293,7 @@ describe("blockchain/log-processors/market-created", () => {
           resolutionSource: "https://www.trusted-third-party-co.com",
         },
       },
-      augur: {
+      augur: makeMockAugur({
         api: {
           Market: {
             getFeeWindow: (p) => {
@@ -292,7 +335,7 @@ describe("blockchain/log-processors/market-created", () => {
           },
         },
         constants,
-      },
+      }),
     },
     assertions: {
       onAdded: (records, isReAdded) => {
@@ -310,7 +353,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -331,7 +374,7 @@ describe("blockchain/log-processors/market-created", () => {
             endTime: 4886718345,
             finalizationBlockNumber: null,
             lastTradeBlockNumber: null,
-            marketStateId: isReAdded ? 19 : 18,
+            marketStateId: isReAdded ? 2 : 1,
             shortDescription: "this is a test market",
             longDescription: "this is the long description of a test market",
             scalarDenomination: null,
@@ -410,19 +453,29 @@ describe("blockchain/log-processors/market-created", () => {
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 3,
           }],
-          transfers: [{
-            blockNumber: 7,
-            logIndex: 0,
-            recipient: "0x1111111111111111111111111111111111111112",
-            sender: "0x0000000000000000000000000000000000000b0b",
-            token: "ether",
-            transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A001",
-            value: new BigNumber("800", 10),
-          }],
+          transfers: [
+            {
+              blockNumber: 3,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111112",
+              sender: null,
+              token: "REP_TOKEN",
+              value: new BigNumber("16777216000000000000000000", 10),
+              transactionHash: "minting2",
+            },
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111112",
+              sender: "0x0000000000000000000000000000000000000b0b",
+              token: "ether",
+              transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A001",
+              value: new BigNumber("800", 10),
+            },
+          ],
         });
       },
       onRemoved: (records) => {
-
         expect(records).toEqual({
           markets: [],
           categories: [{
@@ -434,7 +487,15 @@ describe("blockchain/log-processors/market-created", () => {
           outcomes: [],
           search: [],
           tokens: [],
-          transfers: [],
+          transfers: [{
+            blockNumber: 3,
+            logIndex: 0,
+            recipient: "0x1111111111111111111111111111111111111112",
+            sender: null,
+            token: "REP_TOKEN",
+            value: new BigNumber("16777216000000000000000000", 10),
+            transactionHash: "minting2",
+          }],
         });
       },
     },
@@ -461,7 +522,7 @@ describe("blockchain/log-processors/market-created", () => {
           resolutionSource: "https://www.trusted-third-party-co.com",
         },
       },
-      augur: {
+      augur: makeMockAugur({
         api: {
           Market: {
             getFeeWindow: (p) => {
@@ -503,11 +564,10 @@ describe("blockchain/log-processors/market-created", () => {
           },
         },
         constants,
-      },
+      }),
     },
     assertions: {
       onAdded: (records, isReAdded) => {
-
         expect(records).toEqual({
           markets: [{
             marketId: "0x1111111111111111111111111111111111111113",
@@ -521,7 +581,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -542,7 +602,7 @@ describe("blockchain/log-processors/market-created", () => {
             endTime: 4886718345,
             finalizationBlockNumber: null,
             lastTradeBlockNumber: null,
-            marketStateId: isReAdded ? 19 : 18,
+            marketStateId: isReAdded ? 2 : 1,
             shortDescription: "this is a test market",
             longDescription: "this is the long description of a test market",
             scalarDenomination: null,
@@ -597,19 +657,29 @@ describe("blockchain/log-processors/market-created", () => {
             marketId: "0x1111111111111111111111111111111111111113",
             outcome: 1,
           }],
-          transfers: [{
-            blockNumber: 7,
-            logIndex: 0,
-            recipient: "0x1111111111111111111111111111111111111113",
-            sender: "0x0000000000000000000000000000000000000b0b",
-            token: "ether",
-            transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A002",
-            value: new BigNumber("800", 10),
-          }],
+          transfers: [
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111113",
+              sender: null,
+              token: "REP_TOKEN",
+              value: new BigNumber("16777216000000000000000000", 10),
+              transactionHash: "minting3",
+            },
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111113",
+              sender: "0x0000000000000000000000000000000000000b0b",
+              token: "ether",
+              transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A002",
+              value: new BigNumber("800", 10),
+            },
+          ],
         });
       },
       onRemoved: (records) => {
-
         expect(records).toEqual({
           markets: [],
           categories: [{
@@ -621,7 +691,15 @@ describe("blockchain/log-processors/market-created", () => {
           outcomes: [],
           search: [],
           tokens: [],
-          transfers: [],
+          transfers: [{
+            blockNumber: 7,
+            logIndex: 0,
+            recipient: "0x1111111111111111111111111111111111111113",
+            sender: null,
+            token: "REP_TOKEN",
+            value: new BigNumber("16777216000000000000000000", 10),
+            transactionHash: "minting3",
+          }],
         });
       },
     },
@@ -704,7 +782,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0.1", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
             marketCreatorFeeRate: new BigNumber("0.01", 10),
@@ -725,7 +803,7 @@ describe("blockchain/log-processors/market-created", () => {
             endTime: 4886718345,
             finalizationBlockNumber: null,
             lastTradeBlockNumber: null,
-            marketStateId: isReAdded ? 19 : 18,
+            marketStateId: isReAdded ? 2 : 1,
             shortDescription: "this is a test market",
             longDescription: null,
             scalarDenomination: null,
@@ -780,15 +858,26 @@ describe("blockchain/log-processors/market-created", () => {
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 1,
           }],
-          transfers: [{
-            blockNumber: 7,
-            logIndex: 0,
-            recipient: "0x1111111111111111111111111111111111111111",
-            sender: "0x0000000000000000000000000000000000000b0b",
-            token: "ether",
-            transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A003",
-            value: new BigNumber("800", 10),
-          }],
+          transfers: [
+            {
+              blockNumber: 2,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: null,
+              token: "REP_TOKEN",
+              value: new BigNumber("16777216000000000000000000", 10),
+              transactionHash: "minting1",
+            },
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: "0x0000000000000000000000000000000000000b0b",
+              token: "ether",
+              transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A003",
+              value: new BigNumber("800", 10),
+            },
+          ],
         });
       },
       onRemoved: (records) => {
@@ -804,7 +893,15 @@ describe("blockchain/log-processors/market-created", () => {
           outcomes: [],
           search: [],
           tokens: [],
-          transfers: [],
+          transfers: [{
+            blockNumber: 2,
+            logIndex: 0,
+            recipient: "0x1111111111111111111111111111111111111111",
+            sender: null,
+            token: "REP_TOKEN",
+            value: new BigNumber("16777216000000000000000000", 10),
+            transactionHash: "minting1",
+          }],
         });
       },
     },
@@ -831,7 +928,7 @@ describe("blockchain/log-processors/market-created", () => {
           resolutionSource: "https://www.trusted-third-party-co.com",
         },
       },
-      augur: {
+      augur: makeMockAugur({
         api: {
           Market: {
             getNumberOfOutcomes: (p) => {
@@ -877,7 +974,7 @@ describe("blockchain/log-processors/market-created", () => {
           },
         },
         constants,
-      },
+      }),
     },
     assertions: {
       onAdded: (records, isReAdded) => {
@@ -895,7 +992,7 @@ describe("blockchain/log-processors/market-created", () => {
             logIndex: 0,
             creationBlockNumber: 7,
             creationFee: new BigNumber("0", 10),
-            creationTime: 10000000,
+            creationTime: 7,
             openInterest: new BigNumber("0", 10),
             reportingFeeRate: new BigNumber("0.001", 10),
             disputeRounds: null,
@@ -916,7 +1013,7 @@ describe("blockchain/log-processors/market-created", () => {
             endTime: 4886718345,
             finalizationBlockNumber: null,
             lastTradeBlockNumber: null,
-            marketStateId: isReAdded ? 19 : 18,
+            marketStateId: isReAdded ? 2 : 1,
             shortDescription: "this is a test market",
             longDescription: "this is the long description of a test market",
             scalarDenomination: null,
@@ -971,15 +1068,26 @@ describe("blockchain/log-processors/market-created", () => {
             marketId: "0x1111111111111111111111111111111111111111",
             outcome: 1,
           }],
-          transfers: [{
-            blockNumber: 7,
-            logIndex: 0,
-            recipient: "0x1111111111111111111111111111111111111111",
-            sender: "0x0000000000000000000000000000000000000b0b",
-            token: "ether",
-            transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A004",
-            value: new BigNumber("800", 10),
-          }],
+          transfers: [
+            {
+              blockNumber: 2,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: null,
+              token: "REP_TOKEN",
+              value: new BigNumber("16777216000000000000000000", 10),
+              transactionHash: "minting1",
+            },
+            {
+              blockNumber: 7,
+              logIndex: 0,
+              recipient: "0x1111111111111111111111111111111111111111",
+              sender: "0x0000000000000000000000000000000000000b0b",
+              token: "ether",
+              transactionHash: "0x000000000000000000000000000000000000000000000000000000000000A004",
+              value: new BigNumber("800", 10),
+            },
+          ],
         });
       },
       onRemoved: (records) => {
@@ -994,7 +1102,15 @@ describe("blockchain/log-processors/market-created", () => {
           outcomes: [],
           search: [],
           tokens: [],
-          transfers: [],
+          transfers: [{
+            blockNumber: 2,
+            logIndex: 0,
+            recipient: "0x1111111111111111111111111111111111111111",
+            sender: null,
+            token: "REP_TOKEN",
+            value: new BigNumber("16777216000000000000000000", 10),
+            transactionHash: "minting1",
+          }],
         });
       },
     },
