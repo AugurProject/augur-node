@@ -171,7 +171,7 @@ export async function updateProfitLossSellShares(db: Knex, marketId: Address, nu
     const totalOwned = originalNumOwned.plus(numEscrowed);
     let newProfit = oldProfit;
     // In the case of complete sets each outcome profits instead of it being based on an order outcome
-    if (profitOutcome) {
+    if (profitOutcome !== null) {
       totalProfit = totalProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned))));
     } else {
       newProfit = oldProfit.plus(numShares.multipliedBy(sellPrice.minus(oldMoneySpent.dividedBy(totalOwned))));
@@ -182,7 +182,7 @@ export async function updateProfitLossSellShares(db: Knex, marketId: Address, nu
       .where({ account, transactionHash, marketId, outcome: updateData.outcome });
   }
 
-  if (profitOutcome && !totalProfit.eq(ZERO)) {
+  if (profitOutcome !== null && !totalProfit.eq(ZERO)) {
     const blockTransactionIndex = getBlockTransactionIndex(blockNumber, transactionIndex);
     await updateProfit(db, marketId, account, profitOutcome, transactionHash, totalProfit, blockTransactionIndex);
   }
