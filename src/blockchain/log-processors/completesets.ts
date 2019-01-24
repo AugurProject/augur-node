@@ -41,7 +41,7 @@ export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: F
     if (log.eventName === "CompleteSetsPurchased") {
       await updateProfitLossBuyShares(db, marketId, log.account, numCompleteSets, Array.from(Array(numOutcomes).keys()), log.transactionHash);
     } else {
-      await updateProfitLossSellShares(db, marketId, numCompleteSets, log.account, Array.from(Array(numOutcomes).keys()), numCompleteSets, log.transactionHash);
+      await updateProfitLossSellShares(db, marketId, numCompleteSets, log.account, Array.from(Array(numOutcomes).keys()), numCompleteSets, log.transactionHash, log.blockNumber, log.transactionIndex, null);
     }
   };
 }

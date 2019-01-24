@@ -79,15 +79,14 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
 
     await updateOrder(db, augur, marketId, orderId, amount, orderCreator, filler, tickSize, minPrice, numCreatorShares);
 
-    await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, orderType === "buy" ? price : maxPrice.minus(price));
+    await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, price);
     if (numOutcomes === 2) {
       const otherOutcome = outcome === 0 ? 1 : 0;
-      await updateOutcomeValueFromOrders(db, marketId, otherOutcome, log.transactionHash, orderType === "sell" ? price : maxPrice.minus(price));
+      await updateOutcomeValueFromOrders(db, marketId, otherOutcome, log.transactionHash, maxPrice.minus(price));
     }
     const orderOutcome = [outcome];
     const otherOutcomes = Array.from(Array(numOutcomes).keys());
     otherOutcomes.splice(outcome, 1);
-    const displayRange = augur.utils.convertOnChainPriceToDisplayPrice(maxPrice.minus(minPrice), minPrice, tickSize);
     if (numCreatorTokens.gt(0)) {
       await updateProfitLossBuyShares(db, marketId, orderCreator, numCreatorTokens, orderType === "buy" ? orderOutcome : otherOutcomes, log.transactionHash);
     }
@@ -98,10 +97,10 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
     const fillerShares = new BigNumber(numFillerShares, 10);
     const actualPrice = price.minus(minPrice);
     if (creatorShares.gt(0)) {
-      await updateProfitLossSellEscrowedShares(db, marketId, creatorShares, orderCreator, orderType === "buy" ? otherOutcomes : orderOutcome, creatorShares.multipliedBy(orderType === "buy" ? displayRange.minus(actualPrice) : actualPrice), log.transactionHash, log.blockNumber, log.transactionIndex);
+      await updateProfitLossSellEscrowedShares(db, marketId, creatorShares, orderCreator, orderType === "buy" ? otherOutcomes : orderOutcome, creatorShares.multipliedBy(orderType === "buy" ? maxPrice.minus(price) : actualPrice), log.transactionHash, log.blockNumber, log.transactionIndex, outcome);
     }
     if (fillerShares.gt(0)) {
-      await updateProfitLossSellShares(db, marketId, fillerShares, filler, orderType === "sell" ? otherOutcomes : orderOutcome, fillerShares.multipliedBy(orderType === "sell" ? displayRange.minus(actualPrice) : actualPrice), log.transactionHash);
+      await updateProfitLossSellShares(db, marketId, fillerShares, filler, orderType === "sell" ? otherOutcomes : orderOutcome, fillerShares.multipliedBy(orderType === "sell" ? maxPrice.minus(price) : actualPrice), log.transactionHash, log.blockNumber, log.transactionIndex, outcome);
     }
   };
 }
