@@ -13,8 +13,6 @@ export const MarketPriceCandlesticksParams = t.type({
   period: t.union([t.number, t.null, t.undefined]),
 });
 
-// export function getMarketPriceCandlesticks(db: Knex, marketId: Address, outcome: number|undefined, start: number|undefined, end: number|undefined, period: number|undefined, callback: (err: Error|null, result?: UICandlesticks) => void): void {
-
 interface MarketPriceHistoryRow {
   timestamp: number;
   outcome: number;
@@ -29,6 +27,7 @@ export interface Candlestick {
   min: string;
   max: string;
   volume: string;
+  tokenVolume: string;
 }
 
 export interface UICandlesticks {
@@ -62,6 +61,7 @@ export async function getMarketPriceCandlesticks(db: Knex, augur: {}, params: t.
         min: _.minBy(trades, "price")!.price.toString(),
         max: _.maxBy(trades, "price")!.price.toString(),
         volume: _.reduce(trades, (totalAmount: BigNumber, tradeRow: MarketPriceHistoryRow) => totalAmount.plus(tradeRow.amount), ZERO)!.toString(),
+        tokenVolume: _.reduce(trades, (totalAmount: BigNumber, tradeRow: MarketPriceHistoryRow) => totalAmount.plus(tradeRow.amount.multipliedBy(tradeRow.price)), ZERO)!.toString(),
       };
     });
   });
