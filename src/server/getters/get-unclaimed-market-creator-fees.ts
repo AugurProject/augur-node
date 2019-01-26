@@ -28,7 +28,7 @@ export async function getUnclaimedMarketCreatorFees(db: Knex, augur: Augur, para
 
   const marketCreatorFeeRows: Array<MarketCreatorFeesRow> = await marketsQuery;
   const feeRowsByMarket = _.keyBy(marketCreatorFeeRows, (r: MarketCreatorFeesRow): string => r.marketId);
-  const feeResult: Array<UIMarketCreatorFee> = _.map(params.marketIds, (marketId: string): any|null => {
+  return _.map(params.marketIds, (marketId: string): any|null => {
     const market = feeRowsByMarket[marketId];
     if (!market) {
       return null;
@@ -39,5 +39,4 @@ export async function getUnclaimedMarketCreatorFees(db: Knex, augur: Augur, para
       };
     }
   });
-  return feeResult;
 }

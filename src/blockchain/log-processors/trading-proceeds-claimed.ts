@@ -16,6 +16,7 @@ interface MarketData {
   numTicks: BigNumber;
   maxPrice: BigNumber;
   minPrice: BigNumber;
+  numOutcomes: number;
 }
 
 export async function processTradingProceedsClaimedLog(augur: Augur, log: FormattedEventLog) {
@@ -33,16 +34,19 @@ export async function processTradingProceedsClaimedLog(augur: Augur, log: Format
 
     await db("trading_proceeds").insert(tradingProceedsToInsert);
     const shareTokenOutcome: ShareTokenOutcome = await db("tokens").first("outcome").where({ contractAddress: log.shareToken});
-    const marketData: MarketData = await db.first(["numTicks", "minPrice", "maxPrice"]).from("markets").where({ marketId: log.market });
+    const marketData: MarketData = await db.first(["numTicks", "minPrice", "maxPrice", "numOutcomes"]).from("markets").where({ marketId: log.market });
 
     const minPrice = marketData.minPrice;
     const maxPrice = marketData.maxPrice;
     const numTicks = marketData.numTicks;
+    const numOutcomes = marketData.numOutcomes;
     const tickSize = numTicksToTickSize(numTicks, minPrice, maxPrice);
     const numShares = new BigNumber(log.numShares, 10).dividedBy(tickSize).dividedBy(10 ** 18);
     const payoutTokens = new BigNumber(log.numPayoutTokens).dividedBy(10 ** 18);
 
-    await updateProfitLossSellShares(db, log.market, numShares, log.sender, [shareTokenOutcome.outcome], payoutTokens, log.transactionHash);
+    const outcome = numOutcomes === 2 ? 1 : shareTokenOutcome.outcome;
+
+    await updateProfitLossSellShares(db, log.market, numShares, log.sender, [shareTokenOutcome.outcome], payoutTokens, log.transactionHash, log.blockNumber, log.transactionIndex, outcome);
     augurEmitter.emit(SubscriptionEventNames.TradingProceedsClaimed, log);
   };
 }

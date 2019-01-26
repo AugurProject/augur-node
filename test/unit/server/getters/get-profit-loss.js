@@ -183,8 +183,8 @@ describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
       position: "0.0003",
       realized: "54999999999.56442531007152770894",
       timestamp: 1534435013,
-      total: "54999999999.752826322444981005630002",
-      unrealized: "0.188401012373453296690002",
+      total: "54999999999.599826322444981005630002",
+      unrealized: "0.035401012373453296690002",
     });
     expect(deserialized["30"]).toMatchObject({
       averagePrice: "13.49831271091117218333",
@@ -192,8 +192,8 @@ describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
       position: "0.0003",
       realized: "54999999999.56442531007152770894",
       timestamp: 1534435013,
-      total: "54999999999.752826322444981005630002",
-      unrealized: "0.188401012373453296690002",
+      total: "54999999999.599826322444981005630002",
+      unrealized: "0.035401012373453296690002",
     });
   });
 

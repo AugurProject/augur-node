@@ -24,8 +24,8 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     numOwned: ZERO,
     numEscrowed: ZERO,
     numOutcomes: 2,
-    profit: ZERO,
     maxPrice: ZERO,
+    profit: ZERO,
   };
 }
 
@@ -52,8 +52,8 @@ export interface ProfitLossTimeseries extends Timestamped {
   numOwned: BigNumber;
   numEscrowed: BigNumber;
   numOutcomes: number;
-  profit: BigNumber;
   maxPrice: BigNumber;
+  profit: BigNumber;
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -156,7 +156,7 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
 
 async function queryProfitLossTimeseries(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Array<ProfitLossTimeseries>> {
   const query = db("profit_loss_timeseries")
-    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "markets.maxPrice")
+    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "maxPrice")
     .join("markets", "profit_loss_timeseries.marketId", "markets.marketId")
     .where({ account: params.account, universe: params.universe })
     .orderBy("timestamp");
@@ -201,8 +201,8 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
   });
 }
 
-function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>, shortPosition: ShortPosition|null): Array<ProfitLossResult> {
-  const unsortedResults = plsAtTimestamp.map((outcomePl, timestampIndex) => {
+function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>|null, shortPosition: ShortPosition|null): Array<ProfitLossResult> {
+  const unsortedResults = plsAtTimestamp.map((outcomePl) => {
     const position = outcomePl!.numOwned;
     const realized = outcomePl!.profit;
     const cost = outcomePl!.moneySpent;
@@ -217,11 +217,12 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
     // A short position exists
     if (shortPosition) {
-      // This outcome is the short position
       if (shortPosition.outcome === outcome) {
-        netPosition = shortPosition.position.negated();
+        const maxPrice = outcomePl!.maxPrice;
         const otherOutcomes = _.filter(plsAtTimestamp, (pl) => pl.outcome !== outcome);
-        averagePrice = _.reduce(otherOutcomes, (total, pl) => total.plus(pl.moneySpent.dividedBy(pl.numOwned.plus(pl.numEscrowed))), ZERO);
+        const averagePaidPrice = _.reduce(otherOutcomes, (total, pl) => total.plus(pl.moneySpent.dividedBy(pl.numOwned.plus(pl.numEscrowed))), ZERO);
+        averagePrice = maxPrice.minus(averagePaidPrice);
+        netPosition = shortPosition.position.negated();
       } else {
         netPosition = totalPosition.minus(shortPosition.position);
       }
@@ -235,7 +236,8 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       const ovResult = outcomeValuesAtTimestamp[outcome];
       const lastPrice = ovResult.value;
       const absPosition = netPosition.abs();
-      unrealized = lastPrice.eq(ZERO) ? ZERO : lastPrice.times(absPosition).minus(absPosition.times(averagePrice));
+      unrealized = lastPrice.times(absPosition).minus(absPosition.times(averagePrice));
+      if (shortPosition && shortPosition.outcome === outcome && !unrealized.eq(ZERO)) unrealized = unrealized.negated();
     }
 
     const total = realized.plus(unrealized);
@@ -264,20 +266,9 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
     const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => (outcome.numOwned.plus(outcome.numEscrowed)).gt(ZERO));
     const outcomesWithZeroPosition = _.filter(outcomePLsAtTimestamp, (outcome) => outcome.numOwned.plus(outcome.numEscrowed).eq(ZERO));
 
-    if (nonZeroPositionOutcomePls.length < 1) return [{
-      timestamp,
-      position: ZERO,
-      realized: ZERO,
-      unrealized: ZERO,
-      total: ZERO,
-      cost: ZERO,
-      averagePrice: ZERO,
-      numEscrowed: ZERO,
-      totalPosition: ZERO,
-      outcome: 0,
-      netPosition: ZERO,
-      marketId: "",
-    }];
+    if (nonZeroPositionOutcomePls.length < 1) {
+      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null, null);
+    }
 
     const numOutcomes = nonZeroPositionOutcomePls[0].numOutcomes;
     const marketId = nonZeroPositionOutcomePls[0].marketId;
@@ -325,10 +316,6 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
         marketId,
       }));
     }
-
-    // The value of the short is the inverse of the value of the long for that outcome which is what our outcome value frame holds
-    const missingOutcomeValue = maxPrice.minus(sortedOutcomeValues[missingOutcome].value);
-    sortedOutcomeValues[missingOutcome].value = maxPrice.minus(missingOutcomeValue);
 
     return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, shortPosition);
   });

@@ -322,6 +322,28 @@ describe("server/getters/get-markets", () => {
     },
   });
   runTest({
+    description: "get markets with multiple reporting states",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      reportingState: [ReportingState.PRE_REPORTING, ReportingState.DESIGNATED_REPORTING],
+      sortBy: "volume",
+      isSortDescending: false,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toEqual([
+        "0x0000000000000000000000000000000000000001",
+        "0x0000000000000000000000000000000000000002",
+        "0x0000000000000000000000000000000000000003",
+        "0x0000000000000000000000000000000000000222",
+        "0x0000000000000000000000000000000000000012",
+        "0x0000000000000000000000000000000000000014",
+        "0x0000000000000000000000000000000000000015",
+        "0x0000000000000000000000000000000000000016",
+        "0x0000000000000000000000000000000000000017",
+      ]);
+    },
+  });
+  runTest({
     description: "get all markets upcoming designated reporting by b0b",
     params: {
       universe: "0x000000000000000000000000000000000000000b",

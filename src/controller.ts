@@ -25,12 +25,12 @@ export interface SyncedBlockInfo {
 }
 
 export class AugurNodeController {
-  private augur: Augur;
-  private networkConfig: ConnectOptions;
-  private isWarpSync: boolean;
-  private databaseDir: string;
+  private readonly augur: Augur;
+  private readonly networkConfig: ConnectOptions;
+  private readonly isWarpSync: boolean;
+  private readonly databaseDir: string;
   private running: boolean;
-  private controlEmitter: EventEmitter;
+  private readonly controlEmitter: EventEmitter;
   private db: Knex | undefined;
   private serverResult: RunServerResult | undefined;
   private errorCallback: ErrorCallback | undefined;
