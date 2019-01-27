@@ -78,7 +78,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     if (isWarpSync && parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
       // every X blocks export db to warp file.
       const networkId: string = augur.rpc.getNetworkID();
-      await BackupRestore.export(DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE, databaseDir);
+      await BackupRestore.export(db, DB_FILE, networkId, DB_VERSION, DB_WARP_SYNC_FILE, databaseDir);
     }
   } catch (err) {
     logger.error("ERROR: could not create warp sync file");
