@@ -6,14 +6,14 @@ import * as zlib from "zlib";
 import * as md5File from "md5-file";
 import { logger } from "../utils/logger";
 import { DB_WARP_SYNC_FILE_ENDING } from "../constants";
-import { exec } from "child_process";
+import * as Knex from "knex";
 
 export function getFileHash(filename: string): string {
   return md5File.sync(filename);
 }
 
-export async function compressAndHashFile(dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string = ".") {
-  await runDbFixerScript(path.join(directoryDir, dbFileName));
+export async function compressAndHashFile(db: Knex, dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string = ".") {
+  await runDbFixerScript(db);
   const WARP_SYNC_FILE = "__temp_sync_file__";
   await createWarpSyncFile(directoryDir, dbFileName, WARP_SYNC_FILE);
   const hash = getFileHash(path.join(directoryDir, WARP_SYNC_FILE));
@@ -91,26 +91,7 @@ export function getHighestDbVersion(directoryDir: string, dbFileName: string): n
   return version;
 }
 
-async function runDbFixerScript(dbfilepath: string): Promise<void> {
+async function runDbFixerScript(db: Knex): Promise<void> {
   // need to do this because cli runs migrations in .ts and augur-app runs migrations in .js
-  return new Promise<void>((resolve, reject) => {
-    const cmd = `sqlite3 ${dbfilepath} "update knex_migrations set name = substr(name,1, length(name)-2) || 'js';"`;
-    try {
-      const script = exec(cmd, (error: any) => {
-        if (error) {
-          console.log("status", error.status);
-          console.log("message", error.message);
-          reject(error.code);
-        }
-      });
-
-      script.on("exit", () => {
-        resolve();
-      });
-    } catch (error) {
-      console.log("status", error.status);
-      console.log("message", error.message);
-      reject(error.code);
-    }
-  });
+  await db.raw("update knex_migrations set name = substr(name,1, length(name)-2) || 'js';");
 }
