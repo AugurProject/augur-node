@@ -1,4 +1,4 @@
-import { format } from "util";
+import { promisify, format } from "util";
 import * as _ from "lodash";
 import * as fs from "fs";
 import * as path from "path";
@@ -12,22 +12,24 @@ export function getFileHash(filename: string): string {
   return md5File.sync(filename);
 }
 
-export async function compressAndHashFile(db: Knex, dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string = ".") {
-  await runDbFixerScript(db);
+export async function compressAndHashFile(dbFileName: string, networkId: string, dbVersion: number, syncfileTemplate: string, directoryDir: string = ".") {
+  const fixedDbFilename = "__fixed_db_file__";
+  await copyRunDbFixerScript(path.join(directoryDir, dbFileName), path.join(directoryDir, fixedDbFilename));
   const WARP_SYNC_FILE = "__temp_sync_file__";
-  await createWarpSyncFile(directoryDir, dbFileName, WARP_SYNC_FILE);
+  await createWarpSyncFile(path.join(directoryDir, fixedDbFilename), path.join(directoryDir, WARP_SYNC_FILE));
+  await promisify(fs.unlink)(path.join(directoryDir, fixedDbFilename)); // remove temp fix db file
   const hash = getFileHash(path.join(directoryDir, WARP_SYNC_FILE));
   const syncFile = format(syncfileTemplate, hash, networkId, dbVersion);
   fs.renameSync(path.join(directoryDir, WARP_SYNC_FILE), path.join(directoryDir, syncFile));
   logger.info(format("create warp sync file %s", syncFile));
 }
 
-export async function restoreWarpSyncFile(directoryDir: string, dbFileName: string, syncFilenameAbsPath: string): Promise<void> {
+export async function restoreWarpSyncFile(dbFileNamePath: string, syncFilenameAbsPath: string): Promise<void> {
   logger.info(format("restore/import warp sync file %s", syncFilenameAbsPath));
   return new Promise<void>((resolve, reject) => {
     const bigger = zlib.createGunzip();
     const input = fs.createReadStream(syncFilenameAbsPath);
-    const output = fs.createWriteStream(path.join(directoryDir, dbFileName));
+    const output = fs.createWriteStream(dbFileNamePath);
 
     input
       .pipe(bigger)
@@ -42,11 +44,11 @@ export async function restoreWarpSyncFile(directoryDir: string, dbFileName: stri
   });
 }
 
-export async function createWarpSyncFile(directoryDir: string, dbFileName: string, syncFilename: string): Promise<void> {
+export async function createWarpSyncFile(dbFileNamePath: string, syncFileNamePath: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const smaller = zlib.createGzip({ level: 9 });
-    const input = fs.createReadStream(path.join(directoryDir, dbFileName));
-    const output = fs.createWriteStream(path.join(directoryDir, syncFilename));
+    const input = fs.createReadStream(dbFileNamePath);
+    const output = fs.createWriteStream(syncFileNamePath);
 
     input
       .pipe(smaller)
@@ -91,7 +93,16 @@ export function getHighestDbVersion(directoryDir: string, dbFileName: string): n
   return version;
 }
 
-async function runDbFixerScript(db: Knex): Promise<void> {
+async function copyRunDbFixerScript(dbFileNamePath: string, backupDbPath: string): Promise<void> {
+  await promisify(fs.copyFile)(dbFileNamePath, backupDbPath);
   // need to do this because cli runs migrations in .ts and augur-app runs migrations in .js
+  const db: Knex = Knex({
+    client: "sqlite3",
+    connection: {
+      filename: backupDbPath,
+    },
+    acquireConnectionTimeout: 5 * 60 * 1000,
+    useNullAsDefault: true,
+  });
   await db.raw("update knex_migrations set name = substr(name,1, length(name)-2) || 'js';");
 }
