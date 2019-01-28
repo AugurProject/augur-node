@@ -28,6 +28,7 @@ describe("server/getters/get-market-price-candlesticks", () => {
           start: "5.5",
           startTimestamp: 1506474480,
           volume: "0.3",
+          tokenVolume: "1.52",
         }],
       });
     },
@@ -48,6 +49,7 @@ describe("server/getters/get-market-price-candlesticks", () => {
           start: "5.5",
           startTimestamp: 1506474493,
           volume: "0.2",
+          tokenVolume: "1.1",
         },
         {
           end: "4.2",
@@ -56,6 +58,7 @@ describe("server/getters/get-market-price-candlesticks", () => {
           start: "4.2",
           startTimestamp: 1506474513,
           volume: "0.1",
+          tokenVolume: "0.42",
         }],
       });
     },
@@ -76,6 +79,7 @@ describe("server/getters/get-market-price-candlesticks", () => {
           start: "5.5",
           startTimestamp: 1506474498,
           volume: "0.3",
+          tokenVolume: "1.52",
         }],
       });
     },
