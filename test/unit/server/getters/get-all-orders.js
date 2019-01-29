@@ -27,18 +27,24 @@ describe("server/getters/get-all-orders", () => {
       expect(orders).toEqual({
         "0x2000000000000000000000000000000000000000000000000000000000000000": {
           "orderId": "0x2000000000000000000000000000000000000000000000000000000000000000",
+          "originalSharesEscrowed": "0",
+          "originalTokensEscrowed": "1.200002",
           "sharesEscrowed": "0",
           "tokensEscrowed": "1.200002",
           "marketId": "0x0000000000000000000000000000000000000001",
         },
         "0x3000000000000000000000000000000000000000000000000000000000000000": {
           "orderId": "0x3000000000000000000000000000000000000000000000000000000000000000",
+          "originalSharesEscrowed": "0",
+          "originalTokensEscrowed": "1.20000006",
           "sharesEscrowed": "0",
           "tokensEscrowed": "1.20000006",
           "marketId": "0x0000000000000000000000000000000000000001",
         },
         "0x4000000000000000000000000000000000000000000000000000000000000000": {
           "orderId": "0x4000000000000000000000000000000000000000000000000000000000000000",
+          "originalSharesEscrowed": "0",
+          "originalTokensEscrowed": "1.2",
           "sharesEscrowed": "0",
           "tokensEscrowed": "1.2",
           "marketId": "0x0000000000000000000000000000000000000001",

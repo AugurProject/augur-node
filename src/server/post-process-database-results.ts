@@ -44,6 +44,8 @@ const whitelist: TableWhitelist = {
     fullPrecisionAmount: true,
     originalFullPrecisionAmount: true,
     fullPrecisionPrice: true,
+    originalTokensEscrowed: true,
+    originalSharesEscrowed: true,
     tokensEscrowed: true,
     sharesEscrowed: true,
   },

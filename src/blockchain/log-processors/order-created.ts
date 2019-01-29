@@ -32,6 +32,7 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
     const fullPrecisionPrice = augur.utils.convertOnChainPriceToDisplayPrice(price, minPrice, tickSize);
     const orderTypeLabel = orderType === "0" ? "buy" : "sell";
     const displaySharesEscrowed = augur.utils.convertOnChainAmountToDisplayAmount(sharesEscrowed, tickSize).toString();
+    const displayTokensEscrowed = fixedPointToDecimal(moneyEscrowed, BN_WEI_PER_ETHER).toString();
     const orderData: OrdersRow<string> = {
       marketId,
       blockNumber: log.blockNumber,
@@ -49,7 +50,9 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
       fullPrecisionPrice: fullPrecisionPrice.toString(),
       fullPrecisionAmount: fullPrecisionAmount.toString(),
       originalFullPrecisionAmount: fullPrecisionAmount.toString(),
-      tokensEscrowed: fixedPointToDecimal(moneyEscrowed, BN_WEI_PER_ETHER).toString(),
+      originalTokensEscrowed: displayTokensEscrowed,
+      originalSharesEscrowed: displaySharesEscrowed,
+      tokensEscrowed: displayTokensEscrowed,
       sharesEscrowed: displaySharesEscrowed,
     };
     const orderId = { orderId: log.orderId };
