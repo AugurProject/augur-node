@@ -49,7 +49,7 @@ describe("blockchain/log-processors/completesets", () => {
         universe: "0x0000000000000000000000000000000000000001",
       }]);
       await(await processCompleteSetsPurchasedOrSoldLogRemoval(augur, log))(trx);
-      await expect(await getState(trx, log)).toEqual([]);
+      await expect(getState(trx, log)).resolves.toEqual([]);
     });
   });
 
