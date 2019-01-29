@@ -79,6 +79,8 @@ export async function getOrders(db: Knex, augur: {}, params: t.TypeOf<typeof Ord
         fullPrecisionPrice: row.fullPrecisionPrice,
         fullPrecisionAmount: row.fullPrecisionAmount,
         originalFullPrecisionAmount: row.originalFullPrecisionAmount,
+        originalTokensEscrowed: row.originalTokensEscrowed,
+        originalSharesEscrowed: row.originalSharesEscrowed,
         tokensEscrowed: row.tokensEscrowed,
         sharesEscrowed: row.sharesEscrowed,
       }),
