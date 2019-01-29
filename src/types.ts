@@ -471,6 +471,8 @@ export interface UIOrder<BigNumberType> {
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
   originalFullPrecisionAmount: BigNumberType;
+  originalTokensEscrowed: BigNumberType;
+  originalSharesEscrowed: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   canceledBlockNumber?: Bytes32;
