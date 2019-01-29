@@ -28,8 +28,8 @@ export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: F
       transactionHash: log.transactionHash,
       logIndex: log.logIndex,
       tradeGroupId: log.tradeGroupId,
-      numCompleteSets,
-      numPurchasedOrSold: numCompleteSets,
+      numCompleteSets: numCompleteSets.toString(),
+      numPurchasedOrSold: numCompleteSets.toString(),
     };
     const eventName = log.eventName as keyof typeof SubscriptionEventNames;
     await db.insert(completeSetPurchasedData).into("completeSets");
