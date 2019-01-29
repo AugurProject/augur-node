@@ -502,6 +502,8 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
   fullPrecisionPrice: BigNumberType;
   fullPrecisionAmount: BigNumberType;
   originalFullPrecisionAmount: BigNumberType;
+  originalTokensEscrowed: BigNumberType;
+  originalSharesEscrowed: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   tradeGroupId: Bytes32|null;

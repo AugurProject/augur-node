@@ -49,6 +49,8 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
       fullPrecisionPrice: fullPrecisionPrice.toString(),
       fullPrecisionAmount: fullPrecisionAmount.toString(),
       originalFullPrecisionAmount: fullPrecisionAmount.toString(),
+      originalTokensEscrowed: fixedPointToDecimal(moneyEscrowed, BN_WEI_PER_ETHER).toString(),
+      originalSharesEscrowed: displaySharesEscrowed,
       tokensEscrowed: fixedPointToDecimal(moneyEscrowed, BN_WEI_PER_ETHER).toString(),
       sharesEscrowed: displaySharesEscrowed,
     };

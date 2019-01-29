@@ -60,6 +60,8 @@ describe("blockchain/log-processors/order-created", () => {
         price: new BigNumber("0.75", 10),
         amount: new BigNumber("3", 10),
         originalAmount: new BigNumber("3", 10),
+        originalSharesEscrowed: new BigNumber("0", 10),
+        originalTokensEscrowed: new BigNumber("2.25", 10),
         tokensEscrowed: new BigNumber("2.25", 10),
         sharesEscrowed: new BigNumber("0", 10),
         tradeGroupId: "TRADE_GROUP_ID",
