@@ -67,7 +67,7 @@ describe("blockchain/log-processors/order-filled", () => {
       orderId: "0x1000000000000000000000000000000000000000000000000000000000000000",
       amountFilled: "100000000000000",
       numCreatorShares: "0",
-      numCreatorTokens: fix("1", "string"),
+      numCreatorTokens: fix("0.7", "string"),
       numFillerShares: augur.utils.convertDisplayAmountToOnChainAmount("2", new BigNumber(1), new BigNumber(10000)).toString(),
       numFillerTokens: "0",
       marketCreatorFees: "0",
@@ -102,7 +102,7 @@ describe("blockchain/log-processors/order-filled", () => {
         price: new BigNumber("0.7", 10),
         amount: new BigNumber("0", 10),
         originalAmount: new BigNumber("1", 10),
-        tokensEscrowed: new BigNumber("0.7", 10),
+        tokensEscrowed: new BigNumber("0", 10),
         sharesEscrowed: new BigNumber("0", 10),
         tradeGroupId: null,
         orphaned: 0,
@@ -118,7 +118,7 @@ describe("blockchain/log-processors/order-filled", () => {
         orderType: "buy",
         creator: "0x0000000000000000000000000000000000000b0b",
         filler: "FILLER_ADDRESS",
-        numCreatorTokens: new BigNumber("1", 10),
+        numCreatorTokens: new BigNumber("0.7", 10),
         numCreatorShares: new BigNumber("0", 10),
         numFillerTokens: new BigNumber("0", 10),
         numFillerShares: new BigNumber("2", 10),
@@ -129,14 +129,14 @@ describe("blockchain/log-processors/order-filled", () => {
         tradeGroupId: "TRADE_GROUP_ID",
       }]);
       expect(records.markets).toEqual({
-        volume: new BigNumber("1", 10),
+        volume: new BigNumber("0.7", 10),
         shareVolume: new BigNumber("1", 10),
         sharesOutstanding: new BigNumber("2", 10),
       });
       expect(records.outcomes).toEqual([
         {
           price: new BigNumber("0.7", 10),
-          volume: new BigNumber("101", 10),
+          volume: new BigNumber("100.7", 10),
           shareVolume: new BigNumber("13.5", 10),
         },
         {
