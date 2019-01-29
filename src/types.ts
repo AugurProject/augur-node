@@ -710,6 +710,8 @@ export interface ServersData {
 
 export interface AllOrdersRow<BigNumberType> {
   orderId: Address;
+  originalTokensEscrowed: BigNumberType;
+  originalSharesEscrowed: BigNumberType;
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   marketId: Address;
