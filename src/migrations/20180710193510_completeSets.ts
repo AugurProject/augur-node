@@ -10,8 +10,8 @@ exports.up = async (knex: Knex): Promise<any> => {
       table.integer("tradeGroupId");
       table.text("eventName").nullable();
       table.string("universe", 42).notNullable();
-      table.specificType("numCompleteSets", "varchar(255) CONSTRAINT \"nonnegativeNumCompleteSets\" CHECK (ltrim(\"numCompleteSets\", '-') = \"numCompleteSets\")");
-      table.specificType("numPurchasedOrSold", "varchar(255) CONSTRAINT \"nonnegativeNumPurchasedOrSold\" CHECK (ltrim(\"numPurchasedOrSold\", '-') = \"numPurchasedOrSold\")");
+      table.specificType("numCompleteSets", "varchar(255) NOT NULL CONSTRAINT \"nonnegativeNumCompleteSets\" CHECK (ltrim(\"numCompleteSets\", '-') = \"numCompleteSets\")");
+      table.specificType("numPurchasedOrSold", "varchar(255) NOT NULL CONSTRAINT \"nonnegativeNumPurchasedOrSold\" CHECK (ltrim(\"numPurchasedOrSold\", '-') = \"numPurchasedOrSold\")");
       table.specificType("blockNumber", "integer NOT NULL CONSTRAINT positiveCompleteSetsBlockNumber CHECK (\"blockNumber\" > 0)");
       table.unique(["transactionHash", "logIndex"]);
     });

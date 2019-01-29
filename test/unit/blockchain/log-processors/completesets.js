@@ -36,7 +36,7 @@ describe("blockchain/log-processors/completesets", () => {
   test("CompleteSetsPurchased log and removal", async () => {
     return db.transaction(async (trx) => {
       await(await processCompleteSetsPurchasedOrSoldLog(augur, log))(trx);
-      expect(getState(trx, log)).resolves.toEqual([{
+      await expect(getState(trx, log)).resolves.toEqual([{
         account: "0x0000000000000000000000000000000000000b0b",
         blockNumber: 437,
         logIndex: 0,
@@ -49,7 +49,7 @@ describe("blockchain/log-processors/completesets", () => {
         universe: "0x0000000000000000000000000000000000000001",
       }]);
       await(await processCompleteSetsPurchasedOrSoldLogRemoval(augur, log))(trx);
-      expect(await getState(trx, log)).toEqual([]);
+      await expect(getState(trx, log)).resolves.toEqual([]);
     });
   });
 
