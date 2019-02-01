@@ -144,6 +144,53 @@ function makeLogFactory(universe) {
         universe,
       }, args);
     },
+    OrderCreated: args => {
+      required(args, "orderType", "amount", "price", "creator", "universe", "shareToken");
+      return buildLog({
+        eventName: "OrderCreated",
+        orderType,
+        amount,
+        price,
+        creator,
+        moneyEscrowed: "0",
+        sharesEscrowed: "0",
+        tradeGroupId: uuid.v4(),
+        orderId: uuid.v4(),
+        universe,
+        shareToken,
+      }, args);
+    },
+    OrderFilled: args => {
+      required(args, "universe", "shareToken", "filler", "orderId", "amountFilled");
+      return buildLog({
+        eventName: "OrderFilled",
+        universe,
+        shareToken,
+        filler,
+        orderId,
+        numCreatorShares: "0",
+        numCreatorTokens: "0",
+        numFillerShares: "0",
+        numFillerTokens: "0",
+        marketCreatorFees: "0",
+        reporterFees: "0",
+        amountFilled,
+        tradeGroupId: uuid.v4(),
+      }, args);
+    },
+    TradingProceedsClaimed: args => {
+      required(args, "universe", "shareToken", "sender", "market", "numShares");
+      return buildLog({
+        eventName: "TradingProceedsClaimed",
+        universe,
+        shareToken,
+        sender,
+        market,
+        numShares,
+        numPayoutTokens: "0",
+        finalTokenBalance: "0",
+      }, args);
+    },
     MarketCreated: args => {
       required(args, "market", "marketCreator");
       return buildLog({

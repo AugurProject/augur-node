@@ -79,11 +79,9 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
 
     await updateOrder(db, augur, marketId, orderId, amount, orderCreator, filler, tickSize, minPrice, numCreatorShares, numCreatorTokens);
 
+    // TODO if market finalized dont do this
     await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, price);
-    if (numOutcomes === 2) {
-      const otherOutcome = outcome === 0 ? 1 : 0;
-      await updateOutcomeValueFromOrders(db, marketId, otherOutcome, log.transactionHash, maxPrice.minus(price));
-    }
+
     const orderOutcome = [outcome];
     const otherOutcomes = Array.from(Array(numOutcomes).keys());
     otherOutcomes.splice(outcome, 1);

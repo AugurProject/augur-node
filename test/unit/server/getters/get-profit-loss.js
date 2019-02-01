@@ -91,9 +91,30 @@ describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
 describe("server/getters/get-profit-loss#getProfitLoss", () => {
   var connection = null;
   var augur = new Augur();
+  var universe = "0x000000000000000000000000000000000000000b";
+  var logFactory = makeLogFactory(universe);
+  var market = "0x0000000000000000000000000000000000000211";
+  var yesShareToken = "0x0124000000000000000000000000000000000000";
+  var account = "0x0000000000000000000000000000000000b0b001";
+  var logs = [
+    logFactory.OrderCreated({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "",
+      amountFilled: "0"
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "",
+      amountFilled: "0"
+    }),
+  ];
 
   beforeEach(async () => {
-    connection = await setupTestDb();
+    connection = await setupTestDb(augur, logs, logFactory.getBlockDetails());
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
   });
 
@@ -103,7 +124,7 @@ describe("server/getters/get-profit-loss#getProfitLoss", () => {
 
   it("generates a 31-value timeseries P/L", async () => {
     const results = await getProfitLoss(connection, augur, {
-      universe: "0x000000000000000000000000000000000000000b",
+      universe,
       account:  "0xffff000000000000000000000000000000000000",
       marketId: "0x0000000000000000000000000000000000000ff1",
     });
