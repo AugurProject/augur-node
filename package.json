@@ -22,7 +22,7 @@
     "test": "jest --runInBand",
     "test:integration": "mocha 'test/integration/**/*.ts'",
     "test:integration:docker": "docker-compose up --force-recreate --abort-on-container-exit",
-    "lint": "tslint -c tslint.json -p . -e src/version.ts && eslint test/unit",
+    "lint": "tslint -c tslint.json -p . -e src/version.ts && eslint  test/unit",
     "build:ts": "genversion --es6 --semi src/version.ts && tsc",
     "build": "npm-run-all lint build:ts",
     "watch": "genversion --es6 --semi src/version.ts && tsc -w",

@@ -556,7 +556,6 @@ export interface CompleteSetsRow<BigNumberType> extends BaseTransactionRow {
   eventName: string;
   numPurchasedOrSold: BigNumberType;
   numCompleteSets: BigNumberType;
-  tradeGroupId: Bytes32|null;
 }
 
 export interface UICompleteSetsRow<BigNumberType> extends CompleteSetsRow<BigNumberType> {
