@@ -264,7 +264,7 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
-function setupTestDb(augur, logs, blockDetails) {
+function setupTestDb(augur, logs, blockDetails, seedFirst = false) {
   augur = augur || new Augur();
   logs = logs || [];
   blockDetails = blockDetails || {};
@@ -272,6 +272,9 @@ function setupTestDb(augur, logs, blockDetails) {
   const env = getEnv();
   const db = Knex(env);
   return db.migrate.latest(env.migrations)
+    .then(() => {
+      if (seedFirst) return seedDb(db);
+    })
     .then(() => {
       const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
       return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));

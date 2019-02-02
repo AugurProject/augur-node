@@ -7,7 +7,7 @@ import { logger } from "../utils/logger";
 import { SubscriptionEventNames } from "../constants";
 import { delay } from "bluebird";
 
-const BLOCKSTREAM_HANDOFF_BLOCKS = 5;
+const BLOCKSTREAM_HANDOFF_BLOCKS = 1;
 const BLOCKSTREAM_HANDOFF_WAIT_TIME_MS = 15000;
 let syncFinished = false;
 

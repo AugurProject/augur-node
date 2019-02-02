@@ -6,7 +6,6 @@ import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { augurEmitter } from "../../events";
 import { SubscriptionEventNames } from "../../constants";
 import { updateMarketOpenInterest } from "./order-filled/update-volumetrics";
-import { updateProfitLossBuyShares, updateProfitLossSellShares } from "./profit-loss/update-profit-loss";
 
 export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
@@ -35,14 +34,6 @@ export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: F
     await db.insert(completeSetPurchasedData).into("completeSets");
     augurEmitter.emit(SubscriptionEventNames[eventName], completeSetPurchasedData);
     await updateMarketOpenInterest(db, marketId);
-
-    // Don't process FillOrder buying and selling complete sets for profit loss
-    if (log.account === augur.contracts.addresses[augur.rpc.getNetworkID()].FillOrder) return;
-    if (log.eventName === "CompleteSetsPurchased") {
-      await updateProfitLossBuyShares(db, marketId, log.account, numCompleteSets, Array.from(Array(numOutcomes).keys()), log.transactionHash);
-    } else {
-      await updateProfitLossSellShares(db, marketId, numCompleteSets, log.account, Array.from(Array(numOutcomes).keys()), numCompleteSets, log.transactionHash, log.blockNumber, log.transactionIndex, null);
-    }
   };
 }
 

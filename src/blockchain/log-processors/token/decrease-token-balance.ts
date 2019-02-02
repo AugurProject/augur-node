@@ -3,8 +3,6 @@ import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
 import { Address, FormattedEventLog } from "../../../types";
 import { isLegacyReputationToken } from "./is-legacy-reputation-token";
-import { updateProfitLossChangeShareBalance } from "../profit-loss/update-profit-loss";
-import { TokenType } from "../../../constants";
 
 interface BalanceResult {
   balance: BigNumber;
@@ -17,8 +15,4 @@ export async function decreaseTokenBalance(db: Knex, augur: Augur, token: Addres
   if (oldBalance == null) throw new Error(`Could not find balance for token decrease (token: ${token}, owner: ${owner})`);
   const balance = oldBalance.balance.minus(amount);
   await db.update({ balance: balance.toString() }).into("balances").where({ token, owner });
-
-  if (parseInt(log.tokenType, 10) === TokenType.ShareToken) {
-    await updateProfitLossChangeShareBalance(db, augur, token, balance, owner, log.transactionHash, log.blockNumber, log.transactionIndex);
-  }
 }

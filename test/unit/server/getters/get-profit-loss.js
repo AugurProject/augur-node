@@ -4,6 +4,9 @@ const { setupTestDb, seedDb } = require("test.database");
 const { getProfitLoss, getProfitLossSummary, bucketRangeByInterval } = require("src/server/getters/get-profit-loss");
 const processBlock = require("src/blockchain/process-block");
 
+const BID = 0;
+const ASK = 1;
+
 describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
   test("throws when startTime is negative", (done) => {
     expect(() => bucketRangeByInterval(-1, 0, 1)).toThrow();
@@ -93,28 +96,48 @@ describe("server/getters/get-profit-loss#getProfitLoss", () => {
   var augur = new Augur();
   var universe = "0x000000000000000000000000000000000000000b";
   var logFactory = makeLogFactory(universe);
-  var market = "0x0000000000000000000000000000000000000211";
   var yesShareToken = "0x0124000000000000000000000000000000000000";
   var account = "0x0000000000000000000000000000000000b0b001";
   var logs = [
-    logFactory.OrderCreated({
+    logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
-      orderId: "",
-      amountFilled: "0"
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
+      amountFilled: new BigNumber(10).pow(15) // 10 shares
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
-      orderId: "",
-      amountFilled: "0"
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3)
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13)
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10)
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7)
     }),
   ];
 
   beforeEach(async () => {
-    connection = await setupTestDb(augur, logs, logFactory.getBlockDetails());
+    connection = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
   });
 
