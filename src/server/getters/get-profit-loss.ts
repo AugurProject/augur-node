@@ -51,7 +51,7 @@ export interface ProfitLossTimeseries extends Timestamped {
   position: BigNumber;
   numOutcomes: number;
   profit: BigNumber;
-  minPrice: BigNumber,
+  minPrice: BigNumber;
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {

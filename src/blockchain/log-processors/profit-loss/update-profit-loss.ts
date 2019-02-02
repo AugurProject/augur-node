@@ -12,9 +12,9 @@ interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType>
 }
 
 interface UpdateData {
-  price: BigNumber,
-  position: BigNumber,
-  profit: BigNumber,
+  price: BigNumber;
+  position: BigNumber;
+  profit: BigNumber;
 }
 
 export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address, account: Address, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
@@ -57,7 +57,7 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
 
 export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
-  
+
   const timestamp = getCurrentTime();
 
   const minPriceRow: {minPrice: BigNumber} = await db("markets").first("minPrice").where({ marketId });
@@ -81,9 +81,9 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
 
   // Adjust realized profit for amount of existing position sold
   if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) {
-    const amountSold = BigNumber.min(oldPosition.abs(), positionDelta.abs())
+    const amountSold = BigNumber.min(oldPosition.abs(), positionDelta.abs());
     const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(amountSold);
-    oldPosition = amountSold.gte(oldPosition.abs()) ? ZERO: oldPosition.plus(positionDelta);
+    oldPosition = amountSold.gte(oldPosition.abs()) ? ZERO : oldPosition.plus(positionDelta);
     positionDelta = oldPosition.eq(ZERO) ? position : ZERO;
     profit = profit.plus(profitDelta);
     if (oldPosition.eq(ZERO)) {
@@ -109,7 +109,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     timestamp,
     blockNumber,
     logIndex,
-  }
+  };
 
   await db.insert(insertData).into("wcl_profit_loss_timeseries");
 }

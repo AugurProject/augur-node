@@ -1,19 +1,19 @@
 import * as Knex from "knex";
 import { Address } from "../types";
-import { updateProfitLoss, updateProfitLossClaimProceeds } from '../blockchain/log-processors/profit-loss/update-profit-loss';
+import { updateProfitLoss, updateProfitLossClaimProceeds } from "../blockchain/log-processors/profit-loss/update-profit-loss";
 
 interface TradeOrClaimRow {
-  marketId: string,
-  outcome: number,
-  amount: BigNumber,
-  price: BigNumber,
-  orderType: string,
-  creator: Address,
-  filler: Address,
-  claim: boolean,
-  blockNumber: number,
-  logIndex: number,
-  transactionHash: string,
+  marketId: string;
+  outcome: number;
+  amount: BigNumber;
+  price: BigNumber;
+  orderType: string;
+  creator: Address;
+  filler: Address;
+  claim: boolean;
+  blockNumber: number;
+  logIndex: number;
+  transactionHash: string;
 }
 
 exports.up = async (knex: Knex): Promise<any> => {
@@ -37,21 +37,20 @@ exports.up = async (knex: Knex): Promise<any> => {
     .union((builder: Knex.QueryBuilder) => {
       return builder
         .from("trading_proceeds")
-        .select(knex.raw(["marketId", "0", "0", "0", "0", "0", "account", "true as claim", "blockNumber", "logIndex", "transactionHash"]))
+        .select(knex.raw(["marketId", "0", "0", "0", "0", "0", "account", "true as claim", "blockNumber", "logIndex", "transactionHash"]));
     });
   query.orderByRaw("blockNumber, logIndex");
 
   const results: Array<TradeOrClaimRow> = await query;
 
-  for (let row of results) {
+  for (const row of results) {
     if (row.claim) {
-      updateProfitLossClaimProceeds(knex, row.marketId, row.filler, row.transactionHash, row.blockNumber, row.logIndex);
+      await updateProfitLossClaimProceeds(knex, row.marketId, row.filler, row.transactionHash, row.blockNumber, row.logIndex);
     } else {
-      await updateProfitLoss(knex, row.marketId, row.orderType == "buy" ? row.amount : row.amount.negated(), row.creator, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex);
-      await updateProfitLoss(knex, row.marketId, row.orderType == "sell" ? row.amount : row.amount.negated(), row.filler, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex);
+      await updateProfitLoss(knex, row.marketId, row.orderType === "buy" ? row.amount : row.amount.negated(), row.creator, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex);
+      await updateProfitLoss(knex, row.marketId, row.orderType === "sell" ? row.amount : row.amount.negated(), row.filler, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex);
     }
   }
-
 
   await knex.schema.dropTableIfExists("profit_loss_timeseries");
 };

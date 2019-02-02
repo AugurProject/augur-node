@@ -144,17 +144,6 @@ function makeLogFactory(universe) {
         universe,
       }, args);
     },
-    OrderCreated: args => {
-      required(args, "orderType", "amount", "price", "creator", "shareToken");
-      return buildLog({
-        eventName: "OrderCreated",
-        moneyEscrowed: "0",
-        sharesEscrowed: "0",
-        tradeGroupId: uuid.v4(),
-        orderId: uuid.v4(),
-        universe,
-      }, args);
-    },
     OrderFilled: args => {
       required(args, "shareToken", "filler", "orderId", "amountFilled");
       return buildLog({

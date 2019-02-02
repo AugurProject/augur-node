@@ -19,6 +19,8 @@ exports.seed = async (knex: Knex): Promise<any> => {
       "0x0000000000000000000000000000000000000018": {numOutcomes: 7, price: "0.125", volume: "100"},
       "0x0000000000000000000000000000000000000019": {numOutcomes: 5, price: "0.125", volume: "100"},
       "0x0000000000000000000000000000000000000211": {numOutcomes: 2, price: "0.5", volume: "100"},
+      "0x0000000000000000000000000000000000000442": {numOutcomes: 3, price: "0.1", volume: "100"},
+      "0x000000000000000000000000000000000000021c": {numOutcomes: 2, price: "0.5", volume: "100"},
     };
 
     const seedData: any = [];

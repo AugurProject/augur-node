@@ -70,21 +70,21 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     .whereNotNull("tokens.marketId")
     .whereNotNull("tokens.outcome")
     .andWhere("balances.owner", params.account)
-    .andWhere("markets.universe", universeId)
+    .andWhere("markets.universe", universeId);
 
   if (params.marketId) rawPositionsQuery.andWhere("markets.marketId", params.marketId);
 
   const rawPositions: Array<RawPosition> = await rawPositionsQuery;
 
-  const rawPositionsMapping: {[key:string]: RawPosition} = _.reduce(rawPositions, (result, rawPosition) => {
+  const rawPositionsMapping: {[key: string]: RawPosition} = _.reduce(rawPositions, (result, rawPosition) => {
     const key = rawPosition.marketId.concat(rawPosition.outcome.toString());
     const tickSize = numTicksToTickSize(rawPosition.numTicks, rawPosition.minPrice, rawPosition.maxPrice);
     rawPosition.balance = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(rawPosition.balance, 10), tickSize);
     result[key] = rawPosition;
     return result;
-  }, {} as {[key:string]: RawPosition});
+  }, {} as {[key: string]: RawPosition});
 
-  const marketToLargestShort: { [key:string]: BigNumber } = {};
+  const marketToLargestShort: {[key: string]: BigNumber} = {};
 
   let positions = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>) => {
     const lastTimestampPls = _.last(outcomePls)!;
@@ -99,7 +99,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       }
       return Object.assign(
         { position },
-        plr
+        plr,
       ) as TradingPosition;
     });
   }));
@@ -119,8 +119,8 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       averagePrice: ZERO,
       realized: ZERO,
       unrealized: ZERO,
-      timestamp: 0
-    } as TradingPosition
+      timestamp: 0,
+    } as TradingPosition;
   });
 
   positions = positions.concat(noPLPositions);

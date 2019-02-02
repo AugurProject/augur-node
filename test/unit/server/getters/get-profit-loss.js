@@ -5,9 +5,6 @@ const { setupTestDb, makeLogFactory } = require("test.database");
 const { getProfitLoss, getProfitLossSummary, bucketRangeByInterval } = require("src/server/getters/get-profit-loss");
 const processBlock = require("src/blockchain/process-block");
 
-const BID = 0;
-const ASK = 1;
-
 describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
   test("throws when startTime is negative", (done) => {
     expect(() => bucketRangeByInterval(-1, 0, 1)).toThrow();
@@ -105,35 +102,35 @@ describe("server/getters/get-profit-loss#getProfitLoss", () => {
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
-      amountFilled: new BigNumber(10).pow(15) // 10 shares
+      amountFilled: new BigNumber(10).pow(15), // 10 shares
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(3)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(13)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(10)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(7)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
     }),
   ];
 
@@ -180,7 +177,7 @@ describe("server/getters/get-profit-loss#getProfitLoss", () => {
     });
 
     expect(results.length).toEqual(1);
-    
+
     expect(results[0].netPosition.toString()).toEqual("-3");
     expect(results[0].averagePrice.toString()).toEqual("0.6305");
     expect(results[0].unrealized.toString()).toEqual("1.4415");
@@ -201,35 +198,35 @@ describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
-      amountFilled: new BigNumber(10).pow(15) // 10 shares
+      amountFilled: new BigNumber(10).pow(15), // 10 shares
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(3)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(13)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(10)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
     }),
     logFactory.OrderFilled({
       universe,
       shareToken: yesShareToken,
       filler: account,
       orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
-      amountFilled: new BigNumber(10).pow(14).multipliedBy(7)
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
     }),
   ];
 
