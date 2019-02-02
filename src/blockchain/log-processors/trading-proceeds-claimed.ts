@@ -42,7 +42,7 @@ export async function processTradingProceedsClaimedLog(augur: Augur, log: Format
 export async function processTradingProceedsClaimedLogRemoval(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
     await db.from("trading_proceeds").where({ transactionHash: log.transactionHash, logIndex: log.logIndex }).del();
-    await db.from("profit_loss_timeseries").where({ transactionHash: log.transactionHash }).del();
+    await db.from("wcl_profit_loss_timeseries").where({ transactionHash: log.transactionHash }).del();
     await updateProfitLossRemoveRow(db, log.transactionHash);
     augurEmitter.emit(SubscriptionEventNames.TradingProceedsClaimed, log);
   };

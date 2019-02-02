@@ -145,36 +145,27 @@ function makeLogFactory(universe) {
       }, args);
     },
     OrderCreated: args => {
-      required(args, "orderType", "amount", "price", "creator", "universe", "shareToken");
+      required(args, "orderType", "amount", "price", "creator", "shareToken");
       return buildLog({
         eventName: "OrderCreated",
-        orderType,
-        amount,
-        price,
-        creator,
         moneyEscrowed: "0",
         sharesEscrowed: "0",
         tradeGroupId: uuid.v4(),
         orderId: uuid.v4(),
         universe,
-        shareToken,
       }, args);
     },
     OrderFilled: args => {
-      required(args, "universe", "shareToken", "filler", "orderId", "amountFilled");
+      required(args, "shareToken", "filler", "orderId", "amountFilled");
       return buildLog({
         eventName: "OrderFilled",
         universe,
-        shareToken,
-        filler,
-        orderId,
         numCreatorShares: "0",
         numCreatorTokens: "0",
         numFillerShares: "0",
         numFillerTokens: "0",
         marketCreatorFees: "0",
         reporterFees: "0",
-        amountFilled,
         tradeGroupId: uuid.v4(),
       }, args);
     },
@@ -183,10 +174,6 @@ function makeLogFactory(universe) {
       return buildLog({
         eventName: "TradingProceedsClaimed",
         universe,
-        shareToken,
-        sender,
-        market,
-        numShares,
         numPayoutTokens: "0",
         finalTokenBalance: "0",
       }, args);
@@ -264,22 +251,18 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
-function setupTestDb(augur, logs, blockDetails, seedFirst = false) {
+async function setupTestDb(augur, logs, blockDetails, seedFirst = false) {
   augur = augur || new Augur();
   logs = logs || [];
   blockDetails = blockDetails || {};
 
   const env = getEnv();
   const db = Knex(env);
-  return db.migrate.latest(env.migrations)
-    .then(() => {
-      if (seedFirst) return seedDb(db);
-    })
-    .then(() => {
-      const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
-      return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
-    })
-    .then(() => db);
+  await db.migrate.latest(env.migrations);
+  if (seedFirst) await seedDb(db);
+  const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
+  await processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
+  return db;
 }
 
 module.exports = {

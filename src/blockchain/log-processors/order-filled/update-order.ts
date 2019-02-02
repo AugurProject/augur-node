@@ -14,7 +14,7 @@ interface OrderFilledRow {
   price: BigNumber;
 }
 
-export async function updateOrder(db: Knex, augur: Augur, marketId: Address, orderId: Bytes32, amount: BigNumber, creator: Address, filler: Address, tickSize: BigNumber, minPrice: BigNumber, numCreatorShares: BigNumber, numCreatorTokens: BigNumber) {
+export async function updateOrder(db: Knex, augur: Augur, marketId: Address, orderId: Bytes32, amount: BigNumber, price: BigNumber, numCreatorShares: BigNumber, numCreatorTokens: BigNumber) {
   const orderRow: OrderFilledRow = await db("orders").first("fullPrecisionAmount", "outcome", "price", "sharesEscrowed", "tokensEscrowed").where({ orderId });
   if (orderRow == null) throw new Error(`Could not fetch order amount for order ${orderId}`);
   const fullPrecisionAmountRemainingInOrder = orderRow.fullPrecisionAmount.minus(amount);
@@ -24,9 +24,6 @@ export async function updateOrder(db: Knex, augur: Augur, marketId: Address, ord
   const updateAmountsParams = { fullPrecisionAmount: fullPrecisionAmountRemainingInOrder, amount: amountRemainingInOrder, sharesEscrowed: numSharesEscrowedRemainingInOrder, tokensEscrowed: numTokensEscrowedRemainingInOrder };
   const orderState = fullPrecisionAmountRemainingInOrder.eq(ZERO) ? OrderState.FILLED : OrderState.OPEN;
   const updateParams = Object.assign({ orderState }, updateAmountsParams);
-  const lastOutcomePrice: Int256 = await augur.api.Orders.getLastOutcomePrice({ _market: marketId, _outcome: orderRow.outcome });
-  const lastOutcomePriceBN = new BigNumber(lastOutcomePrice, 10);
-  const lastOutcomeDisplayPrice = augur.utils.convertOnChainPriceToDisplayPrice(lastOutcomePriceBN, minPrice, tickSize).toString();
-  await db("outcomes").where({ marketId, outcome: orderRow.outcome }).update({ price: lastOutcomeDisplayPrice });
+  await db("outcomes").where({ marketId, outcome: orderRow.outcome }).update({ price: price.toString() });
   await db("orders").where({ orderId }).update(formatBigNumberAsFixed(updateParams));
 }

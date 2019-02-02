@@ -80,10 +80,10 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   const position = oldPosition.plus(positionDelta);
 
   // Adjust realized profit for amount of existing position sold
-  if (oldPosition.s !== positionDelta.s) {
+  if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) {
     const amountSold = BigNumber.min(oldPosition.abs(), positionDelta.abs())
     const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(amountSold);
-    oldPosition = amountSold >= oldPosition.abs() ? ZERO: oldPosition.plus(positionDelta);
+    oldPosition = amountSold.gte(oldPosition.abs()) ? ZERO: oldPosition.plus(positionDelta);
     positionDelta = oldPosition.eq(ZERO) ? position : ZERO;
     profit = profit.plus(profitDelta);
     if (oldPosition.eq(ZERO)) {
@@ -91,7 +91,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     }
   }
 
-  let newPrice = price;
+  let newPrice = oldPrice;
 
   // Adjust price for new position added
   if (!positionDelta.eq(ZERO)) {

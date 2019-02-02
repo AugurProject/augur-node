@@ -68,6 +68,7 @@ export interface ProfitLossResult extends Timestamped {
   unrealized: BigNumber;
   outcome: number;
   marketId: Address;
+  total: BigNumber;
 }
 
 export interface ShortPosition {
@@ -208,11 +209,14 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     // Adjust display for scalars
     averagePrice = averagePrice.plus(minPrice);
 
+    const total = realized.plus(unrealized);
+
     return {
       timestamp,
       netPosition: position,
       realized,
       unrealized,
+      total,
       averagePrice,
       outcome,
       marketId,
@@ -223,7 +227,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
 function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>, marketOutcomeValues: Array<Array<OutcomeValueTimeseries>>, buckets: Array<Timestamped>): Array<Array<ProfitLossResult>> {
   return _.map(marketPls, (outcomePLsAtTimestamp, timestampIndex) => {
-    const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => (outcome.position.plus(outcome.position)).gt(ZERO));
+    const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => !outcome.position.eq(ZERO));
 
     if (nonZeroPositionOutcomePls.length < 1) {
       return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null);
@@ -376,6 +380,7 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       netPosition: startProfit.netPosition.negated(),
       realized: startProfit.realized.negated(),
       unrealized: startProfit.unrealized.negated(),
+      total: startProfit.total.negated(),
       averagePrice: startProfit.averagePrice,
       outcome: startProfit.outcome,
       marketId: startProfit.marketId,

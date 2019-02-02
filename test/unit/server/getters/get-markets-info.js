@@ -152,7 +152,13 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          consensus: null,
+          consensus: {
+            isInvalid: false,
+            payout: [
+              "0",
+              "10000",
+            ],
+          },
           outcomes: [{
             id: 0,
             volume: "1000",
@@ -304,7 +310,13 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          consensus: null,
+          consensus: {
+            isInvalid: false,
+            payout: [
+              "0",
+              "10000",
+            ],
+          },
           outcomes: [{
             id: 0,
             volume: "1000",
@@ -370,7 +382,13 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          consensus: null,
+          consensus: {
+            isInvalid: false,
+            payout: [
+              "0",
+              "10000",
+            ],
+          },
           outcomes: [{
             id: 0,
             volume: "1000",
