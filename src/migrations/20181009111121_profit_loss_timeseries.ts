@@ -12,7 +12,7 @@ exports.up = async (knex: Knex): Promise<any> => {
       table.specificType("numEscrowed", "varchar(255) NOT NULL DEFAULT '0' CONSTRAINT nonnegativeNumEscrowed CHECK (ltrim(\"numEscrowed\", '-') = \"numEscrowed\")");
       table.string("profit", 255);
       table.specificType("timestamp", "integer NOT NULL CONSTRAINT nonnegativeTimestamp CHECK (\"timestamp\" >= 0)");
-      table.specificType("blockTransactionIndex", "integer NOT NULL CONSTRAINT nonnegativeBlockTransactionIndex CHECK (\"blockTransactionIndex\" >= 0)");
+      table.specificType("blockTransactionIndex", "varchar(255) NOT NULL DEFAULT '0' CONSTRAINT nonnegativeBlockTransactionIndex CHECK (ltrim(\"blockTransactionIndex\", '-') = \"blockTransactionIndex\")");
     });
   });
 };
