@@ -64,7 +64,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
       await dbWritesFunction(trx);
       await db("transactionHashes")
         .transacting(trx)
-        .where({ blockNumber: block.number })
+        .where({ blockNumber: parseInt(block.number, 16) })
         .update({ removed: 1 });
       await db("blocks")
         .transacting(trx)
