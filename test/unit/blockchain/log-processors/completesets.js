@@ -44,7 +44,6 @@ describe("blockchain/log-processors/completesets", () => {
         marketId: "0x0000000000000000000000000000000000000002",
         numCompleteSets: "2",
         numPurchasedOrSold: "2",
-        tradeGroupId: 12,
         transactionHash: "0x00000000000000000000000000000000deadbeef",
         universe: "0x0000000000000000000000000000000000000001",
       }]);
