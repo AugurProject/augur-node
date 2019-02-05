@@ -27,7 +27,6 @@ export async function processCompleteSetsPurchasedOrSoldLog(augur: Augur, log: F
       eventName: log.eventName,
       transactionHash: log.transactionHash,
       logIndex: log.logIndex,
-      tradeGroupId: log.tradeGroupId,
       numCompleteSets: numCompleteSets.toString(),
       numPurchasedOrSold: numCompleteSets.toString(),
     };
