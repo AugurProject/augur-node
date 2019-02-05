@@ -55,7 +55,7 @@ module.exports = {
   "prod-test": {
     client: "sqlite3",
     connection: {
-      filename: "./augur-1-3.db",
+      filename: "./augur-1-4.db",
     },
     migrations: {
       directory: "./src/migrations",

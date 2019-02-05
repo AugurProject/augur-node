@@ -1,9 +1,9 @@
 import { Augur } from "augur.js";
 import BigNumber from "bignumber.js";
 import * as Knex from "knex";
-import { Address, Bytes32, TradesRow, ReportingState} from "../../../types";
-import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-to-decimal";
 import { WEI_PER_ETHER } from "../../../constants";
+import { Address, Bytes32, ReportingState, TradesRow } from "../../../types";
+import { convertFixedPointToDecimal } from "../../../utils/convert-fixed-point-to-decimal";
 import { updateCategoryAggregationsOnMarketOpenInterestChanged } from "../category-aggregations";
 
 // volumeForTrade owns the business definition for the incremental financial
@@ -30,7 +30,7 @@ export function volumeForTrade(p: {
 }
 
 async function incrementMarketVolume(db: Knex, marketId: Address, amount: BigNumber, tradesRow: TradesRow<BigNumber>, isIncrease: boolean): Promise<void> {
-  const marketsRow: { minPrice: BigNumber, maxPrice: BigNumber, volume: BigNumber; shareVolume: BigNumber }|undefined = await db("markets").first("minPrice", "maxPrice", "volume", "shareVolume").where({ marketId });
+  const marketsRow: { minPrice: BigNumber, maxPrice: BigNumber, volume: BigNumber; shareVolume: BigNumber } | undefined = await db("markets").first("minPrice", "maxPrice", "volume", "shareVolume").where({ marketId });
   if (marketsRow === undefined) throw new Error(`No marketId for incrementMarketVolume: ${marketId}`);
   const newShareVolume = amount.plus(marketsRow.shareVolume);
   let vft = volumeForTrade({
@@ -44,9 +44,9 @@ async function incrementMarketVolume(db: Knex, marketId: Address, amount: BigNum
 }
 
 async function incrementOutcomeVolume(db: Knex, marketId: Address, outcome: number, amount: BigNumber, tradesRow: TradesRow<BigNumber>, isIncrease: boolean): Promise<void> {
-  const marketsRow: { minPrice: BigNumber, maxPrice: BigNumber }|undefined = await db("markets").first("minPrice", "maxPrice").where({ marketId });
+  const marketsRow: { minPrice: BigNumber, maxPrice: BigNumber } | undefined = await db("markets").first("minPrice", "maxPrice").where({ marketId });
   if (marketsRow === undefined) throw new Error(`No marketId for incrementOutcomeVolume: ${marketId}`);
-  const outcomesRow: { volume: BigNumber; shareVolume: BigNumber }|undefined = await db("outcomes").first("volume", "shareVolume").where({ marketId, outcome });
+  const outcomesRow: { volume: BigNumber; shareVolume: BigNumber } | undefined = await db("outcomes").first("volume", "shareVolume").where({ marketId, outcome });
   if (outcomesRow === undefined) throw new Error(`No outcome for incrementOutcomeVolume: marketId=${marketId} outcome=${outcome}`);
   const newShareVolume = amount.plus(outcomesRow.shareVolume);
   let vft = volumeForTrade({
@@ -69,7 +69,7 @@ export async function updateMarketOpenInterest(db: Knex, marketId: Address) {
     numTicks: BigNumber,
     openInterest: BigNumber,
     reportingState: ReportingState,
-  }|undefined = await db.first([
+  } | undefined = await db.first([
     "markets.category as category",
     "markets.numTicks as numTicks",
     "markets.openInterest as openInterest",
@@ -79,7 +79,7 @@ export async function updateMarketOpenInterest(db: Knex, marketId: Address) {
     .where({ "markets.marketId": marketId });
   if (marketRow == null) throw new Error(`No marketId for openInterest: ${marketId}`);
 
-  const shareTokenRow: { supply: BigNumber }|undefined = await db.first("supply").from("token_supply").join("tokens", "token_supply.token", "tokens.contractAddress").where({
+  const shareTokenRow: { supply: BigNumber } | undefined = await db.first("supply").from("token_supply").join("tokens", "token_supply.token", "tokens.contractAddress").where({
     marketId,
     symbol: "shares",
   });
@@ -103,7 +103,7 @@ export async function updateVolumetrics(db: Knex, augur: Augur, category: string
   if (shareTokenRow == null) throw new Error(`No shareToken found for market: ${marketId} outcome: ${outcome}`);
   const sharesOutstanding = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(shareTokenRow.supply, 10), tickSize).toString();
   await db("markets").where({ marketId }).update({ sharesOutstanding });
-  const tradesRow: TradesRow<BigNumber>|undefined = await db.first("numCreatorShares", "numCreatorTokens", "numFillerTokens", "numFillerShares", "amount").from("trades")
+  const tradesRow: TradesRow<BigNumber> | undefined = await db.first("numCreatorShares", "numCreatorTokens", "numFillerTokens", "numFillerShares", "amount").from("trades")
     .where({ marketId, outcome, orderId, blockNumber });
   if (!tradesRow) throw new Error(`trade not found, orderId: ${orderId}`);
   let amount = tradesRow.amount!;
