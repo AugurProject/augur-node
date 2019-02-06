@@ -32,6 +32,7 @@ jobs:
   - stage: deploy to dev
     if: branch = master
     script:
+    - npm run build:ts
     - npm run lint
     - npm run test
     deploy:
@@ -43,6 +44,7 @@ jobs:
   - stage: deploy to stable
     if: branch = stable
     script:
+    - npm run build:ts
     - npm run lint
     - npm run coveralls
     deploy:
