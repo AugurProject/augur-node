@@ -144,6 +144,29 @@ function makeLogFactory(universe) {
         universe,
       }, args);
     },
+    OrderFilled: args => {
+      required(args, "shareToken", "filler", "orderId", "amountFilled");
+      return buildLog({
+        eventName: "OrderFilled",
+        universe,
+        numCreatorShares: "0",
+        numCreatorTokens: "0",
+        numFillerShares: "0",
+        numFillerTokens: "0",
+        marketCreatorFees: "0",
+        reporterFees: "0",
+        tradeGroupId: uuid.v4(),
+      }, args);
+    },
+    TradingProceedsClaimed: args => {
+      required(args, "universe", "shareToken", "sender", "market", "numShares");
+      return buildLog({
+        eventName: "TradingProceedsClaimed",
+        universe,
+        numPayoutTokens: "0",
+        finalTokenBalance: "0",
+      }, args);
+    },
     MarketCreated: args => {
       required(args, "market", "marketCreator");
       return buildLog({
@@ -217,19 +240,18 @@ function makeMockAugur(additional) {
   return deepmerge(augur, additional || {});
 }
 
-function setupTestDb(augur, logs, blockDetails) {
+async function setupTestDb(augur, logs, blockDetails, seedFirst = false) {
   augur = augur || new Augur();
   logs = logs || [];
   blockDetails = blockDetails || {};
 
   const env = getEnv();
   const db = Knex(env);
-  return db.migrate.latest(env.migrations)
-    .then(() => {
-      const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
-      return processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
-    })
-    .then(() => db);
+  await db.migrate.latest(env.migrations);
+  if (seedFirst) await seedDb(db);
+  const blockNumbers =_(blockDetails).keys().map(Number).sortBy().value();
+  await processBatchOfLogs(db, augur, logs, blockNumbers, Promise.resolve(blockDetails));
+  return db;
 }
 
 module.exports = {

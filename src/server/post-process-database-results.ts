@@ -114,6 +114,11 @@ const whitelist: TableWhitelist = {
     numOwned: true,
     profit: true,
   },
+  wcl_profit_loss_timeseries: {
+    position: true,
+    price: true,
+    profit: true,
+  },
 };
 
 const FIELD_NAMES: FieldWhitelist = (() => {

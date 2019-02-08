@@ -5,8 +5,7 @@ import { BigNumber } from "bignumber.js";
 import { FormattedEventLog } from "../../types";
 import { augurEmitter } from "../../events";
 import { SubscriptionEventNames } from "../../constants";
-import { updateProfitLossSellShares } from "./profit-loss/update-profit-loss";
-import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
+import { updateProfitLossClaimProceeds, updateProfitLossRemoveRow } from "./profit-loss/update-profit-loss";
 
 interface ShareTokenOutcome {
   outcome: number;
@@ -33,20 +32,9 @@ export async function processTradingProceedsClaimedLog(augur: Augur, log: Format
     });
 
     await db("trading_proceeds").insert(tradingProceedsToInsert);
-    const shareTokenOutcome: ShareTokenOutcome = await db("tokens").first("outcome").where({ contractAddress: log.shareToken});
-    const marketData: MarketData = await db.first(["numTicks", "minPrice", "maxPrice", "numOutcomes"]).from("markets").where({ marketId: log.market });
 
-    const minPrice = marketData.minPrice;
-    const maxPrice = marketData.maxPrice;
-    const numTicks = marketData.numTicks;
-    const numOutcomes = marketData.numOutcomes;
-    const tickSize = numTicksToTickSize(numTicks, minPrice, maxPrice);
-    const numShares = new BigNumber(log.numShares, 10).dividedBy(tickSize).dividedBy(10 ** 18);
-    const payoutTokens = new BigNumber(log.numPayoutTokens).dividedBy(10 ** 18);
+    await updateProfitLossClaimProceeds(db, log.market, log.sender, log.transactionHash, log.blockNumber, log.transactionIndex);
 
-    const outcome = numOutcomes === 2 ? 1 : shareTokenOutcome.outcome;
-
-    await updateProfitLossSellShares(db, log.market, numShares, log.sender, [shareTokenOutcome.outcome], payoutTokens, log.transactionHash, log.blockNumber, log.transactionIndex, outcome);
     augurEmitter.emit(SubscriptionEventNames.TradingProceedsClaimed, log);
   };
 }
@@ -54,7 +42,8 @@ export async function processTradingProceedsClaimedLog(augur: Augur, log: Format
 export async function processTradingProceedsClaimedLogRemoval(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
     await db.from("trading_proceeds").where({ transactionHash: log.transactionHash, logIndex: log.logIndex }).del();
-    await db.from("profit_loss_timeseries").where({ transactionHash: log.transactionHash }).del();
+    await db.from("wcl_profit_loss_timeseries").where({ transactionHash: log.transactionHash }).del();
+    await updateProfitLossRemoveRow(db, log.transactionHash);
     augurEmitter.emit(SubscriptionEventNames.TradingProceedsClaimed, log);
   };
 }

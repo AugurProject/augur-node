@@ -1,6 +1,7 @@
 jest.mock("src/blockchain/process-block");
 const Augur = require("augur.js");
-const { setupTestDb, seedDb } = require("test.database");
+const { BigNumber } = require("bignumber.js");
+const { setupTestDb, makeLogFactory } = require("test.database");
 const { getProfitLoss, getProfitLossSummary, bucketRangeByInterval } = require("src/server/getters/get-profit-loss");
 const processBlock = require("src/blockchain/process-block");
 
@@ -91,10 +92,51 @@ describe("server/getters/get-profit-loss#bucketRangeByInterval", () => {
 describe("server/getters/get-profit-loss#getProfitLoss", () => {
   var connection = null;
   var augur = new Augur();
+  var universe = "0x000000000000000000000000000000000000000b";
+  var logFactory = makeLogFactory(universe);
+  var yesShareToken = "0x0124000000000000000000000000000000000000";
+  var account = "0x0000000000000000000000000000000000b0b001";
+  var logs = [
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
+      amountFilled: new BigNumber(10).pow(15), // 10 shares
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
+    }),
+  ];
 
   beforeEach(async () => {
-    connection = await setupTestDb();
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
+    connection = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
@@ -126,15 +168,71 @@ describe("server/getters/get-profit-loss#getProfitLoss", () => {
 
     expect(results.length).toEqual(5);
   });
+
+  it("generates a 1-value timeseries P/L", async () => {
+    const results = await getProfitLoss(connection, augur, {
+      universe,
+      account,
+      marketId: "0x0000000000000000000000000000000000000211",
+    });
+
+    expect(results.length).toEqual(1);
+
+    expect(results[0].netPosition.toString()).toEqual("-3");
+    expect(results[0].averagePrice.toString()).toEqual("0.6305");
+    expect(results[0].unrealized.toString()).toEqual("1.4415");
+    expect(results[0].realized.toString()).toEqual("4.8785");
+  });
 });
 
 describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
   var connection = null;
   var augur = new Augur();
+  var universe = "0x000000000000000000000000000000000000000b";
+  var logFactory = makeLogFactory(universe);
+  var yesShareToken = "0x0124000000000000000000000000000000000000";
+  var account = "0x0000000000000000000000000000000000b0b001";
+  var logs = [
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
+      amountFilled: new BigNumber(10).pow(15), // 10 shares
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
+    }),
+  ];
 
   beforeEach(async () => {
-    connection = await setupTestDb().then(seedDb);
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
+    connection = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
@@ -167,34 +265,18 @@ describe("server/getters/get-profit-loss#getProfitLossSummary", () => {
 
   it("returns 1-day and 30-day PLs at endtime", async() => {
     const results = await getProfitLossSummary(connection, augur, {
-      universe: "0x000000000000000000000000000000000000000b",
-      account:  "0xffff000000000000000000000000000000000000",
-      marketId: "0x0000000000000000000000000000000000000ff1",
-      endTime: 1534435013,
+      universe,
+      account,
+      marketId: "0x0000000000000000000000000000000000000211",
+      endTime: Date.now() / 1000,
     });
 
     const deserialized = JSON.parse(JSON.stringify(results));
-
-
     expect(Object.keys(deserialized)).toEqual(expect.arrayContaining(["1", "30"]));
-    expect(deserialized["1"]).toMatchObject({
-      averagePrice: "13.49831271091117218333",
-      cost: "0.00809898762654670331",
-      position: "0.0003",
-      realized: "54999999999.56442531007152770894",
-      timestamp: 1534435013,
-      total: "54999999999.599826322444981005630002",
-      unrealized: "0.035401012373453296690002",
-    });
-    expect(deserialized["30"]).toMatchObject({
-      averagePrice: "13.49831271091117218333",
-      cost: "0.00809898762654670331",
-      position: "0.0003",
-      realized: "54999999999.56442531007152770894",
-      timestamp: 1534435013,
-      total: "54999999999.599826322444981005630002",
-      unrealized: "0.035401012373453296690002",
-    });
+    expect(deserialized["1"].realized.toString()).toEqual("4.8785");
+    expect(deserialized["1"].unrealized.toString()).toEqual("1.4415");
+    expect(deserialized["30"].realized.toString()).toEqual("4.8785");
+    expect(deserialized["30"].unrealized.toString()).toEqual("1.4415");
   });
 
   it("returns returns zero-value PLs for nonexistent account", async() => {

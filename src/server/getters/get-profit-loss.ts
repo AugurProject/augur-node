@@ -20,12 +20,11 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     marketId: "",
     outcome: 0,
     transactionHash: "",
-    moneySpent: ZERO,
-    numOwned: ZERO,
-    numEscrowed: ZERO,
+    price: ZERO,
+    position: ZERO,
     numOutcomes: 2,
-    maxPrice: ZERO,
     profit: ZERO,
+    minPrice: ZERO,
   };
 }
 
@@ -48,12 +47,11 @@ export interface ProfitLossTimeseries extends Timestamped {
   marketId: Address;
   outcome: number;
   transactionHash: string;
-  moneySpent: BigNumber;
-  numOwned: BigNumber;
-  numEscrowed: BigNumber;
+  price: BigNumber;
+  position: BigNumber;
   numOutcomes: number;
-  maxPrice: BigNumber;
   profit: BigNumber;
+  minPrice: BigNumber;
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -64,17 +62,13 @@ export interface OutcomeValueTimeseries extends Timestamped {
 }
 
 export interface ProfitLossResult extends Timestamped {
-  position: BigNumber;
+  netPosition: BigNumber;
   averagePrice: BigNumber;
-  cost: BigNumber;
   realized: BigNumber;
   unrealized: BigNumber;
-  total: BigNumber;
-  numEscrowed: BigNumber;
-  totalPosition: BigNumber;
-  netPosition: BigNumber;
   outcome: number;
   marketId: Address;
+  total: BigNumber;
 }
 
 export interface ShortPosition {
@@ -130,38 +124,32 @@ export function bucketRangeByInterval(startTime: number, endTime: number, period
 }
 
 export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right: T): T {
-  const leftPosition = new BigNumber(left.position, 10);
-  const rightPosition = new BigNumber(right.position, 10);
-  const leftEscrowed = new BigNumber(left.numEscrowed, 10);
-  const rightEscrowed = new BigNumber(right.numEscrowed, 10);
+  const leftPosition = new BigNumber(left.netPosition, 10);
+  const rightPosition = new BigNumber(right.netPosition, 10);
 
-  const position = leftPosition.plus(rightPosition);
+  const netPosition = leftPosition.plus(rightPosition);
   const realized = left.realized.plus(right.realized);
-  const escrowed = leftEscrowed.plus(rightEscrowed);
   const unrealized = left.unrealized.plus(right.unrealized);
   const total = realized.plus(unrealized);
-  const cost = left.cost.plus(right.cost);
-  const totalPosition = position.plus(escrowed);
-  const averagePrice = position.gt(ZERO) ? cost.dividedBy(totalPosition) : ZERO;
+  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
 
   return Object.assign(_.clone(left), {
-    position,
+    netPosition,
     realized,
     unrealized,
     total,
-    cost,
     averagePrice,
   });
 }
 
 async function queryProfitLossTimeseries(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Array<ProfitLossTimeseries>> {
-  const query = db("profit_loss_timeseries")
-    .select("profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "maxPrice")
-    .join("markets", "profit_loss_timeseries.marketId", "markets.marketId")
+  const query = db("wcl_profit_loss_timeseries")
+    .select("wcl_profit_loss_timeseries.*", "markets.universe", "markets.numOutcomes", "markets.minPrice")
+    .join("markets", "wcl_profit_loss_timeseries.marketId", "markets.marketId")
     .where({ account: params.account, universe: params.universe })
     .orderBy("timestamp");
 
-  if (params.marketId !== null) query.where("profit_loss_timeseries.marketId", params.marketId);
+  if (params.marketId !== null) query.where("wcl_profit_loss_timeseries.marketId", params.marketId);
   if (params.startTime) query.where("timestamp", ">=", params.startTime);
 
   query.where("timestamp", "<=", params.endTime || now);
@@ -201,59 +189,36 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
   });
 }
 
-function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>|null, shortPosition: ShortPosition|null): Array<ProfitLossResult> {
+function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>|null): Array<ProfitLossResult> {
   const unsortedResults = plsAtTimestamp.map((outcomePl) => {
-    const position = outcomePl!.numOwned;
     const realized = outcomePl!.profit;
-    const cost = outcomePl!.moneySpent;
-    const numEscrowed = outcomePl!.numEscrowed;
-    const totalPosition = position.plus(numEscrowed);
     const outcome = outcomePl!.outcome;
     const timestamp = outcomePl!.timestamp;
     const marketId = outcomePl!.marketId;
-
-    let netPosition = totalPosition;
-    let averagePrice = cost.dividedBy(totalPosition);
-
-    // A short position exists
-    if (shortPosition) {
-      if (shortPosition.outcome === outcome) {
-        const maxPrice = outcomePl!.maxPrice;
-        const otherOutcomes = _.filter(plsAtTimestamp, (pl) => pl.outcome !== outcome);
-        const averagePaidPrice = _.reduce(otherOutcomes, (total, pl) => total.plus(pl.moneySpent.dividedBy(pl.numOwned.plus(pl.numEscrowed))), ZERO);
-        averagePrice = maxPrice.minus(averagePaidPrice);
-        netPosition = shortPosition.position.negated();
-      } else {
-        netPosition = totalPosition.minus(shortPosition.position);
-      }
-    }
+    let averagePrice = outcomePl!.price;
+    const minPrice = outcomePl!.minPrice;
+    const position = outcomePl!.position;
 
     let unrealized = ZERO;
-
-    if (netPosition.eq(ZERO)) {
-      averagePrice = ZERO;
-    } else if (outcomeValuesAtTimestamp) {
-      const ovResult = outcomeValuesAtTimestamp[outcome];
-      const lastPrice = ovResult.value;
-      const absPosition = netPosition.abs();
-      unrealized = lastPrice.times(absPosition).minus(absPosition.times(averagePrice));
-      if (shortPosition && shortPosition.outcome === outcome && !unrealized.eq(ZERO)) unrealized = unrealized.negated();
+    if (outcomeValuesAtTimestamp) {
+      const outcomeValue = outcomeValuesAtTimestamp[outcome].value.minus(minPrice);
+      const shareProfit = position.lt(ZERO) ? averagePrice.minus(outcomeValue) : outcomeValue.minus(averagePrice);
+      unrealized = shareProfit.multipliedBy(position.abs());
     }
+
+    // Adjust display for scalars
+    averagePrice = averagePrice.plus(minPrice);
 
     const total = realized.plus(unrealized);
 
     return {
       timestamp,
-      position,
+      netPosition: position,
       realized,
       unrealized,
       total,
       averagePrice,
-      cost,
-      numEscrowed,
-      totalPosition,
       outcome,
-      netPosition,
       marketId,
     };
   });
@@ -262,16 +227,13 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
 
 function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>, marketOutcomeValues: Array<Array<OutcomeValueTimeseries>>, buckets: Array<Timestamped>): Array<Array<ProfitLossResult>> {
   return _.map(marketPls, (outcomePLsAtTimestamp, timestampIndex) => {
-    const timestamp = buckets[timestampIndex].timestamp;
-    const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => (outcome.numOwned.plus(outcome.numEscrowed)).gt(ZERO));
-    const outcomesWithZeroPosition = _.filter(outcomePLsAtTimestamp, (outcome) => outcome.numOwned.plus(outcome.numEscrowed).eq(ZERO));
+    const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => !outcome.position.eq(ZERO));
 
     if (nonZeroPositionOutcomePls.length < 1) {
-      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null, null);
+      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null);
     }
 
     const numOutcomes = nonZeroPositionOutcomePls[0].numOutcomes;
-    const marketId = nonZeroPositionOutcomePls[0].marketId;
     const outcomeValuesAtTimestamp = marketOutcomeValues ? marketOutcomeValues[timestampIndex] : _.fill(Array(numOutcomes), getDefaultOVTimeseries());
 
     // turn outcome values into real list
@@ -282,42 +244,7 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
       return result;
     }, [] as Array<OutcomeValueTimeseries>);
 
-    const hasShortPosition = nonZeroPositionOutcomePls.length === numOutcomes - 1;
-
-    if (!hasShortPosition) return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, null);
-
-    const shortOutcomeIsMissing = outcomesWithZeroPosition.length === 0;
-    let missingOutcome = 0;
-    if (shortOutcomeIsMissing) {
-      const outcomeNumbers = _.range(numOutcomes);
-      missingOutcome = _.findIndex(_.zip(outcomePLsAtTimestamp, outcomeNumbers), ([outcomePl, outcomeNumber]) => (!outcomePl || outcomePl.outcome !== outcomeNumber!));
-    } else {
-      missingOutcome = outcomesWithZeroPosition[0].outcome;
-    }
-
-    // We do not consider 2 outcome markets where outcome 0 is shorted to be shorting
-    if (numOutcomes === 2 && missingOutcome === 0) return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, null);
-
-    // get short position
-    const minimumPosition = BigNumber.minimum(..._.map(nonZeroPositionOutcomePls, (outcome) => {
-      return outcome.numOwned.plus(outcome.numEscrowed);
-    }));
-    const shortPosition: ShortPosition = {
-      outcome: missingOutcome,
-      position: minimumPosition,
-    };
-    // add entry for the short position in the timestamp frame and the outcomevalues frame
-    const maxPrice = nonZeroPositionOutcomePls[0].maxPrice;
-    if (shortOutcomeIsMissing) {
-      outcomePLsAtTimestamp.push(Object.assign(getDefaultPLTimeseries(), {
-        outcome: missingOutcome,
-        timestamp,
-        maxPrice,
-        marketId,
-      }));
-    }
-
-    return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, shortPosition);
+    return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues);
   });
 }
 
@@ -353,7 +280,11 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
   }, {} as Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>);
 
   // The timestamps at which we need to return results
-  const buckets = bucketRangeByInterval(params.startTime || profitsOverTime[0].timestamp, Math.min(_.last(profitsOverTime)!.timestamp, now), params.periodInterval || null);
+  const startTime = params.startTime || profitsOverTime[0].timestamp;
+  const maxResultTime = Math.max(_.last(profitsOverTime)!.timestamp, _.last(outcomeValuesOverTime)!.timestamp);
+  const endTime = Math.min(maxResultTime, now);
+  const interval = params.periodInterval || null;
+  const buckets = bucketRangeByInterval(startTime, endTime, interval);
   return {profits, outcomeValues, buckets};
 }
 
@@ -363,7 +294,7 @@ export interface AllOutcomesProfitLoss {
   marketOutcomes: Dictionary<number>;
 }
 
-export async function getAllOutcomesProfitLoss(db: Knex, augur: Augur, params: GetProfitLossParamsType): Promise<AllOutcomesProfitLoss> {
+export async function getAllOutcomesProfitLoss(db: Knex, params: GetProfitLossParamsType): Promise<AllOutcomesProfitLoss> {
   const { profits, outcomeValues, buckets } = await getProfitLossData(db, params);
 
   const bucketedProfits = _.mapValues(profits, (pls, marketId) => {
@@ -391,7 +322,7 @@ export async function getAllOutcomesProfitLoss(db: Knex, augur: Augur, params: G
 }
 
 export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLossParamsType): Promise<Array<ProfitLossResult>> {
-  const {profit: outcomesProfitLoss, buckets }  = await getAllOutcomesProfitLoss(db, augur, params);
+  const {profit: outcomesProfitLoss, buckets }  = await getAllOutcomesProfitLoss(db, params);
   if (_.isEmpty(outcomesProfitLoss)) {
     return buckets.map((bucket) => ({
       timestamp: bucket.timestamp,
@@ -446,17 +377,13 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
 
     const negativeStartProfit: ProfitLossResult = {
       timestamp: startProfit.timestamp,
-      position: startProfit.position.negated(),
+      netPosition: startProfit.netPosition.negated(),
       realized: startProfit.realized.negated(),
       unrealized: startProfit.unrealized.negated(),
       total: startProfit.total.negated(),
-      cost: startProfit.cost.negated(),
       averagePrice: startProfit.averagePrice,
-      numEscrowed: startProfit.numEscrowed.negated(),
-      totalPosition: startProfit.totalPosition.negated(),
       outcome: startProfit.outcome,
       marketId: startProfit.marketId,
-      netPosition: startProfit.netPosition.negated(),
     };
 
     result[days] = sumProfitLossResults(endProfit, negativeStartProfit);

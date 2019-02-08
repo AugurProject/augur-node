@@ -29,7 +29,7 @@ describe("blockchain/log-processors/trading-proceeds-claimed", () => {
     transactionHash: "TRANSACTION_HASH",
     logIndex: 0,
     blockNumber: 1400101,
-    market: "0x0000000000000000000000000000000000000001",
+    market: "0x0000000000000000000000000000000000000002",
     shareToken: "SHARE_TOKEN_ADDRESS",
     sender: "FROM_ADDRESS",
     numShares: new BigNumber("140", 10),
@@ -41,7 +41,7 @@ describe("blockchain/log-processors/trading-proceeds-claimed", () => {
       await(await processTradingProceedsClaimedLog(augur, log))(trx);
       await expect(getTradingProceeds(trx)).resolves.toEqual([{
         account: "FROM_ADDRESS",
-        marketId: "0x0000000000000000000000000000000000000001",
+        marketId: "0x0000000000000000000000000000000000000002",
         numShares: new BigNumber("140", 10),
         numPayoutTokens: new BigNumber("9000", 10),
         shareToken: "SHARE_TOKEN_ADDRESS",
