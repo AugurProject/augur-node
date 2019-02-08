@@ -27,7 +27,6 @@ export async function getCompleteSets(db: Knex, augur: {}, params: t.TypeOf<type
       blockNumber: cur.blockNumber,
       transactionHash: cur.transactionHash,
       logIndex: cur.logIndex,
-      tradeGroupId: cur.tradeGroupId,
       numCompleteSets: cur.numCompleteSets,
       numPurchasedOrSold: cur.numPurchasedOrSold,
       marketId: cur.marketId,
