@@ -22,7 +22,7 @@ exports.up = async (knex: Knex): Promise<any> => {
   await knex.schema.createTable("wcl_profit_loss_timeseries", (table: Knex.CreateTableBuilder): void => {
     table.string("account", 42).notNullable();
     table.string("marketId", 42).notNullable();
-    table.specificType("outcome", "integer NOT NULL CONSTRAINT nonnegativeOutcome CHECK (outcome >= 0)");
+    table.specificType("outcome", "integer NOT NULL CONSTRAINT nonnegativeOutcome CHECK (\"outcome\" >= 0)");
     table.specificType("price", "varchar(255) NOT NULL CONSTRAINT nonnegativeAmount CHECK (ltrim(\"price\", '-') = \"price\")");
     table.string("position", 42).notNullable();
     table.string("profit", 255).defaultTo("0");
@@ -33,13 +33,13 @@ exports.up = async (knex: Knex): Promise<any> => {
   });
 
   const query = knex("trades")
-    .select(knex.raw(["marketId", "outcome", "amount", "price", "orderType", "creator", "filler", "false as claim", "blockNumber", "logIndex", "transactionHash"]))
+    .select(knex.raw([`"marketId"`, "outcome", "amount", "price", `"orderType"`, "creator", "filler", "false as claim", `"blockNumber"`, `"logIndex"`, `"transactionHash"`]))
     .union((builder: Knex.QueryBuilder) => {
       return builder
         .from("trading_proceeds")
-        .select(knex.raw(["marketId", "0", "0", "0", "0", "0", "account", "true as claim", "blockNumber", "logIndex", "transactionHash"]));
+        .select(knex.raw([`"marketId"`, "0", "'0'", "'0'", "'0'", "'0'", "account", "true as claim", `"blockNumber"`, `"logIndex"`, `"transactionHash"`]));
     });
-  query.orderByRaw("blockNumber, logIndex");
+  query.orderByRaw(`"blockNumber", "logIndex"`);
 
   const results: Array<TradeOrClaimRow> = await query;
 
