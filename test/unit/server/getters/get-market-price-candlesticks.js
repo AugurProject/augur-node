@@ -27,8 +27,9 @@ describe("server/getters/get-market-price-candlesticks", () => {
           min: "4.2",
           start: "5.5",
           startTimestamp: 1506474480,
-          volume: "0.3",
-          tokenVolume: "1.52",
+          volume: "2.1",
+          tokenVolume: "0.3",
+          shareVolume: "0.3",
         }],
       });
     },
@@ -48,8 +49,9 @@ describe("server/getters/get-market-price-candlesticks", () => {
           min: "5.5",
           start: "5.5",
           startTimestamp: 1506474493,
-          volume: "0.2",
-          tokenVolume: "1.1",
+          volume: "1.1",
+          tokenVolume: "0.2",
+          shareVolume: "0.2",
         },
         {
           end: "4.2",
@@ -57,8 +59,9 @@ describe("server/getters/get-market-price-candlesticks", () => {
           min: "4.2",
           start: "4.2",
           startTimestamp: 1506474513,
-          volume: "0.1",
-          tokenVolume: "0.42",
+          volume: "1",
+          tokenVolume: "0.1",
+          shareVolume: "0.1",
         }],
       });
     },
@@ -78,8 +81,9 @@ describe("server/getters/get-market-price-candlesticks", () => {
           min: "4.2",
           start: "5.5",
           startTimestamp: 1506474498,
-          volume: "0.3",
-          tokenVolume: "1.52",
+          volume: "2.1",
+          tokenVolume: "0.3",
+          shareVolume: "0.3",
         }],
       });
     },
@@ -87,7 +91,7 @@ describe("server/getters/get-market-price-candlesticks", () => {
   runTest({
     description: "market has no candlesticks",
     params: {
-      marketId: "0x0000000000000000000000000000000000001111",
+      marketId: "0x0000000000000000000000000000000000000ff1",
     },
     assertions: (marketPriceHistory) => {
       expect(marketPriceHistory).toEqual({});
