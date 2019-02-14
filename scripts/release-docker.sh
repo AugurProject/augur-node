@@ -34,6 +34,14 @@ case ${augur_env} in
         cluster="stable-augur-net"
         augur_service="stable-augur-node"
         ;;
+    release)
+        network="rinkeby"
+        cluster=""
+        augur_service=""
+        build_environment="release"
+        version = "$(node scripts/get-version.js)"
+        ;;
+
     *)
         network=${augur_env}
         ;;
@@ -52,6 +60,10 @@ if [[ $push_core_tag ]]; then
 fi
 
 # install packages needed to deploy to aws, then deploy
-aws_preconfigure
-aws_deploy
-
+if [[ -n "$cluster" ]]; then
+    echo "deploy";
+    aws_preconfigure
+    aws_deploy
+else
+    echo "no deploy";
+fi
