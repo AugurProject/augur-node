@@ -1,12 +1,13 @@
+import Augur from "augur.js";
+import { BigNumber } from "bignumber.js";
 import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
-import { BigNumber } from "bignumber.js";
-import Augur from "augur.js";
+import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { ZERO } from "../../constants";
 import { Address, OutcomeParam, SortLimitParams } from "../../types";
+import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
-import { numTicksToTickSize } from "./../../utils/convert-fixed-point-to-decimal";
 
 export const UserTradingPositionsParamsSpecific = t.type({
   universe: t.union([t.string, t.null, t.undefined]),
@@ -23,9 +24,13 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
-interface TradingPosition extends ProfitLossResult {
-  marketId: string;
+export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
+}
+
+export interface GetUserTradingPositionsResponse {
+  tradingPositions: Array<TradingPosition>;
+  frozenFundsTotal: FrozenFunds;
 }
 
 interface RawPosition {
@@ -47,7 +52,7 @@ async function queryUniverse(db: Knex, marketId: Address): Promise<Address> {
   return market.universe;
 }
 
-export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.TypeOf<typeof UserTradingPositionsParams>): Promise<Array<TradingPosition>> {
+export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.TypeOf<typeof UserTradingPositionsParams>): Promise<GetUserTradingPositionsResponse> {
   if (params.universe == null && params.marketId == null) throw new Error("Must provide reference to universe, specify universe or marketId");
   if (params.account == null) throw new Error("Missing required parameter: account");
 
@@ -76,17 +81,17 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   const rawPositions: Array<RawPosition> = await rawPositionsQuery;
 
-  const rawPositionsMapping: {[key: string]: RawPosition} = _.reduce(rawPositions, (result, rawPosition) => {
+  const rawPositionsMapping: { [key: string]: RawPosition } = _.reduce(rawPositions, (result, rawPosition) => {
     const key = rawPosition.marketId.concat(rawPosition.outcome.toString());
     const tickSize = numTicksToTickSize(rawPosition.numTicks, rawPosition.minPrice, rawPosition.maxPrice);
     rawPosition.balance = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(rawPosition.balance, 10), tickSize);
     result[key] = rawPosition;
     return result;
-  }, {} as {[key: string]: RawPosition});
+  }, {} as { [key: string]: RawPosition });
 
-  const marketToLargestShort: {[key: string]: BigNumber} = {};
+  const marketToLargestShort: { [key: string]: BigNumber } = {};
 
-  let positions = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>) => {
+  let positions: Array<TradingPosition> = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>) => {
     const lastTimestampPls = _.last(outcomePls)!;
     return _.map(lastTimestampPls, (plr) => {
       const key = plr.marketId.concat(plr.outcome.toString());
@@ -100,7 +105,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       return Object.assign(
         { position },
         plr,
-      ) as TradingPosition;
+      );
     });
   }));
 
@@ -110,7 +115,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     return !rawPosition.seen && largestShort.abs().lt(rawPosition.balance);
   });
 
-  const noPLPositions = _.map(rawPositionOnlyToShow, (rawPosition) => {
+  const noPLPositions: Array<TradingPosition> = _.map(rawPositionOnlyToShow, (rawPosition) => {
     return {
       position: rawPosition.balance.toString(),
       marketId: rawPosition.marketId,
@@ -119,13 +124,28 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       averagePrice: ZERO,
       realized: ZERO,
       unrealized: ZERO,
+      total: ZERO,
       timestamp: 0,
-    } as TradingPosition;
+      frozenProfit: ZERO,
+      frozenFunds: ZERO,
+    };
   });
 
   positions = positions.concat(noPLPositions);
 
-  if (params.outcome === null || typeof params.outcome === "undefined") return positions;
+  if (params.outcome !== null && typeof params.outcome !== "undefined") {
+    positions = _.filter(positions, { outcome: params.outcome });
+  }
 
-  return _.filter(positions, { outcome: params.outcome });
+  const frozenFundsTotal: FrozenFunds = {
+    frozenProfit: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenProfit), ZERO),
+    frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
+  };
+
+  // TODO add user's market validity bonds to frozenFundsTotal.frozenFunds
+
+  return {
+    tradingPositions: positions,
+    frozenFundsTotal,
+  };
 }

@@ -1,9 +1,10 @@
-import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { Address, PayoutNumerators } from "../../../types";
-import { getCurrentTime } from "../../process-block";
-import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
+import * as Knex from "knex";
 import { ZERO } from "../../../constants";
+import { Address, PayoutNumerators, TradesRow } from "../../../types";
+import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
+import { getCurrentTime } from "../../process-block";
+import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
 interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType> {
   minPrice: BigNumber;
@@ -11,7 +12,7 @@ interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType>
   numTicks: BigNumber;
 }
 
-interface UpdateData {
+interface UpdateData extends FrozenFunds {
   price: BigNumber;
   position: BigNumber;
   profit: BigNumber;
@@ -50,29 +51,34 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
     const lastPosition = lastData ? lastData.position : ZERO;
     if (!lastPosition.eq(ZERO)) {
       const price = lastPosition.lt(ZERO) ? totalPayout.minus(outcomeValues[outcome]) : outcomeValues[outcome];
-      await updateProfitLoss(db, marketId, lastPosition.negated(), account, outcome, price, transactionHash, blockNumber, logIndex);
+      const tradeData = undefined; // the next updateProfitLoss() is associated with claiming proceeds, not a trade, so tradeData is undefined
+      await updateProfitLoss(db, marketId, lastPosition.negated(), account, outcome, price, transactionHash, blockNumber, logIndex, tradeData);
     }
   }
 }
 
-export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
+// If this updateProfitLoss is due to a trade, the passed tradeData
+// must be defined (and be data from this associated trade.)
+export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData?: Pick<TradesRow<BigNumber>, "creator" | "filler" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
 
   const timestamp = getCurrentTime();
 
-  const minPriceRow: {minPrice: BigNumber} = await db("markets").first("minPrice").where({ marketId });
+  const minPriceRow: { minPrice: BigNumber } = await db("markets").first("minPrice").where({ marketId });
 
   price = price.minus(minPriceRow.minPrice);
 
   const lastData: UpdateData = await db
-      .first(["price", "position", "profit"])
-      .from("wcl_profit_loss_timeseries")
-      .where({ account, marketId, outcome })
-      .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
+    .first(["price", "position", "profit", "frozenFunds", "frozenProfit"])
+    .from("wcl_profit_loss_timeseries")
+    .where({ account, marketId, outcome })
+    .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
 
   let oldPosition = lastData ? lastData.position : ZERO;
   let oldPrice = lastData ? lastData.price : ZERO;
   const oldProfit = lastData ? lastData.profit : ZERO;
+  const oldFrozenFunds = lastData ? lastData.frozenFunds : ZERO;
+  const oldFrozenProfit = lastData ? lastData.frozenProfit : ZERO;
 
   let profit = oldProfit;
 
@@ -98,6 +104,15 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     newPrice = (oldPrice.multipliedBy(oldPosition.abs())).plus(price.multipliedBy(positionDelta.abs())).dividedBy(position.abs());
   }
 
+  const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
+    frozenFundsBeforeEvent: {
+      frozenFunds: oldFrozenFunds,
+      frozenProfit: oldFrozenProfit,
+    },
+    // TODO Alex - is this right profit from "frozenProfit += available_funds decreased ? realized PL : 0"?
+    event: makeFrozenFundsEvent(account, profit, tradeData),
+  });
+
   const insertData = {
     account,
     marketId,
@@ -109,6 +124,8 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     timestamp,
     blockNumber,
     logIndex,
+    frozenFunds: nextFrozenFunds.frozenFunds.toString(),
+    frozenProfit: nextFrozenFunds.frozenProfit.toString(),
   };
 
   await db.insert(insertData).into("wcl_profit_loss_timeseries");
@@ -119,4 +136,29 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
   await db("wcl_profit_loss_timeseries")
     .delete()
     .where({ transactionHash });
+}
+
+// makeFrozenFundsEvent() is a helper function of updateProfitLoss(). Passed
+// tradeData is associated data from the trade for which this user's profit and
+// loss requires updating. We'll use tradeData to build a FrozenFundsEvent of type
+// Trade, which requires realizedProfit, and that's why the FrozenFundsEvent is
+// constructed here after the realizedProfit is computed by updateProfitLoss().
+function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, tradeData?: Pick<TradesRow<BigNumber>, "creator" | "filler" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
+  let frozenFundEvent: FrozenFundsEvent = "ClaimProceeds";
+  if (tradeData !== undefined) {
+    let userIsCreatorOrFiller: "creator" | "filler" | undefined;
+    if (account === tradeData.creator) {
+      userIsCreatorOrFiller = "creator";
+    } else if (account === tradeData.filler) {
+      userIsCreatorOrFiller = "filler";
+    } else {
+      throw new Error(`makeFrozenFundsEvent: expected passed trade data to have creator or filler equal to passed account, account=${account} tradeCreator=${tradeData.creator} tradeFiller=${tradeData.filler}`);
+    }
+    frozenFundEvent = {
+      creatorOrFiller: userIsCreatorOrFiller,
+      realizedProfit,
+      tradeData,
+    };
+  }
+  return frozenFundEvent;
 }
