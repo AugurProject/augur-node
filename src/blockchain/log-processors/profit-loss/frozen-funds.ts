@@ -2,18 +2,19 @@ import { BigNumber } from "bignumber.js";
 import { ZERO } from "../../../constants";
 import { MarketsRow, TradesRow } from "../../../types";
 
-// FrozenFunds in some context, eg. for one market outcome or a user's entire account.
-// TODO doc what are frozen funds
+// Frozen funds are tokens that a user has given up (locked in escrow
+// or given to a counterparty) to obtain their current position. Frozen
+// funds is tracked separately per market outcome. Frozen funds can also
+// be provided as an aggregation (eg. GetUserTradingPositionsResponse)
+// in which case this interface provides data structure standardization.
 export interface FrozenFunds {
-  // TODO doc
-  frozenFunds: BigNumber;
+  frozenFunds: BigNumber; // in whole tokens (eg. ETH)
 }
 
-// FrozenFundsEvent are the types of events whose processing requires
-// updating a market outcome's frozen funds. Frozen funds are most
-// granularly tracked by (market, outcome). Ie. one FrozenFunds
-// per outcome, stored in wcl_profit_loss_timeseries DB table. An
-// outcome's frozen funds must be updated in response to each event.
+// FrozenFundsEvent are the types of events whose processing requires updating
+// a market outcome's frozen funds. Frozen funds tracked by (market, outcome).
+// Ie. one FrozenFunds per outcome, stored in wcl_profit_loss_timeseries DB
+// table. An outcome's frozen funds must be updated in response to each event.
 export type FrozenFundsEvent = Trade | ClaimProceeds;
 
 // ClaimProceeds is a type of FrozenFundsEvent corresponding to a user
@@ -28,8 +29,8 @@ type ClaimProceeds = "ClaimProceeds";
 // executing a trade on a specific market outcome. An outcome's frozen
 // funds may increase or decrease depending on the details of the trade.
 export interface Trade extends
-  Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, // TODO doc
-  Pick<TradesRow<BigNumber>, "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares"> { // data associated with this Trade which is required to compute the next FrozenFunds
+  Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, // from market to which this trade belongs
+  Pick<TradesRow<BigNumber>, "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares"> { // data associated with this Trade
   longOrShort: "long" | "short"; // "long" if the user was long on this trade (ie. created a buy order, or filled a sell order). "short" if user was short on this trade (ie. created a sell order, or filled a buy order)
   creatorOrFiller: "creator" | "filler"; // "creator" if the user was the creator of the Order to which this Trade belongs. "filler" if the user filled another creator's Order
   realizedProfit: BigNumber; // denominated in tokens (eg. ETH). Profit which the user realized by executing this trade
@@ -40,26 +41,35 @@ export interface FrozenFundsParams {
   event: FrozenFundsEvent; // FrozenFundsEvent to process and return updated FrozenFunds as impacted by this event
 }
 
-// TODO doc - frozen funds in context of one (market, outcome)
-// TODO unit test and auto test symmetry of creator/filler short/long
+// getFrozenFundsAfterEventForOneOutcome computes the next frozen funds for
+// a market outcome, using the passed current frozen funds and event causing
+// the frozen funds to be updated. getFrozenFundsAfterEventForOneOutcome owns
+// the authoritative business definition of how frozen funds are calculated.
 export function getFrozenFundsAfterEventForOneOutcome(params: FrozenFundsParams): FrozenFunds {
   if (params.event === "ClaimProceeds") {
     return {
-      // TODO doc
+      // When a user claims market proceeds, they are (by
+      // definition) withdrawing to their wallet all tokens they have
+      // escrowed in this market, so we set frozen funds to zero.
       frozenFunds: ZERO,
     };
   }
+
   // params.event is a Trade executed by this user
   const trade = params.event;
   let frozenFundsAfterEvent = params.frozenFundsBeforeEvent.frozenFunds;
 
-  // TODO doc
-  const myTokensSent = trade.creatorOrFiller === "creator" ? trade.numCreatorTokens : trade.numFillerTokens;
+  // Idea here is that frozen funds are defined by tokens
+  // sent/received, so we have to transform trade details into
+  // the actual quantity of tokens the user sent or received.
   const mySharesSent = trade.creatorOrFiller === "creator" ? trade.numCreatorShares : trade.numFillerShares;
   const tokensReceivedPrice = trade.longOrShort === "long" ? trade.price : trade.maxPrice.minus(trade.price);
   const myTokensReceived = mySharesSent.multipliedBy(tokensReceivedPrice);
+  const myTokensSent = trade.creatorOrFiller === "creator" ? trade.numCreatorTokens : trade.numFillerTokens;
 
-  // TODO doc
+  // Tokens received are subtracted from frozen funds because the
+  // user now possesses those funds, and thus those funds are no longer
+  // "frozen". Similarly, tokens sent are added to frozen funds.
   frozenFundsAfterEvent = frozenFundsAfterEvent.minus(myTokensReceived);
   frozenFundsAfterEvent = frozenFundsAfterEvent.plus(myTokensSent);
 

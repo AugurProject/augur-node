@@ -4,9 +4,9 @@ import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
 import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
-import { ZERO } from "../../constants";
+import { ZERO, BN_WEI_PER_ETHER } from "../../constants";
 import { Address, OutcomeParam, SortLimitParams, MarketsRow } from "../../types";
-import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
+import { numTicksToTickSize, fixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
 export const UserTradingPositionsParamsSpecific = t.type({
@@ -24,13 +24,13 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
-export interface TradingPosition extends ProfitLossResult, FrozenFunds { // TODO doc FrozenFunds per outcome
+export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
 }
 
 export interface GetUserTradingPositionsResponse {
   tradingPositions: Array<TradingPosition>;
-  frozenFundsTotal: FrozenFunds; // TODO doc
+  frozenFundsTotal: FrozenFunds; // User's total frozen funds. See docs on FrozenFunds. This total includes market validity bonds in addition to sum of frozen funds for all market outcomes in which user has a position.
 }
 
 interface RawPosition {
@@ -142,7 +142,9 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
   };
 
-  // TODO doc
+  // By our business definition, a user's total frozen funds
+  // includes their market validity bonds. (Validity bonds are
+  // paid in ETH and are escrowed until the markets resolve valid.)
   frozenFundsTotal.frozenFunds = frozenFundsTotal.frozenFunds.plus(await getSumOfMarketValidityBondsPromise);
 
   return {
@@ -157,8 +159,9 @@ async function getSumOfMarketValidityBonds(db: Knex, marketCreator: Address): Pr
   const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize">> = await db.select("validityBondSize").from("markets").where({ marketCreator });
   let totalValidityBonds = ZERO;
   for (const market of marketsRow) {
-    // TODO Alex - market.validityBondSize is denominated in attoETH, do we have a recommended util function to convert to ETH?
-    totalValidityBonds = totalValidityBonds.plus(market.validityBondSize);
+    // market.validityBondSize is in attoETH and totalValidityBonds is in ETH
+    totalValidityBonds = totalValidityBonds.plus(
+      fixedPointToDecimal(market.validityBondSize, BN_WEI_PER_ETHER));
   }
   return totalValidityBonds;
 }

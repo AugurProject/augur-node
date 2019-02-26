@@ -139,43 +139,46 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
 // loss requires updating. We'll use tradeData to build a FrozenFundsEvent of type
 // Trade, which requires realizedProfit, and that's why the FrozenFundsEvent is
 // constructed here after the realizedProfit is computed by updateProfitLoss().
-// TODO unit test
 function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
-  let frozenFundEvent: FrozenFundsEvent = "ClaimProceeds";
-  if (tradeData !== undefined) {
-    let userIsLongOrShort: "long" | "short" | undefined;
-    let userIsCreatorOrFiller: "creator" | "filler" | undefined;
-    if (account === tradeData.creator) {
-      userIsCreatorOrFiller = "creator";
-      if (tradeData.orderType === "buy") {
-        userIsLongOrShort = "long";
-      } else {
-        userIsLongOrShort = "short";
-      }
-    } else if (account === tradeData.filler) {
-      userIsCreatorOrFiller = "filler";
-      if (tradeData.orderType === "buy") {
-        userIsLongOrShort = "short";
-      } else {
-        userIsLongOrShort = "long";
-      }
-    } else {
-      throw new Error(`makeFrozenFundsEvent: expected passed trade data to have creator or filler equal to passed account, account=${account} tradeCreator=${tradeData.creator} tradeFiller=${tradeData.filler}`);
-    }
-    const {
-      price, numCreatorTokens, numCreatorShares, numFillerTokens, numFillerShares,
-    } = tradeData;
-    frozenFundEvent = {
-      creatorOrFiller: userIsCreatorOrFiller,
-      longOrShort: userIsLongOrShort,
-      realizedProfit,
-      price,
-      numCreatorTokens,
-      numCreatorShares,
-      numFillerTokens,
-      numFillerShares,
-      ...marketsRow,
-    };
+  if (tradeData === undefined) {
+    // tradeData undefined corresponds to a ClaimProceeds event, ie.
+    // updateProfitLoss() called in context of user claiming proceeds.
+    return "ClaimProceeds";
   }
-  return frozenFundEvent;
+
+  // tradeData defined corresponds to a Trade event, ie. updateProfitLoss()
+  // called in context of a user having executed a trade.
+  let userIsLongOrShort: "long" | "short" | undefined;
+  let userIsCreatorOrFiller: "creator" | "filler" | undefined;
+  if (account === tradeData.creator) {
+    userIsCreatorOrFiller = "creator";
+    if (tradeData.orderType === "buy") {
+      userIsLongOrShort = "long";
+    } else {
+      userIsLongOrShort = "short";
+    }
+  } else if (account === tradeData.filler) {
+    userIsCreatorOrFiller = "filler";
+    if (tradeData.orderType === "buy") {
+      userIsLongOrShort = "short";
+    } else {
+      userIsLongOrShort = "long";
+    }
+  } else {
+    throw new Error(`makeFrozenFundsEvent: expected passed trade data to have creator or filler equal to passed account, account=${account} tradeCreator=${tradeData.creator} tradeFiller=${tradeData.filler}`);
+  }
+  const {
+    price, numCreatorTokens, numCreatorShares, numFillerTokens, numFillerShares,
+  } = tradeData;
+  return {
+    creatorOrFiller: userIsCreatorOrFiller,
+    longOrShort: userIsLongOrShort,
+    realizedProfit,
+    price,
+    numCreatorTokens,
+    numCreatorShares,
+    numFillerTokens,
+    numFillerShares,
+    ...marketsRow,
+  };
 }
