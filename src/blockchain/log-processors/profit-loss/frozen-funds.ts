@@ -27,7 +27,7 @@ type ClaimProceeds = "ClaimProceeds";
 // Trade is a type of FrozenFundsEvent corresponding to the user
 // executing a trade on a specific market outcome. An outcome's frozen
 // funds may increase or decrease depending on the details of the trade.
-interface Trade extends
+export interface Trade extends
   Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, // TODO doc
   Pick<TradesRow<BigNumber>, "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares"> { // data associated with this Trade which is required to compute the next FrozenFunds
   longOrShort: "long" | "short"; // "long" if the user was long on this trade (ie. created a buy order, or filled a sell order). "short" if user was short on this trade (ie. created a sell order, or filled a buy order)
@@ -35,7 +35,7 @@ interface Trade extends
   realizedProfit: BigNumber; // denominated in tokens (eg. ETH). Profit which the user realized by executing this trade
 }
 
-interface FrozenFundsParams {
+export interface FrozenFundsParams {
   frozenFundsBeforeEvent: FrozenFunds; // FrozenFunds prior to processing this FrozenFundsEvent
   event: FrozenFundsEvent; // FrozenFundsEvent to process and return updated FrozenFunds as impacted by this event
 }
