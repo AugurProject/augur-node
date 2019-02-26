@@ -5,7 +5,7 @@ import * as Knex from "knex";
 import * as _ from "lodash";
 import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { ZERO } from "../../constants";
-import { Address, OutcomeParam, SortLimitParams } from "../../types";
+import { Address, OutcomeParam, SortLimitParams, MarketsRow } from "../../types";
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
@@ -24,13 +24,13 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
-export interface TradingPosition extends ProfitLossResult, FrozenFunds {
+export interface TradingPosition extends ProfitLossResult, FrozenFunds { // TODO doc FrozenFunds per outcome
   position: string;
 }
 
 export interface GetUserTradingPositionsResponse {
   tradingPositions: Array<TradingPosition>;
-  frozenFundsTotal: FrozenFunds;
+  frozenFundsTotal: FrozenFunds; // TODO doc
 }
 
 interface RawPosition {
@@ -78,6 +78,8 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     .andWhere("markets.universe", universeId);
 
   if (params.marketId) rawPositionsQuery.andWhere("markets.marketId", params.marketId);
+
+  const getSumOfMarketValidityBondsPromise = getSumOfMarketValidityBonds(db, params.account); // do this here so that awaits are concurrent
 
   const rawPositions: Array<RawPosition> = await rawPositionsQuery;
 
@@ -140,10 +142,23 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
   };
 
-  // TODO add user's market validity bonds to frozenFundsTotal.frozenFunds
+  // TODO doc
+  frozenFundsTotal.frozenFunds = frozenFundsTotal.frozenFunds.plus(await getSumOfMarketValidityBondsPromise);
 
   return {
     tradingPositions: positions,
     frozenFundsTotal,
   };
+}
+
+// getSumOfMarketValidityBonds returns the sum of all market validity bonds for
+// markets created by the passed marketCreator, denominated in Eth (whole tokens).
+async function getSumOfMarketValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
+  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize">> = await db.select("validityBondSize").from("markets").where({ marketCreator });
+  let totalValidityBonds = ZERO;
+  for (const market of marketsRow) {
+    // TODO Alex - market.validityBondSize is denominated in attoETH, do we have a recommended util function to convert to ETH?
+    totalValidityBonds = totalValidityBonds.plus(market.validityBondSize);
+  }
+  return totalValidityBonds;
 }
