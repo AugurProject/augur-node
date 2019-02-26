@@ -45,7 +45,7 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -54,7 +54,7 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     expect(userTradingPositions[0].netPosition.toString()).toEqual("-7");
     expect(userTradingPositions[0].averagePrice.toString()).toEqual("0.65");
@@ -124,7 +124,7 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -133,7 +133,7 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     expect(userTradingPositions[0].averagePrice.toString()).toEqual("0.6305");
     expect(userTradingPositions[0].netPosition.toString()).toEqual("-3");
@@ -142,7 +142,7 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
   });
 
   it("get the positions for an account which has no trades", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       account: "0x0000000000000000000000000000000000nobody",
       marketId: "0x0000000000000000000000000000000000000002",
       outcome: 1,
@@ -151,7 +151,7 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
       limit: null,
       offset: null,
       endTime: 1544804660,
-    });
+    })).tradingPositions;
 
     expect(userTradingPositions).toEqual([]);
   });
@@ -213,7 +213,7 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -222,7 +222,7 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     const positionA = userTradingPositions[0];
     const positionB = userTradingPositions[1];
@@ -301,7 +301,7 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -310,7 +310,7 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     const positionA = userTradingPositions[0];
     const positionB = userTradingPositions[1];
@@ -403,7 +403,7 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -412,7 +412,7 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     const positionA = userTradingPositions[0];
     const positionB = userTradingPositions[1];
@@ -496,7 +496,7 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
   };
 
   it("get user's full position", async () => {
-    const userTradingPositions = await getUserTradingPositions({
+    const userTradingPositions = (await getUserTradingPositions({
       universe,
       account,
       marketId,
@@ -505,7 +505,7 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
       isSortDescending: null,
       limit: null,
       offset: null,
-    });
+    })).tradingPositions;
 
     expect(userTradingPositions.length).toEqual(1);
 
