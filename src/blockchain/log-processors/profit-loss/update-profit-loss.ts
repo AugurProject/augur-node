@@ -1,7 +1,7 @@
 import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import { ZERO } from "../../../constants";
-import { Address, PayoutNumerators, TradesRow } from "../../../types";
+import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
@@ -59,17 +59,17 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
 
 // If this updateProfitLoss is due to a trade, the passed tradeData
 // must be defined (and be data from this associated trade.)
-export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData?: Pick<TradesRow<BigNumber>, "creator" | "filler" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
+export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
 
   const timestamp = getCurrentTime();
 
-  const minPriceRow: { minPrice: BigNumber } = await db("markets").first("minPrice").where({ marketId });
+  const marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice"> = await db("markets").first("minPrice", "maxPrice").where({ marketId });
 
-  price = price.minus(minPriceRow.minPrice);
+  price = price.minus(marketsRow.minPrice);
 
   const lastData: UpdateData = await db
-    .first(["price", "position", "profit", "frozenFunds", "frozenProfit"])
+    .first(["price", "position", "profit", "frozenFunds"])
     .from("wcl_profit_loss_timeseries")
     .where({ account, marketId, outcome })
     .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
@@ -78,7 +78,6 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   let oldPrice = lastData ? lastData.price : ZERO;
   const oldProfit = lastData ? lastData.profit : ZERO;
   const oldFrozenFunds = lastData ? lastData.frozenFunds : ZERO;
-  const oldFrozenProfit = lastData ? lastData.frozenProfit : ZERO;
 
   let profit = oldProfit;
 
@@ -107,10 +106,8 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
     frozenFundsBeforeEvent: {
       frozenFunds: oldFrozenFunds,
-      frozenProfit: oldFrozenProfit,
     },
-    // TODO Alex - is this right profit from "frozenProfit += available_funds decreased ? realized PL : 0"?
-    event: makeFrozenFundsEvent(account, profit, tradeData),
+    event: makeFrozenFundsEvent(account, profit, marketsRow, tradeData),
   });
 
   const insertData = {
@@ -125,7 +122,6 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     blockNumber,
     logIndex,
     frozenFunds: nextFrozenFunds.frozenFunds.toString(),
-    frozenProfit: nextFrozenFunds.frozenProfit.toString(),
   };
 
   await db.insert(insertData).into("wcl_profit_loss_timeseries");
@@ -143,21 +139,42 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
 // loss requires updating. We'll use tradeData to build a FrozenFundsEvent of type
 // Trade, which requires realizedProfit, and that's why the FrozenFundsEvent is
 // constructed here after the realizedProfit is computed by updateProfitLoss().
-function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, tradeData?: Pick<TradesRow<BigNumber>, "creator" | "filler" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
+// TODO unit test
+function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
   let frozenFundEvent: FrozenFundsEvent = "ClaimProceeds";
   if (tradeData !== undefined) {
+    let userIsLongOrShort: "long" | "short" | undefined;
     let userIsCreatorOrFiller: "creator" | "filler" | undefined;
     if (account === tradeData.creator) {
       userIsCreatorOrFiller = "creator";
+      if (tradeData.orderType === "buy") {
+        userIsLongOrShort = "long";
+      } else {
+        userIsLongOrShort = "short";
+      }
     } else if (account === tradeData.filler) {
       userIsCreatorOrFiller = "filler";
+      if (tradeData.orderType === "buy") {
+        userIsLongOrShort = "short";
+      } else {
+        userIsLongOrShort = "long";
+      }
     } else {
       throw new Error(`makeFrozenFundsEvent: expected passed trade data to have creator or filler equal to passed account, account=${account} tradeCreator=${tradeData.creator} tradeFiller=${tradeData.filler}`);
     }
+    const {
+      price, numCreatorTokens, numCreatorShares, numFillerTokens, numFillerShares,
+    } = tradeData;
     frozenFundEvent = {
       creatorOrFiller: userIsCreatorOrFiller,
+      longOrShort: userIsLongOrShort,
       realizedProfit,
-      tradeData,
+      price,
+      numCreatorTokens,
+      numCreatorShares,
+      numFillerTokens,
+      numFillerShares,
+      ...marketsRow,
     };
   }
   return frozenFundEvent;

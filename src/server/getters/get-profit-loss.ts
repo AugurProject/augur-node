@@ -24,7 +24,6 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     profit: ZERO,
     minPrice: ZERO,
     frozenFunds: ZERO,
-    frozenProfit: ZERO,
   };
 }
 
@@ -221,7 +220,6 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       outcome,
       marketId,
       frozenFunds: outcomePl.frozenFunds,
-      frozenProfit: outcomePl.frozenProfit,
     };
   });
   return _.sortBy(unsortedResults, "outcome")!;
@@ -340,7 +338,6 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       netPosition: ZERO,
       marketId: "",
       frozenFunds: ZERO,
-      frozenProfit: ZERO,
     }));
   }
 
@@ -388,9 +385,7 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       averagePrice: startProfit.averagePrice,
       outcome: startProfit.outcome,
       marketId: startProfit.marketId,
-      // TODO Alex - are these right?
-      frozenFunds: startProfit.frozenFunds,
-      frozenProfit: startProfit.frozenProfit,
+      frozenFunds: startProfit.frozenFunds.negated(),
     };
 
     result[days] = sumProfitLossResults(endProfit, negativeStartProfit);

@@ -126,7 +126,6 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       unrealized: ZERO,
       total: ZERO,
       timestamp: 0,
-      frozenProfit: ZERO,
       frozenFunds: ZERO,
     };
   });
@@ -138,7 +137,6 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
   }
 
   const frozenFundsTotal: FrozenFunds = {
-    frozenProfit: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenProfit), ZERO),
     frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
   };
 

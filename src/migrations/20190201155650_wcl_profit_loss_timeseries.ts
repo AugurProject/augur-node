@@ -31,7 +31,6 @@ exports.up = async (knex: Knex): Promise<any> => {
     table.string("position", 42).notNullable();
     table.string("profit", 255).defaultTo("0");
     table.string("frozenFunds", 255).defaultTo("0");
-    table.string("frozenProfit", 255).defaultTo("0");
     table.string("transactionHash", 66).notNullable();
     table.specificType("timestamp", "integer NOT NULL CONSTRAINT nonnegativeTimestamp CHECK (\"timestamp\" >= 0)");
     table.specificType("logIndex", "integer NOT NULL CONSTRAINT \"nonnegativelogIndex\" CHECK (\"logIndex\" >= 0)");
