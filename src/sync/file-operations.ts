@@ -105,4 +105,5 @@ async function copyRunDbFixerScript(dbFileNamePath: string, backupDbPath: string
     useNullAsDefault: true,
   });
   await db.raw("update knex_migrations set name = substr(name,1, length(name)-2) || 'js';");
+  await db.destroy();
 }
