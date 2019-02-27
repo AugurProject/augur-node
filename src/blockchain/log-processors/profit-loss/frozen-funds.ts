@@ -63,7 +63,7 @@ export function getFrozenFundsAfterEventForOneOutcome(params: FrozenFundsParams)
   // sent/received, so we have to transform trade details into
   // the actual quantity of tokens the user sent or received.
   const mySharesSent = trade.creatorOrFiller === "creator" ? trade.numCreatorShares : trade.numFillerShares;
-  const tokensReceivedPrice = trade.longOrShort === "long" ? trade.price : trade.maxPrice.minus(trade.price);
+  const tokensReceivedPrice = trade.longOrShort === "short" ? trade.price : trade.maxPrice.minus(trade.price);
   const myTokensReceived = mySharesSent.multipliedBy(tokensReceivedPrice);
   const myTokensSent = trade.creatorOrFiller === "creator" ? trade.numCreatorTokens : trade.numFillerTokens;
 
@@ -73,13 +73,15 @@ export function getFrozenFundsAfterEventForOneOutcome(params: FrozenFundsParams)
   frozenFundsAfterEvent = frozenFundsAfterEvent.minus(myTokensReceived);
   frozenFundsAfterEvent = frozenFundsAfterEvent.plus(myTokensSent);
 
-  if (frozenFundsAfterEvent.isGreaterThanOrEqualTo(
-    params.frozenFundsBeforeEvent.frozenFunds)) {
-    // Frozen profit is profit or loss which is not available in the user's funds
-    // as it only applied in the context of adjusting the entry into a new position.
-    // It's not profit that you could claim but haven't, that's _unrealized_ profit.
-    frozenFundsAfterEvent = frozenFundsAfterEvent.plus(trade.realizedProfit);
-  }
+  // Frozen profit is profit or loss which is not available in the user's funds
+  // as it only applied in the context of adjusting the entry into a new position.
+  // It's not profit that you could claim but haven't, that's _unrealized_ profit.
+  // As an example of why realizedProfit must be added to frozen funds, imagine
+  // the user bought X shares for 10 tokens, and then sold those shares for 15
+  // tokens, at a profit of 5 tokens. Without including profit in the frozen funds
+  // calculation, the user would have -5 frozen funds (10 tokens out, 15 tokens in);
+  // we must include the profit to reach the correct frozen funds value of zero.
+  frozenFundsAfterEvent = frozenFundsAfterEvent.plus(trade.realizedProfit);
 
   return {
     frozenFunds: frozenFundsAfterEvent,
