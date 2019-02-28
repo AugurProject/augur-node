@@ -63,8 +63,8 @@ export function getFrozenFundsAfterEventForOneOutcome(params: FrozenFundsParams)
   // sent/received, so we have to transform trade details into
   // the actual quantity of tokens the user sent or received.
   const mySharesSent = trade.creatorOrFiller === "creator" ? trade.numCreatorShares : trade.numFillerShares;
-  const tokensReceivedPrice = trade.longOrShort === "short" ? trade.price : trade.maxPrice.minus(trade.price);
-  const myTokensReceived = mySharesSent.multipliedBy(tokensReceivedPrice);
+  const priceReceivedForMySharesSent = trade.longOrShort === "short" ? trade.price.minus(trade.minPrice) : trade.maxPrice.minus(trade.price);
+  const myTokensReceived = mySharesSent.multipliedBy(priceReceivedForMySharesSent);
   const myTokensSent = trade.creatorOrFiller === "creator" ? trade.numCreatorTokens : trade.numFillerTokens;
 
   // Tokens received are subtracted from frozen funds because the
