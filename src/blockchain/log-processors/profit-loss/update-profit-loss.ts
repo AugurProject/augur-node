@@ -107,7 +107,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     frozenFundsBeforeEvent: {
       frozenFunds: oldFrozenFunds,
     },
-    event: makeFrozenFundsEvent(account, profit, marketsRow, tradeData),
+    event: makeFrozenFundsEvent(account, profit.minus(oldProfit), marketsRow, tradeData),
   });
 
   const insertData = {
@@ -139,7 +139,7 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
 // loss requires updating. We'll use tradeData to build a FrozenFundsEvent of type
 // Trade, which requires realizedProfit, and that's why the FrozenFundsEvent is
 // constructed here after the realizedProfit is computed by updateProfitLoss().
-function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
+function makeFrozenFundsEvent(account: Address, realizedProfitDelta: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
   if (tradeData === undefined) {
     // tradeData undefined corresponds to a ClaimProceeds event, ie.
     // updateProfitLoss() called in context of user claiming proceeds.
@@ -173,7 +173,7 @@ function makeFrozenFundsEvent(account: Address, realizedProfit: BigNumber, marke
   return {
     creatorOrFiller: userIsCreatorOrFiller,
     longOrShort: userIsLongOrShort,
-    realizedProfit,
+    realizedProfitDelta,
     price,
     numCreatorTokens,
     numCreatorShares,

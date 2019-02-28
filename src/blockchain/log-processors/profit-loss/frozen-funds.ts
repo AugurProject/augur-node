@@ -33,7 +33,7 @@ export interface Trade extends
   Pick<TradesRow<BigNumber>, "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares"> { // data associated with this Trade
   longOrShort: "long" | "short"; // "long" if the user was long on this trade (ie. created a buy order, or filled a sell order). "short" if user was short on this trade (ie. created a sell order, or filled a buy order)
   creatorOrFiller: "creator" | "filler"; // "creator" if the user was the creator of the Order to which this Trade belongs. "filler" if the user filled another creator's Order
-  realizedProfit: BigNumber; // denominated in tokens (eg. ETH). Profit which the user realized by executing this trade
+  realizedProfitDelta: BigNumber; // denominated in tokens (eg. ETH). Profit which the user realized by executing this trade
 }
 
 export interface FrozenFundsParams {
@@ -81,7 +81,7 @@ export function getFrozenFundsAfterEventForOneOutcome(params: FrozenFundsParams)
   // tokens, at a profit of 5 tokens. Without including profit in the frozen funds
   // calculation, the user would have -5 frozen funds (10 tokens out, 15 tokens in);
   // we must include the profit to reach the correct frozen funds value of zero.
-  frozenFundsAfterEvent = frozenFundsAfterEvent.plus(trade.realizedProfit);
+  frozenFundsAfterEvent = frozenFundsAfterEvent.plus(trade.realizedProfitDelta);
 
   return {
     frozenFunds: frozenFundsAfterEvent,
