@@ -114,7 +114,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
   // Show outcomes with just a raw position if they have some quantity not accounted for via trades (e.g manual transfers)
   const rawPositionOnlyToShow = _.filter(rawPositionsMapping, (rawPosition) => {
     const largestShort = marketToLargestShort[rawPosition.marketId];
-    return !rawPosition.seen && largestShort.abs().lt(rawPosition.balance);
+    return !rawPosition.seen && largestShort && largestShort.abs().lt(rawPosition.balance);
   });
 
   const noPLPositions: Array<TradingPosition> = _.map(rawPositionOnlyToShow, (rawPosition) => {
