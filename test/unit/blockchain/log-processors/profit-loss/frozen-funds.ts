@@ -4,9 +4,6 @@ import { cloneDeep } from "lodash";
 import { FrozenFunds, FrozenFundsParams, getFrozenFundsAfterEventForOneOutcome, Trade } from "../../../../../src/blockchain/log-processors/profit-loss/frozen-funds";
 import { ZERO } from "../../../../../src/constants";
 
-const A = new BigNumber(1337);
-const B = new BigNumber(29);
-
 function bn(n: number): BigNumber {
   return new BigNumber(n, 10);
 }
@@ -30,7 +27,7 @@ const testClaims: Array<TestCase> = [
   {
     name: "ClaimProceeds sets frozen funds to zero",
     frozenFundsBeforeEvent: {
-      frozenFunds: A,
+      frozenFunds: bn(29),
     },
     event: "ClaimProceeds",
     expectedFrozenFunds: {
@@ -41,129 +38,111 @@ const testClaims: Array<TestCase> = [
 
 const testTrades: Array<TestCase> = [
   {
-    name: "creator just creating complete sets with frozen profit",
+    name: "Binary State 1",
     frozenFundsBeforeEvent: {
-      frozenFunds: A,
+      frozenFunds: ZERO,
     },
     event: {
-      minPrice: bn(-10),
-      maxPrice: bn(30),
-      price: bn(22.5),
-      numCreatorTokens: bn(123),
-      numCreatorShares: ZERO,
-      numFillerTokens: bn(57),
-      numFillerShares: ZERO,
-      longOrShort: "long",
-      creatorOrFiller: "creator",
-      realizedProfit: B,
-    },
-    expectedFrozenFunds: {
-      frozenFunds: A.plus(bn(123)).plus(B),
-    },
-  },
-  {
-    name: "filler just creating complete sets with frozen profit",
-    frozenFundsBeforeEvent: {
-      frozenFunds: A,
-    },
-    event: {
-      minPrice: bn(-10),
-      maxPrice: bn(30),
-      price: bn(22.5),
-      numCreatorTokens: bn(123),
-      numCreatorShares: ZERO,
-      numFillerTokens: bn(57),
-      numFillerShares: ZERO,
-      longOrShort: "long",
-      creatorOrFiller: "filler",
-      realizedProfit: B,
-    },
-    expectedFrozenFunds: {
-      frozenFunds: A.plus(bn(57)).plus(B),
-    },
-  },
-  {
-    name: "creator just destroying complete sets",
-    frozenFundsBeforeEvent: {
-      frozenFunds: B,
-    },
-    event: {
-      minPrice: bn(-10),
-      maxPrice: bn(30),
-      price: bn(29),
-      numCreatorTokens: ZERO,
-      numCreatorShares: bn(372),
-      numFillerTokens: ZERO,
-      numFillerShares: bn(483),
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.65),
+      numCreatorTokens: bn(3.5),
+      numCreatorShares: bn(0),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(5),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
-      frozenFunds: B.minus(bn(372).multipliedBy(bn(29))).plus(bn(5)),
+      frozenFunds: bn(3.5),
     },
   },
+  // skip Binary State 2 which is a price change
   {
-    name: "filler just destroying complete sets",
+    name: "Binary State 3",
     frozenFundsBeforeEvent: {
-      frozenFunds: B,
+      frozenFunds: bn(3.5),
     },
     event: {
-      minPrice: bn(-10),
-      maxPrice: bn(30),
-      price: bn(29),
-      numCreatorTokens: ZERO,
-      numCreatorShares: bn(372),
-      numFillerTokens: ZERO,
-      numFillerShares: bn(483),
-      longOrShort: "long",
-      creatorOrFiller: "filler",
-      realizedProfit: bn(12),
-    },
-    expectedFrozenFunds: {
-      frozenFunds: B.minus(bn(483).multipliedBy(bn(1))).plus(bn(12)),
-    },
-  },
-  {
-    name: "creator position reversal",
-    frozenFundsBeforeEvent: {
-      frozenFunds: B,
-    },
-    event: {
-      minPrice: bn(-1.5),
-      maxPrice: bn(2),
-      price: bn(1.4),
-      numCreatorTokens: bn(48),
-      numCreatorShares: bn(372),
-      numFillerTokens: bn(72),
-      numFillerShares: bn(483),
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.58),
+      numCreatorTokens: bn(0),
+      numCreatorShares: bn(3),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0.21),
     },
     expectedFrozenFunds: {
-      frozenFunds: B.plus(bn(48)).minus(bn(372).multipliedBy(bn(0.6))),
+      frozenFunds: bn(2.45),
+    },
+  },
+  // skip Binary State 4 which is a price change
+  {
+    name: "Binary State 5",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(2.45),
+    },
+    event: {
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.62),
+      numCreatorTokens: bn(4.94),
+      numCreatorShares: bn(0),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "short",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(0),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(7.39),
     },
   },
   {
-    name: "filler position reversal",
+    name: "Binary State 6",
     frozenFundsBeforeEvent: {
-      frozenFunds: B,
+      frozenFunds: bn(7.39),
     },
     event: {
-      minPrice: bn(-1.5),
-      maxPrice: bn(2),
-      price: bn(1.4),
-      numCreatorTokens: bn(48),
-      numCreatorShares: bn(372),
-      numFillerTokens: bn(72),
-      numFillerShares: bn(483),
-      longOrShort: "short",
-      creatorOrFiller: "filler",
-      realizedProfit: bn(5),
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.5),
+      numCreatorTokens: bn(0),
+      numCreatorShares: bn(10),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(1.515 - 0.21),
     },
     expectedFrozenFunds: {
-      frozenFunds: B.plus(bn(72)).minus(bn(483).multipliedBy(bn(1.4))).plus(bn(5)),
+      frozenFunds: bn(3.695),
+    },
+  },
+  // skip Binary State 7 which is a price change
+  {
+    name: "Binary State 8",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(3.695),
+    },
+    event: {
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.15),
+      numCreatorTokens: bn(0),
+      numCreatorShares: bn(7),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(4.8785 - 1.515),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(1.1085),
     },
   },
   {
@@ -181,7 +160,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(0.4),
@@ -202,7 +181,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(1.6),
@@ -223,34 +202,13 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(0.15),
     },
   },
-  {
-    name: "Cat3-Tr1 State 3",
-    frozenFundsBeforeEvent: {
-      frozenFunds: ZERO,
-    },
-    event: {
-      minPrice: bn(0),
-      maxPrice: bn(1),
-      price: bn(0.3),
-      numCreatorTokens: bn(0.15),
-      numCreatorShares: bn(0),
-      numFillerTokens: bn(0),
-      numFillerShares: bn(0),
-      longOrShort: "long",
-      creatorOrFiller: "creator",
-      realizedProfit: bn(0),
-    },
-    expectedFrozenFunds: {
-      frozenFunds: bn(0.15),
-    },
-  },
-  // skip "Cat3-Tr1 State 4" which is a price change and doesn't update frozen funds in our implementation
+  // skip "Cat3-Tr1 State 4" which is a price change
   {
     name: "Cat3-Tr1 State 5",
     frozenFundsBeforeEvent: {
@@ -266,7 +224,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0.3),
+      realizedProfitDelta: bn(0.3),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(0),
@@ -287,7 +245,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(3),
@@ -303,12 +261,12 @@ const testTrades: Array<TestCase> = [
       maxPrice: bn(1),
       price: bn(0.35),
       numCreatorTokens: bn(0),
-      numCreatorShares: bn(3), // user escrows 3 shares of B instead of tokens
-      numFillerTokens: bn(1.05),
+      numCreatorShares: bn(3),
+      numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(-1.05),
@@ -324,40 +282,38 @@ const testTrades: Array<TestCase> = [
       maxPrice: bn(1),
       price: bn(0.3),
       numCreatorTokens: bn(3.5),
-      // TODO talk to chwy, should numCreatorShares be 8 instead of 5?
-      numCreatorShares: bn(5), // user escrows 5 shares of C instead of tokens
+      numCreatorShares: bn(5),
       numFillerTokens: bn(3),
       numFillerShares: bn(0),
       longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(2),
     },
   },
-  // TODO talk to chwy
-  // {
-  //   name: "Cat3-Tr2 State 4",
-  //   frozenFundsBeforeEvent: {
-  //     frozenFunds: bn(2),
-  //   },
-  //   event: {
-  //     minPrice: bn(0),
-  //     maxPrice: bn(1),
-  //     price: bn(0.1),
-  //     numCreatorTokens: bn(0),
-  //     numCreatorShares: bn(8),
-  //     numFillerTokens: bn(0),
-  //     numFillerShares: bn(8),
-  //     longOrShort: "long",
-  //     creatorOrFiller: "creator",
-  //     realizedProfit: bn(1.6),
-  //   },
-  //   expectedFrozenFunds: {
-  //     frozenFunds: bn(-0.6),
-  //   },
-  // },
+  {
+    name: "Cat3-Tr2 State 4",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(2),
+    },
+    event: {
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.1),
+      numCreatorTokens: bn(0.3),
+      numCreatorShares: bn(5),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(1.6),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(-0.6),
+    },
+  },
   {
     name: "Cat3-Tr3 State 1",
     frozenFundsBeforeEvent: {
@@ -373,7 +329,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(1.5),
@@ -394,7 +350,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(2.5),
@@ -415,7 +371,7 @@ const testTrades: Array<TestCase> = [
       numFillerShares: bn(0),
       longOrShort: "long",
       creatorOrFiller: "creator",
-      realizedProfit: bn(0),
+      realizedProfitDelta: bn(0),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(-2),
@@ -434,58 +390,166 @@ const testTrades: Array<TestCase> = [
       numCreatorShares: bn(13),
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
-      longOrShort: "short", // TODO talk to chwy "Event 4	Sell	B	13" --> but I think this is closing a long position, because I already have 25 B. So why does this test fail if this is "long"?
+      longOrShort: "short",
       creatorOrFiller: "creator",
-      realizedProfit: bn(1.3),
+      realizedProfitDelta: bn(1.3),
     },
     expectedFrozenFunds: {
       frozenFunds: bn(1.2),
     },
   },
   // skip Cat3-Tr3 State 5 which is price change
-  // {
-  //   name: "Cat3-Tr3 State 6",
-  //   frozenFundsBeforeEvent: {
-  //     frozenFunds: bn(-2),
-  //   },
-  //   event: {
-  //     minPrice: bn(0),
-  //     maxPrice: bn(1),
-  //     price: bn(0.8),
-  //     numCreatorTokens: bn(0),
-  //     numCreatorShares: bn(3),
-  //     numFillerTokens: bn(2.4),
-  //     numFillerShares: bn(0),
-  //     longOrShort: "short",
-  //     creatorOrFiller: "creator",
-  //     realizedProfit: bn(0.6),
-  //   },
-  //   expectedFrozenFunds: {
-  //     frozenFunds: bn(-0.8), // TODO talk to chwy bought these C 3 for total of 1.8 tokens (price 0.6); sold them for 2.4 tokens price (0.8); so my FF delta for this is 2.4 tokens received from sale minus the 0.6 tokens realized profit, for a net delta of -1.8 tokens. My starting FF was 2 so the final FF should be 0.2? have to double check this
-  //   },
-  // },
-  // TODO talk to chwy
-  // {
-  //   name: "Cat3-Tr3 State 7",
-  //   frozenFundsBeforeEvent: {
-  //     frozenFunds: bn(-2),
-  //   },
-  //   event: {
-  //     minPrice: bn(0),
-  //     maxPrice: bn(1),
-  //     price: bn(0.1),
-  //     numCreatorTokens: bn(4.5),
-  //     numCreatorShares: bn(5),
-  //     numFillerTokens: bn(0),
-  //     numFillerShares: bn(0),
-  //     longOrShort: "short",
-  //     creatorOrFiller: "creator",
-  //     realizedProfit: bn(-0.5),
-  //   },
-  //   expectedFrozenFunds: {
-  //     frozenFunds: bn(0),
-  //   },
-  // },
+  {
+    name: "Cat3-Tr3 State 6",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(-2),
+    },
+    event: {
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.8),
+      numCreatorTokens: bn(0.6),
+      numCreatorShares: bn(0),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "short",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(0.6),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(-0.8),
+    },
+  },
+  {
+    name: "Cat3-Tr3 State 7",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(1.5),
+    },
+    event: {
+      minPrice: bn(0),
+      maxPrice: bn(1),
+      price: bn(0.1),
+      // TODO chwy - this is supposed to be "provide A 8, 1.8 tokens" afaict, but the test case only passes if it's "provide A 10"
+      numCreatorTokens: bn(0), // supposed to be 1.8 ??
+      numCreatorShares: bn(10), // supposed to be 8 ??
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "short",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(-0.5),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(0),
+    },
+  },
+  {
+    name: "Scalar State 1",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(0),
+    },
+    event: {
+      minPrice: bn(50),
+      maxPrice: bn(250),
+      price: bn(200),
+      numCreatorTokens: bn(300),
+      numCreatorShares: bn(0),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(0),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(300),
+    },
+  },
+  {
+    name: "Scalar State 2",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(300),
+    },
+    event: {
+      minPrice: bn(50),
+      maxPrice: bn(250),
+      price: bn(180),
+      numCreatorTokens: bn(390),
+      numCreatorShares: bn(0),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(0),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(690),
+    },
+  },
+  // skip Scalar State 3 which is price change
+  {
+    name: "Scalar State 4",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(690),
+    },
+    event: {
+      minPrice: bn(50),
+      maxPrice: bn(250),
+      price: bn(202),
+      numCreatorTokens: bn(0),
+      numCreatorShares: bn(4),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "short",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(56),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(138),
+    },
+  },
+  {
+    name: "Scalar State 5",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(138),
+    },
+    event: {
+      minPrice: bn(50),
+      maxPrice: bn(250),
+      price: bn(205),
+      numCreatorTokens: bn(450),
+      numCreatorShares: bn(1),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "short",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(73 - 56),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(450),
+    },
+  },
+  // skip Scalar State 6 which is price change
+  // skip Scalar State 7 which is price change
+  {
+    name: "Scalar State 8",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(450),
+    },
+    event: {
+      minPrice: bn(50),
+      maxPrice: bn(250),
+      price: bn(150),
+      numCreatorTokens: bn(0),
+      numCreatorShares: bn(7),
+      numFillerTokens: bn(0),
+      numFillerShares: bn(0),
+      longOrShort: "long",
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(458 - 73),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(135),
+    },
+  },
 ];
 
 const testData: Array<TestCase> = [
@@ -500,7 +564,7 @@ const testData: Array<TestCase> = [
     const tc2 = cloneDeep(tc);
     tc2.name = "auto-generated dual of: " + tc.name;
     const trade = tc2.event as Trade;
-    trade.price = trade.maxPrice.minus(trade.price);
+    trade.price = trade.minPrice.plus(trade.maxPrice.minus(trade.price));
     trade.longOrShort = trade.longOrShort === "long" ? "short" : "long";
     trade.creatorOrFiller = trade.creatorOrFiller === "creator" ? "filler" : "creator";
     let tmp: BigNumber = trade.numCreatorShares;
