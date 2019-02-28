@@ -79,7 +79,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   if (params.marketId) rawPositionsQuery.andWhere("markets.marketId", params.marketId);
 
-  const getSumOfMarketValidityBondsPromise = getSumOfMarketValidityBonds(db, params.account); // do this here so that awaits are concurrent
+  const getSumOfMarketValidityBondsPromise = getEthEscrowedInValidityBonds(db, params.account); // do this here so that awaits are concurrent
 
   const rawPositions: Array<RawPosition> = await rawPositionsQuery;
 
@@ -153,9 +153,10 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
   };
 }
 
-// getSumOfMarketValidityBonds returns the sum of all market validity bonds for
-// markets created by the passed marketCreator, denominated in Eth (whole tokens).
-async function getSumOfMarketValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
+// getEthEscrowedInValidityBonds returns the sum of all market validity bonds for
+// non-finalized markets created by the passed marketCreator. Ie. how much ETH
+// this creator has escrowed in validity bonds. Denominated in Eth (whole tokens).
+async function getEthEscrowedInValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
   const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize"> > = await db.select("validityBondSize", "reportingState").from("markets")
     .leftJoin("market_state", "markets.marketStateId", "market_state.marketStateId")
     .whereNot({ reportingState: ReportingState.FINALIZED })
