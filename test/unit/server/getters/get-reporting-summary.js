@@ -26,7 +26,7 @@ describe("server/getters/get-reporting-summary", () => {
     assertions: (reportingSummary) => {
       expect(reportingSummary).toEqual({
         "AWAITING_FINALIZATION": 1,
-        "DESIGNATED_REPORTING": 10,
+        "DESIGNATED_REPORTING": 12,
         "CROWDSOURCING_DISPUTE": 2,
         "FINALIZED": 1,
         "PRE_REPORTING": 1,

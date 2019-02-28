@@ -51,7 +51,7 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
     const numFillerShares = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(log.numFillerShares, 10), tickSize);
     const marketCreatorFees = fixedPointToDecimal(new BigNumber(log.marketCreatorFees, 10), BN_WEI_PER_ETHER);
     const reporterFees = fixedPointToDecimal(new BigNumber(log.reporterFees, 10), BN_WEI_PER_ETHER);
-    const tradeData = formatBigNumberAsFixed<TradesRow<BigNumber>, TradesRow<string>>({
+    const tradesRowBigNumber: TradesRow<BigNumber> = {
       marketId,
       outcome,
       orderId,
@@ -71,9 +71,10 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
       amount,
       marketCreatorFees,
       reporterFees,
-    });
-    augurEmitter.emit(SubscriptionEventNames.OrderFilled, Object.assign({}, log, tradeData));
-    await db.insert(tradeData).into("trades");
+    };
+    const tradesRowString = formatBigNumberAsFixed<TradesRow<BigNumber>, TradesRow<string>>(tradesRowBigNumber);
+    augurEmitter.emit(SubscriptionEventNames.OrderFilled, Object.assign({}, log, tradesRowString));
+    await db.insert(tradesRowString).into("trades");
 
     await updateVolumetrics(db, augur, category, marketId, outcome, blockNumber, orderId, orderCreator, tickSize, minPrice, maxPrice, true);
 
@@ -83,8 +84,8 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
       await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, price);
     }
 
-    await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex);
-    await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, outcome, price, log.transactionHash, log.blockNumber, log.logIndex);
+    await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
+    await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
   };
 }
 
