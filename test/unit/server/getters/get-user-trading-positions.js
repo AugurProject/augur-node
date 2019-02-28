@@ -469,9 +469,8 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
       filler: account,
       orderId: "BUY_A_0.1",
       amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
-      // TODO chwy - this is supposed to be "provide A 8, 1.8 tokens" afaict, but the test case only passes if it's "provide A 10"
-      numFillerTokens: ZERO, //ethToWei(bn(1.8)),
-      numFillerShares: new BigNumber(10).pow(14).multipliedBy(10), // should be 8
+      numFillerTokens: ethToWei(bn(1.8)),
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(8),
     }),
   ];
 
@@ -511,7 +510,7 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(positionA.averagePrice.toString()).toEqual("0");
     expect(positionA.unrealized.toString()).toEqual("0");
     expect(positionA.realized.toString()).toEqual("-0.5");
-    expect(positionA.frozenFunds.toString()).toEqual("0");
+    expect(positionA.frozenFunds.toString()).toEqual("2");
 
     expect(positionB.netPosition.toString()).toEqual("12");
     expect(positionB.averagePrice.toString()).toEqual("0.1");
@@ -525,8 +524,7 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(positionC.realized.toString()).toEqual("0.6");
     expect(positionC.frozenFunds.toString()).toEqual("-0.8");
 
-    // TODO chwy this passes with "0.4" but the value from sheet is "2.4"; the FF for all outcomes changes in this last State; frozen funds should only change for traded outcome, right?
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(0.4).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(2.4).plus(validityBondSumInEth).toString());
   });
 });
 

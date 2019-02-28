@@ -429,9 +429,8 @@ const testTrades: Array<TestCase> = [
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.1),
-      // TODO chwy - this is supposed to be "provide A 8, 1.8 tokens" afaict, but the test case only passes if it's "provide A 10"
-      numCreatorTokens: bn(0), // supposed to be 1.8 ??
-      numCreatorShares: bn(10), // supposed to be 8 ??
+      numCreatorTokens: bn(1.8),
+      numCreatorShares: bn(8),
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
@@ -439,7 +438,7 @@ const testTrades: Array<TestCase> = [
       realizedProfitDelta: bn(-0.5),
     },
     expectedFrozenFunds: {
-      frozenFunds: bn(0),
+      frozenFunds: bn(2),
     },
   },
   {
