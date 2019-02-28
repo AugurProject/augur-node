@@ -5,7 +5,7 @@ import * as Knex from "knex";
 import * as _ from "lodash";
 import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { ZERO, BN_WEI_PER_ETHER } from "../../constants";
-import { Address, OutcomeParam, SortLimitParams, MarketsRow } from "../../types";
+import { Address, OutcomeParam, SortLimitParams, MarketsRow, ReportingState } from "../../types";
 import { numTicksToTickSize, fixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
@@ -156,7 +156,10 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 // getSumOfMarketValidityBonds returns the sum of all market validity bonds for
 // markets created by the passed marketCreator, denominated in Eth (whole tokens).
 async function getSumOfMarketValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
-  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize">> = await db.select("validityBondSize").from("markets").where({ marketCreator });
+  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize"> > = await db.select("validityBondSize", "reportingState").from("markets")
+    .leftJoin("market_state", "markets.marketStateId", "market_state.marketStateId")
+    .whereNot({ reportingState: ReportingState.FINALIZED })
+    .where({ marketCreator });
   let totalValidityBonds = ZERO;
   for (const market of marketsRow) {
     // market.validityBondSize is in attoETH and totalValidityBonds is in ETH

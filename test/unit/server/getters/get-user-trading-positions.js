@@ -4,6 +4,7 @@ const { BigNumber } = require("bignumber.js");
 const { setupTestDb, makeLogFactory } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
 const processBlock= require("src/blockchain/process-block");
+const { updateMarketState } = require("src/blockchain/log-processors/database");
 const { BN_WEI_PER_ETHER, ZERO } = require("src/constants");
 
 function bn(n) {
@@ -622,5 +623,67 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     expect(tradingPositions[0].frozenFunds.toString()).toEqual("135");
 
     expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(135).plus(validityBondSumInEth).toString());
+  });
+});
+
+describe("server/getters/get-user-trading-positions frozenFundsTotal ignores validityBondSize from finalized market", () => {
+  let db;
+  var augur = new Augur();
+  var universe = "0x000000000000000000000000000000000000000b";
+  var logFactory = makeLogFactory(universe);
+  var account = "0x0000000000000000000000000000000000b0b001";
+  var marketId = "0x000000000000000000000000000000000000021c";
+
+  beforeEach(async () => {
+    processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
+    db = await setupTestDb(augur, [], logFactory.getBlockDetails(), true);
+  });
+
+  afterEach(async () => {
+    await db.destroy();
+  });
+
+  const getUserTradingPositions = async (params) => {
+    return JSON.parse(JSON.stringify(await dispatchJsonRpcRequest(db, { method: "getUserTradingPositions", params }, augur)));
+  };
+
+  it("get user's full position with no finalized market", async () => {
+    const {
+      frozenFundsTotal,
+    } = await getUserTradingPositions({
+      universe,
+      account,
+      marketId,
+      outcome: null,
+      sortBy: null,
+      isSortDescending: null,
+      limit: null,
+      offset: null,
+    });
+
+    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(validityBondSumInEth.toString());
+  });
+
+  it("get user's full position, ignoring a finalized market", async () => {
+    await updateMarketState(db,
+      "0x100000000000000000001339000a000000000001",
+      1, augur.constants.REPORTING_STATE.FINALIZED);
+
+    const {
+      frozenFundsTotal,
+    } = await getUserTradingPositions({
+      universe,
+      account,
+      marketId,
+      outcome: null,
+      sortBy: null,
+      isSortDescending: null,
+      limit: null,
+      offset: null,
+    });
+
+    const validityBondSizeEthFromFinalizedMarket = bn(0.0128);
+
+    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(validityBondSumInEth.minus(validityBondSizeEthFromFinalizedMarket).toString());
   });
 });
