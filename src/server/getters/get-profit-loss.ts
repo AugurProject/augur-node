@@ -1,15 +1,13 @@
+import { Augur } from "augur.js";
+import BigNumber from "bignumber.js";
 import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
 import { Dictionary, NumericDictionary } from "lodash";
-import BigNumber from "bignumber.js";
-import { Augur } from "augur.js";
+import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { getCurrentTime } from "../../blockchain/process-block";
-
 import { ZERO } from "../../constants";
-import {
-  Address,
-  } from "../../types";
+import { Address } from "../../types";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
 
@@ -25,6 +23,7 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     numOutcomes: 2,
     profit: ZERO,
     minPrice: ZERO,
+    frozenFunds: ZERO,
   };
 }
 
@@ -42,7 +41,7 @@ export interface Timestamped {
   timestamp: number;
 }
 
-export interface ProfitLossTimeseries extends Timestamped {
+export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   account: Address;
   marketId: Address;
   outcome: number;
@@ -61,7 +60,7 @@ export interface OutcomeValueTimeseries extends Timestamped {
   transactionHash: string;
 }
 
-export interface ProfitLossResult extends Timestamped {
+export interface ProfitLossResult extends Timestamped, FrozenFunds {
   netPosition: BigNumber;
   averagePrice: BigNumber;
   realized: BigNumber;
@@ -189,8 +188,8 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
   });
 }
 
-function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries>|null): Array<ProfitLossResult> {
-  const unsortedResults = plsAtTimestamp.map((outcomePl) => {
+function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries> | null): Array<ProfitLossResult> {
+  const unsortedResults: Array<ProfitLossResult> = plsAtTimestamp.map((outcomePl) => {
     const realized = outcomePl!.profit;
     const outcome = outcomePl!.outcome;
     const timestamp = outcomePl!.timestamp;
@@ -220,6 +219,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       averagePrice,
       outcome,
       marketId,
+      frozenFunds: outcomePl.frozenFunds,
     };
   });
   return _.sortBy(unsortedResults, "outcome")!;
@@ -261,21 +261,21 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
   const profitsOverTime = await queryProfitLossTimeseries(db, now, params);
   const marketProfits = _.groupBy(profitsOverTime, (r) => r.marketId);
   const profits: Dictionary<Dictionary<Array<ProfitLossTimeseries>>> = _.reduce(marketProfits, (result, value, key) => {
-    result[key] = _.groupBy(value, (r) => r.outcome );
+    result[key] = _.groupBy(value, (r) => r.outcome);
     return result;
   }, {} as Dictionary<Dictionary<Array<ProfitLossTimeseries>>>);
 
   // Type there are no trades in this window then we'll return empty data
-  if (_.isEmpty(profits))  {
+  if (_.isEmpty(profits)) {
     const buckets = bucketRangeByInterval(params.startTime || 0, params.endTime || now, params.periodInterval);
-    return {profits: {}, outcomeValues: {}, buckets};
+    return { profits: {}, outcomeValues: {}, buckets };
   }
 
   // The value of an outcome over time, for computing unrealized profit and loss at a time
   const outcomeValuesOverTime = await queryOutcomeValueTimeseries(db, now, params);
   const marketOutcomeValues = _.groupBy(outcomeValuesOverTime, (r) => r.marketId);
   const outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>> = _.reduce(marketOutcomeValues, (result, value, key) => {
-    result[key] = _.groupBy(value, (r) => r.outcome );
+    result[key] = _.groupBy(value, (r) => r.outcome);
     return result;
   }, {} as Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>);
 
@@ -285,7 +285,7 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
   const endTime = Math.min(maxResultTime, now);
   const interval = params.periodInterval || null;
   const buckets = bucketRangeByInterval(startTime, endTime, interval);
-  return {profits, outcomeValues, buckets};
+  return { profits, outcomeValues, buckets };
 }
 
 export interface AllOutcomesProfitLoss {
@@ -310,7 +310,7 @@ export async function getAllOutcomesProfitLoss(db: Knex, params: GetProfitLossPa
   });
 
   const marketOutcomes = _.fromPairs(_.values(_.mapValues(profits, (pls) => {
-    const  first = _.first(_.first(_.values(pls)))!;
+    const first = _.first(_.first(_.values(pls)))!;
     return [first.marketId, first.numOutcomes];
   })));
 
@@ -322,7 +322,7 @@ export async function getAllOutcomesProfitLoss(db: Knex, params: GetProfitLossPa
 }
 
 export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLossParamsType): Promise<Array<ProfitLossResult>> {
-  const {profit: outcomesProfitLoss, buckets }  = await getAllOutcomesProfitLoss(db, params);
+  const { profit: outcomesProfitLoss, buckets } = await getAllOutcomesProfitLoss(db, params);
   if (_.isEmpty(outcomesProfitLoss)) {
     return buckets.map((bucket) => ({
       timestamp: bucket.timestamp,
@@ -337,6 +337,7 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       outcome: 0,
       netPosition: ZERO,
       marketId: "",
+      frozenFunds: ZERO,
     }));
   }
 
@@ -384,6 +385,7 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       averagePrice: startProfit.averagePrice,
       outcome: startProfit.outcome,
       marketId: startProfit.marketId,
+      frozenFunds: startProfit.frozenFunds.negated(),
     };
 
     result[days] = sumProfitLossResults(endProfit, negativeStartProfit);

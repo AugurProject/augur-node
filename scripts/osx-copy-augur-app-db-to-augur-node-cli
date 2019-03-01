@@ -19,4 +19,5 @@ cp "$LATEST_DB" .;
 
 sqlite3 "$(basename "$LATEST_DB")" "update knex_migrations set name = substr(name,1, length(name)-2) || 'ts';";
 
-DEBUG=knex:tx yarn knex migrate:latest --env prod-test;
+# It's possible to run migrations from the command-line, but this shouldn't be done because Knex via cli doesn't properly set postProcessDatabaseResults and so migrations don't work from cli in general.
+# DEBUG=knex:tx yarn knex migrate:latest --env prod-test;

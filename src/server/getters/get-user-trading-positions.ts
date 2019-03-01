@@ -1,12 +1,13 @@
+import Augur from "augur.js";
+import { BigNumber } from "bignumber.js";
 import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
-import { BigNumber } from "bignumber.js";
-import Augur from "augur.js";
-import { ZERO } from "../../constants";
-import { Address, OutcomeParam, SortLimitParams } from "../../types";
+import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
+import { ZERO, BN_WEI_PER_ETHER } from "../../constants";
+import { Address, OutcomeParam, SortLimitParams, MarketsRow, ReportingState } from "../../types";
+import { numTicksToTickSize, fixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
-import { numTicksToTickSize } from "./../../utils/convert-fixed-point-to-decimal";
 
 export const UserTradingPositionsParamsSpecific = t.type({
   universe: t.union([t.string, t.null, t.undefined]),
@@ -23,9 +24,13 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
-interface TradingPosition extends ProfitLossResult {
-  marketId: string;
+export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
+}
+
+export interface GetUserTradingPositionsResponse {
+  tradingPositions: Array<TradingPosition>;
+  frozenFundsTotal: FrozenFunds; // User's total frozen funds. See docs on FrozenFunds. This total includes market validity bonds in addition to sum of frozen funds for all market outcomes in which user has a position.
 }
 
 interface RawPosition {
@@ -47,7 +52,7 @@ async function queryUniverse(db: Knex, marketId: Address): Promise<Address> {
   return market.universe;
 }
 
-export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.TypeOf<typeof UserTradingPositionsParams>): Promise<Array<TradingPosition>> {
+export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.TypeOf<typeof UserTradingPositionsParams>): Promise<GetUserTradingPositionsResponse> {
   if (params.universe == null && params.marketId == null) throw new Error("Must provide reference to universe, specify universe or marketId");
   if (params.account == null) throw new Error("Missing required parameter: account");
 
@@ -74,19 +79,21 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   if (params.marketId) rawPositionsQuery.andWhere("markets.marketId", params.marketId);
 
+  const getSumOfMarketValidityBondsPromise = getEthEscrowedInValidityBonds(db, params.account); // do this here so that awaits are concurrent
+
   const rawPositions: Array<RawPosition> = await rawPositionsQuery;
 
-  const rawPositionsMapping: {[key: string]: RawPosition} = _.reduce(rawPositions, (result, rawPosition) => {
+  const rawPositionsMapping: { [key: string]: RawPosition } = _.reduce(rawPositions, (result, rawPosition) => {
     const key = rawPosition.marketId.concat(rawPosition.outcome.toString());
     const tickSize = numTicksToTickSize(rawPosition.numTicks, rawPosition.minPrice, rawPosition.maxPrice);
     rawPosition.balance = augur.utils.convertOnChainAmountToDisplayAmount(new BigNumber(rawPosition.balance, 10), tickSize);
     result[key] = rawPosition;
     return result;
-  }, {} as {[key: string]: RawPosition});
+  }, {} as { [key: string]: RawPosition });
 
-  const marketToLargestShort: {[key: string]: BigNumber} = {};
+  const marketToLargestShort: { [key: string]: BigNumber } = {};
 
-  let positions = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>) => {
+  let positions: Array<TradingPosition> = _.flatten(_.map(profitsPerMarket, (outcomePls: Array<Array<ProfitLossResult>>) => {
     const lastTimestampPls = _.last(outcomePls)!;
     return _.map(lastTimestampPls, (plr) => {
       const key = plr.marketId.concat(plr.outcome.toString());
@@ -100,17 +107,17 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       return Object.assign(
         { position },
         plr,
-      ) as TradingPosition;
+      );
     });
   }));
 
   // Show outcomes with just a raw position if they have some quantity not accounted for via trades (e.g manual transfers)
   const rawPositionOnlyToShow = _.filter(rawPositionsMapping, (rawPosition) => {
     const largestShort = marketToLargestShort[rawPosition.marketId];
-    return !rawPosition.seen && largestShort.abs().lt(rawPosition.balance);
+    return !rawPosition.seen && largestShort && largestShort.abs().lt(rawPosition.balance);
   });
 
-  const noPLPositions = _.map(rawPositionOnlyToShow, (rawPosition) => {
+  const noPLPositions: Array<TradingPosition> = _.map(rawPositionOnlyToShow, (rawPosition) => {
     return {
       position: rawPosition.balance.toString(),
       marketId: rawPosition.marketId,
@@ -119,13 +126,46 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       averagePrice: ZERO,
       realized: ZERO,
       unrealized: ZERO,
+      total: ZERO,
       timestamp: 0,
-    } as TradingPosition;
+      frozenFunds: ZERO,
+    };
   });
 
   positions = positions.concat(noPLPositions);
 
-  if (params.outcome === null || typeof params.outcome === "undefined") return positions;
+  if (params.outcome !== null && typeof params.outcome !== "undefined") {
+    positions = _.filter(positions, { outcome: params.outcome });
+  }
 
-  return _.filter(positions, { outcome: params.outcome });
+  const frozenFundsTotal: FrozenFunds = {
+    frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
+  };
+
+  // By our business definition, a user's total frozen funds
+  // includes their market validity bonds. (Validity bonds are
+  // paid in ETH and are escrowed until the markets resolve valid.)
+  frozenFundsTotal.frozenFunds = frozenFundsTotal.frozenFunds.plus(await getSumOfMarketValidityBondsPromise);
+
+  return {
+    tradingPositions: positions,
+    frozenFundsTotal,
+  };
+}
+
+// getEthEscrowedInValidityBonds returns the sum of all market validity bonds for
+// non-finalized markets created by the passed marketCreator. Ie. how much ETH
+// this creator has escrowed in validity bonds. Denominated in Eth (whole tokens).
+async function getEthEscrowedInValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
+  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize"> > = await db.select("validityBondSize", "reportingState").from("markets")
+    .leftJoin("market_state", "markets.marketStateId", "market_state.marketStateId")
+    .whereNot({ reportingState: ReportingState.FINALIZED })
+    .where({ marketCreator });
+  let totalValidityBonds = ZERO;
+  for (const market of marketsRow) {
+    // market.validityBondSize is in attoETH and totalValidityBonds is in ETH
+    totalValidityBonds = totalValidityBonds.plus(
+      fixedPointToDecimal(market.validityBondSize, BN_WEI_PER_ETHER));
+  }
+  return totalValidityBonds;
 }
