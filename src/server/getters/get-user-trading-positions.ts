@@ -24,12 +24,22 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
+// TODO doc per outcome
 export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
 }
 
+// TODO doc
+export interface MarketTradingPosition extends Pick<ProfitLossResult,
+"timestamp" | "marketId" | "realized" | "unrealized" | "total" | "realizedPercent" |
+"unrealizedPercent" | "totalPercent" | "currentValue"
+>, FrozenFunds {}
+
 export interface GetUserTradingPositionsResponse {
-  tradingPositions: Array<TradingPosition>;
+  tradingPositions: Array<TradingPosition>; // TODO doc
+  tradingPositionsPerMarket: { // TODO doc
+    [marketId: string]: MarketTradingPosition,
+  };
   frozenFundsTotal: FrozenFunds; // User's total frozen funds. See docs on FrozenFunds. This total includes market validity bonds in addition to sum of frozen funds for all market outcomes in which user has a position.
 }
 
@@ -128,6 +138,10 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       unrealized: ZERO,
       total: ZERO,
       timestamp: 0,
+      realizedPercent: ZERO,
+      unrealizedPercent: ZERO,
+      totalPercent: ZERO,
+      currentValue: ZERO, // TODO ??
       frozenFunds: ZERO,
     };
   });
@@ -149,6 +163,32 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   return {
     tradingPositions: positions,
+    tradingPositionsPerMarket: {
+      "0x1000000000000000000000000000000000000001": {
+        timestamp: 1551467992,
+        realized: ZERO,
+        unrealized: ZERO,
+        total: ZERO,
+        marketId: "0x1000000000000000000000000000000000000001",
+        realizedPercent: ZERO,
+        unrealizedPercent: ZERO,
+        totalPercent: ZERO,
+        currentValue: ZERO,
+        frozenFunds: ZERO,
+      },
+      "0x0000000000000000000000000000000000000002": {
+        timestamp: 1551467992,
+        realized: ZERO,
+        unrealized: ZERO,
+        total: ZERO,
+        marketId: "0x0000000000000000000000000000000000000002",
+        realizedPercent: ZERO,
+        unrealizedPercent: ZERO,
+        totalPercent: ZERO,
+        currentValue: ZERO,
+        frozenFunds: ZERO,
+      },
+    },
     frozenFundsTotal,
   };
 }

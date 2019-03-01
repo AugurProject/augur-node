@@ -61,13 +61,18 @@ export interface OutcomeValueTimeseries extends Timestamped {
 }
 
 export interface ProfitLossResult extends Timestamped, FrozenFunds {
+  // TODO doc fields
+  marketId: Address;
+  outcome: number;
   netPosition: BigNumber;
   averagePrice: BigNumber;
   realized: BigNumber;
   unrealized: BigNumber;
-  outcome: number;
-  marketId: Address;
   total: BigNumber;
+  realizedPercent: BigNumber;
+  unrealizedPercent: BigNumber;
+  totalPercent: BigNumber;
+  currentValue: BigNumber;
 }
 
 export interface ShortPosition {
@@ -219,6 +224,10 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       averagePrice,
       outcome,
       marketId,
+      realizedPercent: ZERO, // TODO
+      unrealizedPercent: ZERO, // TODO
+      totalPercent: ZERO, // TODO
+      currentValue: ZERO, // TODO
       frozenFunds: outcomePl.frozenFunds,
     };
   });
@@ -333,10 +342,14 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       cost: ZERO,
       averagePrice: ZERO,
       numEscrowed: ZERO,
-      totalPosition: ZERO,
+      totalPosition: ZERO, // TODO what is a totalPosition? and numEscrowed
       outcome: 0,
       netPosition: ZERO,
       marketId: "",
+      realizedPercent: ZERO,
+      unrealizedPercent: ZERO,
+      totalPercent: ZERO,
+      currentValue: ZERO, // TODO ??
       frozenFunds: ZERO,
     }));
   }
@@ -378,13 +391,17 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
 
     const negativeStartProfit: ProfitLossResult = {
       timestamp: startProfit.timestamp,
+      marketId: startProfit.marketId,
+      outcome: startProfit.outcome,
       netPosition: startProfit.netPosition.negated(),
+      averagePrice: startProfit.averagePrice,
       realized: startProfit.realized.negated(),
       unrealized: startProfit.unrealized.negated(),
       total: startProfit.total.negated(),
-      averagePrice: startProfit.averagePrice,
-      outcome: startProfit.outcome,
-      marketId: startProfit.marketId,
+      realizedPercent: ZERO, // TODO
+      unrealizedPercent: ZERO, // TODO
+      totalPercent: ZERO, // TODO
+      currentValue: ZERO, // TODO
       frozenFunds: startProfit.frozenFunds.negated(),
     };
 
