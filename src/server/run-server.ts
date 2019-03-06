@@ -2,12 +2,19 @@ import * as express from "express";
 import * as Knex from "knex";
 import * as helmet from "helmet";
 import * as t from "io-ts";
+import * as bodyParser from "body-parser";
 import Augur from "augur.js";
-import { Address, ServersData } from "../types";
+import { Address, ServersData, JsonRpcRequest, WebSocketConfigs } from "../types";
 import { runWebsocketServer } from "./run-websocket-server";
+import { addressFormatReviver } from "./address-format-reviver";
 import { getMarkets, GetMarketsParams } from "./getters/get-markets";
 import { isSyncFinished } from "../blockchain/bulk-sync-augur-node-with-blockchain";
+import { isJsonRpcRequest } from "./is-json-rpc-request";
+import { dispatchJsonRpcRequest } from "./dispatch-json-rpc-request";
+import { makeJsonRpcResponse } from "./make-json-rpc-response";
+import { makeJsonRpcError, JsonRpcErrorCode } from "./make-json-rpc-error";
 import { EventEmitter } from "events";
+import { logger } from "../utils/logger";
 
 // tslint:disable-next-line:no-var-requires
 const { websocketConfigs } = require("../../config");
@@ -30,10 +37,24 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     hsts: false,
   }));
 
+  app.use(bodyParser.json({
+    reviver: addressFormatReviver
+  }))
+
   const servers: ServersData = runWebsocketServer(db, app, augur, websocketConfigs, controlEmitter);
 
   app.get("/", (req, res) => {
     res.send("Augur Node Running, use /status endpoint");
+  });
+  
+  app.post("/", async (req, res) => {
+    try {
+      const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
+      res.send(makeJsonRpcResponse(req.body.id, result || null));
+    } catch (err) {
+      res.status(500);
+      res.send(makeJsonRpcError(req.body.id, JsonRpcErrorCode.InvalidParams, err.message, false));
+    };
   });
 
   app.get("/status", (req, res) => {
