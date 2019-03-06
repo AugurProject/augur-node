@@ -38,15 +38,15 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
   }));
 
   app.use(bodyParser.json({
-    reviver: addressFormatReviver
-  }))
+    reviver: addressFormatReviver,
+  }));
 
   const servers: ServersData = runWebsocketServer(db, app, augur, websocketConfigs, controlEmitter);
 
   app.get("/", (req, res) => {
     res.send("Augur Node Running, use /status endpoint");
   });
-  
+
   app.post("/", async (req, res) => {
     try {
       const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
@@ -54,7 +54,7 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     } catch (err) {
       res.status(500);
       res.send(makeJsonRpcError(req.body.id, JsonRpcErrorCode.InvalidParams, err.message, false));
-    };
+    }
   });
 
   app.get("/status", (req, res) => {
