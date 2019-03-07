@@ -17,6 +17,9 @@ import { EventEmitter } from "events";
 import { logger } from "../utils/logger";
 
 // tslint:disable-next-line:no-var-requires
+import cors = require("cors");
+
+// tslint:disable-next-line:no-var-requires
 const { websocketConfigs } = require("../../config");
 
 export interface RunServerResult {
@@ -47,7 +50,8 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     res.send("Augur Node Running, use /status endpoint");
   });
 
-  app.post("/", async (req, res) => {
+  app.options("/", cors());
+  app.post("/", cors(), async (req, res) => {
     try {
       const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
       res.send(makeJsonRpcResponse(req.body.id, result || null));
