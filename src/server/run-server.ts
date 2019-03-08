@@ -50,17 +50,6 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     res.send("Augur Node Running, use /status endpoint");
   });
 
-  app.options("/", cors());
-  app.post("/", cors(), async (req, res) => {
-    try {
-      const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
-      res.send(makeJsonRpcResponse(req.body.id, result || null));
-    } catch (err) {
-      res.status(500);
-      res.send(makeJsonRpcError(req.body.id, JsonRpcErrorCode.InvalidParams, err.message, false));
-    }
-  });
-
   app.get("/status", (req, res) => {
     try {
       if (!isSyncFinished()) {
@@ -127,6 +116,17 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
       res.status(503).send({ status: ServerStatus.DOWN, reason: "server syncing" });
     } else {
       res.send({ status: ServerStatus.UP, reason: "Finished with sync" });
+    }
+  });
+
+  app.options("/(.*)", cors());
+  app.post("/(.*)", cors(), async (req, res) => {
+    try {
+      const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
+      res.send(makeJsonRpcResponse(req.body.id, result || null));
+    } catch (err) {
+      res.status(500);
+      res.send(makeJsonRpcError(req.body.id, JsonRpcErrorCode.InvalidParams, err.message, false));
     }
   });
 
