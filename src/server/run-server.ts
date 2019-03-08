@@ -119,8 +119,8 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     }
   });
 
-  app.options("/(.*)", cors());
-  app.post("/(.*)", cors(), async (req, res) => {
+  app.use(cors());
+  app.post("*", cors(), async (req, res) => {
     try {
       const result = await dispatchJsonRpcRequest(db, req.body as JsonRpcRequest, augur);
       res.send(makeJsonRpcResponse(req.body.id, result || null));
