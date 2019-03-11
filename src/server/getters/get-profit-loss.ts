@@ -22,6 +22,7 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     position: ZERO,
     numOutcomes: 2,
     profit: ZERO,
+    realizedCost: ZERO,
     minPrice: ZERO,
     frozenFunds: ZERO,
   };
@@ -41,6 +42,7 @@ export interface Timestamped {
   timestamp: number;
 }
 
+// TODO doc and move to types.ts
 export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   account: Address;
   marketId: Address;
@@ -50,7 +52,8 @@ export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   position: BigNumber;
   numOutcomes: number;
   profit: BigNumber;
-  minPrice: BigNumber;
+  realizedCost: BigNumber;
+  minPrice: BigNumber; // TODO what is this?
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -72,10 +75,19 @@ FrozenFunds { // funds the user froze to be in this position (see FrozenFunds do
   marketId: Address; // user's position is in this market
   outcome: number; // user's position is in this market outcome
   netPosition: BigNumber; // current quantity of shares in user's position for this market outcome. "net" position because if user bought 4 shares and sold 6 shares, netPosition would be -2 shares (ie. 4 - 6 = -2). User is "long" this market outcome (gets paid if this outcome occurs) if netPosition is positive. User is "short" this market outcome (gets paid if this outcome does not occur) if netPosition is negative
-  averagePrice: BigNumber; // average price per share user paid to be in this position
+  averagePrice: BigNumber; // average price per share user paid to be in this position -- TODO update with my latest understanding that averagePrice is reset each time you fully close a position, and otherwise is weighted average of buys and sells within current position
   realized: BigNumber; // realized profit in tokens (eg. ETH) user already got from this market outcome. "realized" means the user bought/sold shares in such a way that the profit is already in the user's wallet
+  // TODO doc unrealized is based on current time / last traded price
   unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. ProfitLossResult is currently not computed for each price change, so unrealized profit may be stale (not updated with latest share price).
   total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
+  // realizedCost: BigNumber; // TODO needed to roll up by market
+  realizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
+  // TODO realizedPercent = realizedCost == 0 ? 0 : (realized+realizedCost)/realizedCost - 1
+  unrealizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
+  // TODO unrealizedPercent = unrealizedCost == 0 ? 0 : (unrealized+unrealizedCost)/unrealizedCost - 1
+  totalPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
+  // TODO totalPercent = realizedCost+unrealizedCost == 0 ? 0 : (realizedCost+unrealizedCost+realized+unrealized)/(realizedCost+unrealizedCost) -1
+  currentValue: BigNumber; // TODO currentValue = unrealized - frozenFunds
 }
 
 export interface ShortPosition {
@@ -216,6 +228,8 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       const shareProfit = position.lt(ZERO) ? averagePrice.minus(outcomeValue) : outcomeValue.minus(averagePrice);
       unrealized = shareProfit.multipliedBy(position.abs());
     }
+
+    // TODO unrealizedCost = abs(netPosition) * averagePrice
 
     // Adjust display for scalars
     averagePrice = averagePrice.plus(minPrice);

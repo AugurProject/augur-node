@@ -36,7 +36,7 @@ export interface MarketTradingPosition extends Pick<ProfitLossResult,
 >, FrozenFunds {}
 
 export interface GetUserTradingPositionsResponse {
-  tradingPositions: Array<TradingPosition>; // TODO doc
+  tradingPositions: Array<TradingPosition>; // TODO doc, including fact that unrealized is as of lastPrice and not timestamp
   tradingPositionsPerMarket: { // TODO doc
     [marketId: string]: MarketTradingPosition,
   };
@@ -163,32 +163,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 
   return {
     tradingPositions: positions,
-    tradingPositionsPerMarket: {
-      "0x1000000000000000000000000000000000000001": {
-        timestamp: 1551467992,
-        realized: ZERO,
-        unrealized: ZERO,
-        total: ZERO,
-        marketId: "0x1000000000000000000000000000000000000001",
-        realizedPercent: ZERO,
-        unrealizedPercent: ZERO,
-        totalPercent: ZERO,
-        currentValue: ZERO,
-        frozenFunds: ZERO,
-      },
-      "0x0000000000000000000000000000000000000002": {
-        timestamp: 1551467992,
-        realized: ZERO,
-        unrealized: ZERO,
-        total: ZERO,
-        marketId: "0x0000000000000000000000000000000000000002",
-        realizedPercent: ZERO,
-        unrealizedPercent: ZERO,
-        totalPercent: ZERO,
-        currentValue: ZERO,
-        frozenFunds: ZERO,
-      },
-    },
+    tradingPositionsPerMarket: aggregateTradingPositionsByMarket(positions),
     frozenFundsTotal,
   };
 }
@@ -208,4 +183,30 @@ async function getEthEscrowedInValidityBonds(db: Knex, marketCreator: Address): 
       fixedPointToDecimal(market.validityBondSize, BN_WEI_PER_ETHER));
   }
   return totalValidityBonds;
+}
+
+function aggregateTradingPositionsByMarket(tps: Array<TradingPosition>): { [marketId: string]: MarketTradingPosition } {
+  const tpsByMarketId = _.groupBy(tps, (tp) => tp.marketId);
+  return _.mapValues(tpsByMarketId, aggregateOneMarketTradingPositions);
+}
+
+// TODO doc, unit tests
+function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosition>): MarketTradingPosition {
+  // precondition: tpsForOneMarketId non-empty and all tpsForOneMarketId have same marketId
+  /*
+    TODO aggregate:
+
+    timestamp = use first
+    marketId = use first
+    realized = sum forall
+    unrealized = sum forall
+    total = sum forall
+    realizedCost = sum forall
+    realizedPercent = same formula
+    unrealizedPercent = same formula; unrealizedCost = (sum for all abs(netPosition)) * (TODO unsure about this part: weightedAveragePrice = (sum abs(netPosition_i) * averagePrice_i) / (sum for all abs(netPosition)) --> this simplifies to (sum abs(netPosition_i) * averagePrice_i)
+    totalPercent = same formula
+    currentValue = sum forall
+    frozenFunds = sum forall
+  */
+  return tpsForOneMarketId[0];
 }
