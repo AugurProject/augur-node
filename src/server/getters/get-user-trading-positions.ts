@@ -4,9 +4,11 @@ import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
 import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
-import { ZERO, BN_WEI_PER_ETHER } from "../../constants";
-import { Address, OutcomeParam, SortLimitParams, MarketsRow, ReportingState } from "../../types";
-import { numTicksToTickSize, fixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
+import { BN_WEI_PER_ETHER, ZERO } from "../../constants";
+import { Address, MarketsRow, OutcomeParam, ReportingState, SortLimitParams } from "../../types";
+import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
+import { Tokens, Percent } from "../../utils/dimension-quantity";
+import { positionGetRealizedProfitPercent, positionGetUnrealizedProfitPercent2, positionGetTotalProfitPercent2 } from "../../utils/financial-math";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
 export const UserTradingPositionsParamsSpecific = t.type({
@@ -31,9 +33,9 @@ export interface TradingPosition extends ProfitLossResult, FrozenFunds {
 
 // TODO doc
 export interface MarketTradingPosition extends Pick<ProfitLossResult,
-"timestamp" | "marketId" | "realized" | "unrealized" | "total" | "realizedPercent" |
-"unrealizedPercent" | "totalPercent" | "currentValue"
->, FrozenFunds {}
+  "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "realizedPercent" |
+  "unrealizedPercent" | "totalPercent" | "currentValue"
+  >, FrozenFunds { }
 
 export interface GetUserTradingPositionsResponse {
   tradingPositions: Array<TradingPosition>; // TODO doc, including fact that unrealized is as of lastPrice and not timestamp
@@ -138,10 +140,12 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       unrealized: ZERO,
       total: ZERO,
       timestamp: 0,
+      unrealizedCost: ZERO,
+      realizedCost: ZERO,
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
-      currentValue: ZERO, // TODO ??
+      currentValue: ZERO,
       frozenFunds: ZERO,
     };
   });
@@ -172,7 +176,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
 // non-finalized markets created by the passed marketCreator. Ie. how much ETH
 // this creator has escrowed in validity bonds. Denominated in Eth (whole tokens).
 async function getEthEscrowedInValidityBonds(db: Knex, marketCreator: Address): Promise<BigNumber> {
-  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize"> > = await db.select("validityBondSize", "reportingState").from("markets")
+  const marketsRow: Array<Pick<MarketsRow<BigNumber>, "validityBondSize">> = await db.select("validityBondSize", "reportingState").from("markets")
     .leftJoin("market_state", "markets.marketStateId", "market_state.marketStateId")
     .whereNot({ reportingState: ReportingState.FINALIZED })
     .where({ marketCreator });
@@ -193,20 +197,42 @@ function aggregateTradingPositionsByMarket(tps: Array<TradingPosition>): { [mark
 // TODO doc, unit tests
 function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosition>): MarketTradingPosition {
   // precondition: tpsForOneMarketId non-empty and all tpsForOneMarketId have same marketId
-  /*
-    TODO aggregate:
+  const first = tpsForOneMarketId[0];
+  const partialMarketTradingPosition: Pick<MarketTradingPosition, Exclude<keyof MarketTradingPosition, "realizedPercent" | "unrealizedPercent" | "totalPercent">> = {
+    timestamp: first.timestamp,
+    marketId: first.marketId,
+    realized: sum(tpsForOneMarketId, (tp) => tp.realized),
+    unrealized: sum(tpsForOneMarketId, (tp) => tp.unrealized),
+    total: sum(tpsForOneMarketId, (tp) => tp.total),
+    unrealizedCost: sum(tpsForOneMarketId, (tp) => tp.unrealizedCost),
+    realizedCost: sum(tpsForOneMarketId, (tp) => tp.realizedCost),
+    currentValue: sum(tpsForOneMarketId, (tp) => tp.currentValue),
+    frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
+  };
+  const realizedPercent: Percent = positionGetRealizedProfitPercent(
+    new Tokens(partialMarketTradingPosition.realizedCost),
+    new Tokens(partialMarketTradingPosition.realized));
+  const unrealizedPercent: Percent = positionGetUnrealizedProfitPercent2(
+    new Tokens(partialMarketTradingPosition.unrealizedCost),
+    new Tokens(partialMarketTradingPosition.unrealized));
+  const totalPercent: Percent = positionGetTotalProfitPercent2(
+      new Tokens(partialMarketTradingPosition.unrealizedCost),
+      new Tokens(partialMarketTradingPosition.unrealized),
+      new Tokens(partialMarketTradingPosition.realizedCost),
+      new Tokens(partialMarketTradingPosition.realized));
 
-    timestamp = use first
-    marketId = use first
-    realized = sum forall
-    unrealized = sum forall
-    total = sum forall
-    realizedCost = sum forall
-    realizedPercent = same formula
-    unrealizedPercent = same formula; unrealizedCost = (sum for all abs(netPosition)) * (TODO unsure about this part: weightedAveragePrice = (sum abs(netPosition_i) * averagePrice_i) / (sum for all abs(netPosition)) --> this simplifies to (sum abs(netPosition_i) * averagePrice_i)
-    totalPercent = same formula
-    currentValue = sum forall
-    frozenFunds = sum forall
-  */
-  return tpsForOneMarketId[0];
+  return {
+    realizedPercent: realizedPercent.magnitude,
+    unrealizedPercent: unrealizedPercent.magnitude,
+    totalPercent: totalPercent.magnitude,
+    ...partialMarketTradingPosition,
+  };
+
+  function sum(tps: Array<TradingPosition>, field: (tp: TradingPosition) => BigNumber): BigNumber {
+    let s = ZERO;
+    for (const tp of tps) {
+      s = s.plus(field(tp));
+    }
+    return s;
+  }
 }

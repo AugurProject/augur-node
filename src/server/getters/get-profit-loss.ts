@@ -8,6 +8,8 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
+import { Percent, Price, Shares, Tokens } from "../../utils/dimension-quantity";
+import { positionGetCurrentValue, positionGetRealizedProfitPercent, positionGetTotalProfit, positionGetTotalProfitPercent, positionGetUnrealizedProfit, positionGetUnrealizedProfitPercent, positionGetUnrealizedCost } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
 
@@ -70,8 +72,8 @@ export interface OutcomeValueTimeseries extends Timestamped {
 // accounting. A user's "position" refers to the shares they have bought
 // ("long" position) or sold ("short" position) in this market outcome.
 export interface ProfitLossResult extends
-Timestamped, // profit and loss as of this timestamp
-FrozenFunds { // funds the user froze to be in this position (see FrozenFunds docs)
+  Timestamped, // profit and loss as of this timestamp
+  FrozenFunds { // funds the user froze to be in this position (see FrozenFunds docs)
   marketId: Address; // user's position is in this market
   outcome: number; // user's position is in this market outcome
   netPosition: BigNumber; // current quantity of shares in user's position for this market outcome. "net" position because if user bought 4 shares and sold 6 shares, netPosition would be -2 shares (ie. 4 - 6 = -2). User is "long" this market outcome (gets paid if this outcome occurs) if netPosition is positive. User is "short" this market outcome (gets paid if this outcome does not occur) if netPosition is negative
@@ -80,14 +82,12 @@ FrozenFunds { // funds the user froze to be in this position (see FrozenFunds do
   // TODO doc unrealized is based on current time / last traded price
   unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. ProfitLossResult is currently not computed for each price change, so unrealized profit may be stale (not updated with latest share price).
   total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
-  // realizedCost: BigNumber; // TODO needed to roll up by market
+  unrealizedCost: BigNumber;
+  realizedCost: BigNumber;
   realizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  // TODO realizedPercent = realizedCost == 0 ? 0 : (realized+realizedCost)/realizedCost - 1
   unrealizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  // TODO unrealizedPercent = unrealizedCost == 0 ? 0 : (unrealized+unrealizedCost)/unrealizedCost - 1
   totalPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  // TODO totalPercent = realizedCost+unrealizedCost == 0 ? 0 : (realizedCost+unrealizedCost+realized+unrealized)/(realizedCost+unrealizedCost) -1
-  currentValue: BigNumber; // TODO currentValue = unrealized - frozenFunds
+  currentValue: BigNumber; // TODO doc currentValue = unrealized - frozenFunds
 }
 
 export interface ShortPosition {
@@ -147,14 +147,13 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
   const rightPosition = new BigNumber(right.netPosition, 10);
 
   // TODO new fields in sumProfitLossResults
-
   // TODO look in get-profit-loss for any other places that new fields need to be added
 
   const netPosition = leftPosition.plus(rightPosition);
   const realized = left.realized.plus(right.realized);
   const unrealized = left.unrealized.plus(right.unrealized);
   const total = realized.plus(unrealized);
-  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
+  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2); // TODO what is significance of dividing by 2 here?
 
   return Object.assign(_.clone(left), {
     netPosition,
@@ -214,42 +213,52 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
 
 function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries> | null): Array<ProfitLossResult> {
   const unsortedResults: Array<ProfitLossResult> = plsAtTimestamp.map((outcomePl) => {
-    const realized = outcomePl!.profit;
-    const outcome = outcomePl!.outcome;
-    const timestamp = outcomePl!.timestamp;
-    const marketId = outcomePl!.marketId;
-    let averagePrice = outcomePl!.price;
-    const minPrice = outcomePl!.minPrice;
-    const position = outcomePl!.position;
+    const realizedCost = new Tokens(outcomePl.realizedCost);
+    const realizedProfit = new Tokens(outcomePl.profit);
+    const outcome = outcomePl.outcome;
+    const averagePrice = new Price(outcomePl.price);
+    const minPrice = new Price(outcomePl.minPrice);
+    const netPosition = new Shares(outcomePl.position);
+    const frozenFunds = new Tokens(outcomePl.frozenFunds);
 
-    let unrealized = ZERO;
-    if (outcomeValuesAtTimestamp) {
-      const outcomeValue = outcomeValuesAtTimestamp[outcome].value.minus(minPrice);
-      const shareProfit = position.lt(ZERO) ? averagePrice.minus(outcomeValue) : outcomeValue.minus(averagePrice);
-      unrealized = shareProfit.multipliedBy(position.abs());
-    }
+    // averagePrice is average price per share user paid to open this position;
+    // but, we want to display averagePrice; for scalar markets this means adding
+    // minPrice. Eg. if a user paid an average price of 4.5 for a scalar market, but
+    // the minPrice in that market is 3, we actually need to show 4.5+3=7.5 in the UI.
+    const averagePriceDisplay: Price = averagePrice.plus(minPrice);
 
-    // TODO unrealizedCost = abs(netPosition) * averagePrice
+    const outcomeLastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
 
-    // Adjust display for scalars
-    averagePrice = averagePrice.plus(minPrice);
-
-    const total = realized.plus(unrealized);
+    const unrealizedCost: Tokens = positionGetUnrealizedCost(netPosition, averagePrice);
+    const unrealizedProfit: Tokens =
+      positionGetUnrealizedProfit(netPosition, averagePrice, outcomeLastPrice);
+    const positionCurrentValue: Tokens =
+      positionGetCurrentValue(netPosition, averagePrice, outcomeLastPrice, frozenFunds);
+    const totalProfit: Tokens =
+      positionGetTotalProfit(netPosition, averagePrice, outcomeLastPrice, realizedProfit);
+    const realizedProfitPercent: Percent =
+      positionGetRealizedProfitPercent(realizedCost, realizedProfit);
+    const unrealizedProfitPercent: Percent =
+      positionGetUnrealizedProfitPercent(netPosition, averagePrice, outcomeLastPrice);
+    const totalProfitPercent: Percent =
+      positionGetTotalProfitPercent(netPosition, averagePrice, outcomeLastPrice, realizedCost, realizedProfit);
 
     return {
-      timestamp,
-      netPosition: position,
-      realized,
-      unrealized,
-      total,
-      averagePrice,
+      marketId: outcomePl.marketId,
       outcome,
-      marketId,
-      realizedPercent: ZERO, // TODO
-      unrealizedPercent: ZERO, // TODO
-      totalPercent: ZERO, // TODO
-      currentValue: ZERO, // TODO
-      frozenFunds: outcomePl.frozenFunds,
+      timestamp: outcomePl.timestamp,
+      netPosition: netPosition.magnitude,
+      realized: realizedProfit.magnitude,
+      unrealized: unrealizedProfit.magnitude,
+      total: totalProfit.magnitude,
+      averagePrice: averagePriceDisplay.magnitude,
+      unrealizedCost: unrealizedCost.magnitude,
+      realizedCost: realizedCost.magnitude,
+      realizedPercent: realizedProfitPercent.magnitude,
+      unrealizedPercent: unrealizedProfitPercent.magnitude,
+      totalPercent: totalProfitPercent.magnitude,
+      currentValue: positionCurrentValue.magnitude,
+      frozenFunds: frozenFunds.magnitude,
     };
   });
   return _.sortBy(unsortedResults, "outcome")!;
@@ -367,6 +376,8 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       outcome: 0,
       netPosition: ZERO,
       marketId: "",
+      unrealizedCost: ZERO,
+      realizedCost: ZERO,
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
@@ -419,10 +430,12 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       realized: startProfit.realized.negated(),
       unrealized: startProfit.unrealized.negated(),
       total: startProfit.total.negated(),
-      realizedPercent: ZERO, // TODO
-      unrealizedPercent: ZERO, // TODO
-      totalPercent: ZERO, // TODO
-      currentValue: ZERO, // TODO
+      unrealizedCost: startProfit.unrealizedCost.negated(),
+      realizedCost: startProfit.realizedCost.negated(),
+      realizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
+      unrealizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
+      totalPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
+      currentValue: startProfit.currentValue.negated(), // TODO
       frozenFunds: startProfit.frozenFunds.negated(),
     };
 

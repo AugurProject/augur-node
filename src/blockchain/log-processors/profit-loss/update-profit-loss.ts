@@ -5,7 +5,7 @@ import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
-import { getQuantityClosedFromTrade } from "../../../utils/financial-math";
+import { tradeGetQuantityClosed } from "../../../utils/financial-math";
 import { Tokens, Shares, Price } from "../../../utils/dimension-quantity";
 
 interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType> {
@@ -94,7 +94,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   // Adjust postion
   const position = oldPosition.plus(positionDelta);
 
-  const quantityClosed: Shares = getQuantityClosedFromTrade(oldPositionShares, positionDeltaShares);
+  const quantityClosed: Shares = tradeGetQuantityClosed(oldPositionShares, positionDeltaShares);
 
   // Adjust realized profit for amount of existing position sold
   if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) { // TODO this sign comparsion should use embedded design principle, eg. isPositionClose(oldPosition, positionDelta)
@@ -201,6 +201,7 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
     .delete()
     .where({ transactionHash });
 }
+
 
 // makeFrozenFundsEvent() is a helper function of updateProfitLoss(). Passed
 // tradeData is associated data from the trade for which this user's profit and

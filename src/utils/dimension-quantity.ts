@@ -3,6 +3,9 @@ import { BigNumber } from "bignumber.js";
 const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
 
+// TODO support derivation for non-unit quantity types, similar to safe-units. Eg. `export const Price = Tokens.dividedBy(Shares)`
+// TODO can we create something like NonNegative<T extends Quantity<T>> and use isValidMagnitude?
+
 /*
 // TODO update outdated doc
 
@@ -37,6 +40,7 @@ function isEqual(a: DimensionVector, b: DimensionVector): boolean {
 }
 
 abstract class Quantity<T extends Quantity<T>> {
+  // TODO can we implement a fair bit of BigNumber interface so that this is mostly a drop-in replacement?
   // TODO an idea is to carry a history of dimension changes through operations so that when a dynamic dimension/type check fails, can give an explanation of where it came from
   public readonly derivedConstructor: QuantityConstructor<T>;
   public readonly magnitude: BigNumber;
@@ -61,6 +65,7 @@ abstract class Quantity<T extends Quantity<T>> {
   public multipliedBy<B extends Quantity<B>>(other: B): B | T | UnverifiedQuantity {
     const newMagnitude = this.magnitude.multipliedBy(other.magnitude);
     // TODO doc lack of symmtery between Scalar/Percent is why we need these special cases. Scalar is stronger than Percent because Scalar*Percent=Scalar
+    // UPDATE - TODO maybe this should be opposite: Scalar*Percent=Percent
     if (this instanceof Scalar && other instanceof Percent) {
       return new this.derivedConstructor(newMagnitude);
     }
@@ -83,6 +88,7 @@ abstract class Quantity<T extends Quantity<T>> {
   public dividedBy<B extends Quantity<B>>(other: B): B | T | UnverifiedQuantity {
     const newMagnitude = this.magnitude.dividedBy(other.magnitude);
     // TODO doc lack of symmtery between Scalar/Percent is why we need these special cases. Scalar is stronger than Percent because Scalar*Percent=Scalar
+    // UPDATE - TODO maybe this should be opposite: Scalar*Percent=Percent
     if (this instanceof Scalar && other instanceof Percent) {
       return new this.derivedConstructor(newMagnitude);
     }
@@ -116,6 +122,12 @@ abstract class Quantity<T extends Quantity<T>> {
   public isZero(): boolean {
     return this.magnitude.isZero();
   }
+  public lt<B extends Quantity<B>>(other: B): boolean {
+    if (!isEqual(this.dimension, other.dimension)) {
+      throw new Error(`lt failed: expected dimensions to be equal, this=${this}, other=${other}`);
+    }
+    return this.magnitude.lt(other.magnitude);
+  }
   public abs(): T {
     return new this.derivedConstructor(this.magnitude.abs());
   }
@@ -139,6 +151,8 @@ interface VerifiableQuantity<T extends Quantity<T>> extends QuantityConstructor<
   isValidMagnitude?(magnitude: BigNumber): undefined | Error; // TODO doc
 }
 
+// TODO the name UnverifiedQuantity shows up when a user fails to expect(); it could probably be named something more instructive, like NeedToExpectQuantity
+// `Type 'UnverifiedQuantity' is not assignable to type 'Tokens'. Property 'tokens' is missing in type 'UnverifiedQuantity'.`
 class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
   constructor(magnitude: BigNumber, dimension: DimensionVector) {
     class Copy extends UnverifiedQuantity {
@@ -148,6 +162,24 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
     }
     super(Copy, magnitude, dimension);
   }
+  /*
+  TODO an expect failure currently looks like
+  ```
+    Error: expect failed: dimensions not equal, expected=class Tokens extends Quantity {
+    constructor(magnitude) {
+        super(Tokens, magnitude, TokensUnitDimension);
+    }
+  }, actual=[object Object]
+    at UnverifiedQuantity.expect (/Users/ryanandlyndsey/projects/augur-node/src/utils/dimension-quantity.ts:153:13)
+    at Object.<anonymous> (/Users/ryanandlyndsey/projects/augur-node/src/blockchain/log-processors/profit-loss/update-profit-loss.ts:176:73)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/ryanandlyndsey/projects/augur-node/src/blockchain/log-processors/profit-loss/update-profit-loss.ts:4:58)
+    at <anonymous>
+  ```
+    instead it should look something like
+      "expect failed: dimensions not equal, expected Price and got Shares"
+      "expect failed: dimensions not equal, expected Price and got { tokens: 1, shares: -5 }"
+  */
   public expect<T extends Quantity<T>>(vq: VerifiableQuantity<T>): T {
     if (!isEqual(vq.sentinel.dimension, this.dimension)) {
       throw new Error(`expect failed: dimensions not equal, expected=${vq}, actual=${this}`);
@@ -166,7 +198,7 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
 // ************************************************************************
 // **** specific units below here; a lot of this could be generated code
 
-// TODO rename sentinel to ZERO
+// TODO rename sentinel to ZERO; add ONE
 
 export function scalar(magnitude: number | BigNumber): Scalar {
   if (typeof magnitude === "number") {
@@ -180,6 +212,7 @@ const ScalarUnitDimension: DimensionVector = Object.freeze({
 });
 export class Scalar extends Quantity<Scalar> {
   public static sentinel: Scalar = new Scalar(ZERO);
+  public static ONE: Scalar = new Scalar(ONE);
   public scalar: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Scalar, magnitude, ScalarUnitDimension);
@@ -194,12 +227,6 @@ export function percent(magnitude: number | BigNumber): Percent {
 }
 export class Percent extends Quantity<Percent> {
   public static sentinel: Percent = new Percent(ZERO);
-  public static isValidMagnitude(magnitude: BigNumber): undefined | Error {
-    if (magnitude.isLessThan(ZERO) || magnitude.isGreaterThan(ZERO)) {
-      return new Error(`expected Percent to be between 0 and 1.0, actual: ${magnitude}`);
-    }
-    return;
-  }
   public percent: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Percent2()`
   constructor(magnitude: BigNumber) {
     super(Percent, magnitude, ScalarUnitDimension);
@@ -276,8 +303,8 @@ const v7: UnverifiedQuantity = t.multipliedBy(t);
 const v8: Scalar = s.multipliedBy(s);
 
 const v111: Percent = p.multipliedBy(p);
-const v112: Scalar = s.multipliedBy(p);
-const v113: Scalar = p.multipliedBy(s);
+const v112: Scalar = s.multipliedBy(p); // TODO : Percent instead?
+const v113: Scalar = p.multipliedBy(s); // TODO : Percent instead?
 const v114: Tokens = p.multipliedBy(t);
 const v115: Tokens = t.multipliedBy(p);
 
