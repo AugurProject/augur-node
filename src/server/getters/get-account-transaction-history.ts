@@ -5,6 +5,7 @@ import { SortLimitParams, Address } from "../../types";
 export const GetAccountTransactionHistoryParams = t.intersection([
   SortLimitParams,
   t.type({
+    universe: t.string,
     account: t.string
   }),
 ]);
