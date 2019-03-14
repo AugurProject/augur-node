@@ -3,6 +3,9 @@ import { BigNumber } from "bignumber.js";
 const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
 
+// TODO <BigNumberType>
+// TODO ETH/attoETH/erc20
+// TODO can this be assemblyscript?
 // TODO support derivation for non-unit quantity types, similar to safe-units. Eg. `export const Price = Tokens.dividedBy(Shares)`
 // TODO can we create something like NonNegative<T extends Quantity<T>> and use isValidMagnitude?
 
@@ -319,3 +322,5 @@ const pr: Price = new UnverifiedQuantity(ONE, {
   tokens: 1,
   shares: -1,
 }).expect(Price);
+
+const shouldBePrice: Price = t.dividedBy(new Shares(ONE)).expect(Price);

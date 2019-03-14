@@ -3,10 +3,10 @@ import * as Knex from "knex";
 import { ZERO } from "../../../constants";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
+import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
+import { tradeGetNextAveragePerSharePriceToOpenPosition, tradeGetNextNetPosition, tradeGetNextRealizedCost, tradeGetNextRealizedProfit, tradeGetRealizedProfitDelta } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
-import { tradeGetQuantityClosed } from "../../../utils/financial-math";
-import { Tokens, Shares, Price } from "../../../utils/dimension-quantity";
 
 interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType> {
   minPrice: BigNumber;
@@ -66,124 +66,143 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
 export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData: undefined | Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
 
-  const positionDeltaShares = new Shares(positionDelta);
-
+  const tradePositionDelta = new Shares(positionDelta);
   const timestamp = getCurrentTime();
 
   const marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice"> = await db("markets").first("minPrice", "maxPrice").where({ marketId });
 
-  price = price.minus(marketsRow.minPrice);
+  const tradePrice = new Price(price.minus(marketsRow.minPrice)); // TODO I believe TradePrice is supposed to be minus minPrice eg. realizedRevenueDelta = tradePrice * tradeQuantityClosed
 
-  const lastData: UpdateData = await db
+  const prevData: UpdateData = await db
     .first(["price", "position", "profit", "frozenFunds", "realizedCost"])
     .from("wcl_profit_loss_timeseries")
     .where({ account, marketId, outcome })
     .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
 
-  // TODO standardize identifiers around prev/next?
-  const oldPositionShares: Shares = lastData ? new Shares(lastData.position) : Shares.sentinel;
-  let oldPosition = lastData ? lastData.position : ZERO;
-  const constOldPrice = lastData ? new Price(lastData.price) : Price.sentinel; // TODO clean up
-  let oldPrice = constOldPrice.magnitude;
-  const oldProfit = lastData ? lastData.profit : ZERO;
-  const oldFrozenFunds = lastData ? lastData.frozenFunds : ZERO;
-  const prevRealizedCost = lastData ? new Tokens(lastData.realizedCost) : Tokens.sentinel;
+  const netPosition: Shares = prevData ? new Shares(prevData.position) : Shares.sentinel;
+  const averagePerSharePriceToOpenPosition = prevData ? new Price(prevData.price) : Price.sentinel;
+  const realizedCost = prevData ? new Tokens(prevData.realizedCost) : Tokens.sentinel;
+  const realizedProfit = prevData ? new Tokens(prevData.profit) : Tokens.sentinel;
+  const frozenFunds = prevData ? prevData.frozenFunds : ZERO;
 
-  let profit = oldProfit;
-
-  // Adjust postion
-  const position = oldPosition.plus(positionDelta);
-
-  const quantityClosed: Shares = tradeGetQuantityClosed(oldPositionShares, positionDeltaShares);
+  const nextNetPosition: Shares = tradeGetNextNetPosition({
+    netPosition,
+    tradePositionDelta,
+  });
+  const realizedProfitDelta: Tokens = tradeGetRealizedProfitDelta({
+    netPosition,
+    averagePerSharePriceToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
+  const nextRealizedProfit: Tokens = tradeGetNextRealizedProfit({
+    realizedProfit,
+    netPosition,
+    averagePerSharePriceToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
 
   // Adjust realized profit for amount of existing position sold
-  if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) { // TODO this sign comparsion should use embedded design principle, eg. isPositionClose(oldPosition, positionDelta)
-    const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(quantityClosed.magnitude);
-    profit = profit.plus(profitDelta);
-    // BEGIN SIMPLIFY1
-    oldPosition = quantityClosed.magnitude.gte(oldPosition.abs()) ? ZERO : oldPosition.plus(positionDelta); // set oldPosition to ZERO if position was entirely closed out this trade; otherwise set oldPosition to nextPosition
-    positionDelta = oldPosition.eq(ZERO) ? position : ZERO; // set positionDelta to nextPosition if position was entirely closed out this trade; otherwise set positionDelta to zero
-    if (oldPosition.eq(ZERO)) {
-      oldPrice = ZERO;
+  // if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) { // TODO this sign comparsion should use embedded design principle, eg. isPositionClose(oldPosition, positionDelta)
+  // const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(quantityClosed.magnitude);
+  // profit = profit.plus(profitDelta);
+  // // BEGIN SIMPLIFY1
+  // oldPosition = quantityClosed.magnitude.gte(oldPosition.abs()) ? ZERO : oldPosition.plus(positionDelta); // set oldPosition to ZERO if position was entirely closed out this trade; otherwise set oldPosition to nextPosition
+  // positionDelta = oldPosition.eq(ZERO) ? position : ZERO; // set positionDelta to nextPosition if position was entirely closed out this trade; otherwise set positionDelta to zero
+  // if (oldPosition.eq(ZERO)) {
+  //   oldPrice = ZERO;
+  // }
+  // END SIMPLIFY1
+  /*
+    // TODO phase1: simplify above logic:
+    // TODO phase2: make everything maximally const
+      I think we can simplify this into a few cases:
+        open position
+        partially close position
+        fully close position
+        [fully close position, open position] = reverse position
+          --> reverse algorithm should be concatenation of these algorithms, not a new algorithm
+    // SIMPLIFY1 replacement code:
+    if (amountSold.gte(oldPosition.abs())) {
+      // position entirely closed out this trade
+      oldPosition = ZERO
+      positionDelta = nextPosition
+      oldPrice = ZERO; // ie. averagePrice resets each new position, is memoryless of previous positions
+    } else {
+      // position partially closed out this trade
+      oldPosition = nextPosition
+      positionDelta = ZERO
     }
-    // END SIMPLIFY1
-    /*
-      // TODO phase1: simplify above logic:
-      // TODO phase2: make everything maximally const
-        I think we can simplify this into a few cases:
-          open position
-          partially close position
-          fully close position
-          [fully close position, open position] = reverse position
-            --> reverse algorithm should be concatenation of these algorithms, not a new algorithm
-      // SIMPLIFY1 replacement code:
-      if (amountSold.gte(oldPosition.abs())) {
-        // position entirely closed out this trade
-        oldPosition = ZERO
-        positionDelta = nextPosition
-        oldPrice = ZERO; // ie. averagePrice resets each new position, is memoryless of previous positions
-      } else {
-        // position partially closed out this trade
-        oldPosition = nextPosition
-        positionDelta = ZERO
-      }
-      // invariant: oldPosition + position == nextPosition && one of them is ZERO
-    */
-  }
+    // invariant: oldPosition + position == nextPosition && one of them is ZERO
+  */
+  // }
 
-  let newPrice = oldPrice;
+  // let newPrice = oldPrice;
 
   // Adjust price for new position added
-  if (!positionDelta.eq(ZERO)) {
-    newPrice = (oldPrice.multipliedBy(oldPosition.abs())).plus(price.multipliedBy(positionDelta.abs())).dividedBy(position.abs());
-    /*
-      understanding this formula-
-      consider
-        oldPrice = 0.2
-        oldPosition = 1000
-        price = 0.1
-        positionDelta = -999
-        position = oldPosition + positionDelta = 1
-      then
-        // WRONG because position was partially closed out
-        (0.2*1000 + 0.1*999) / 1 = 99.9
-      but, if position was partially closed out this trade
-        (see SIMPLIFY11 replacement code above)
-        consolidating these:
-          if position entirely closed out this trade:
-            oldPosition = ZERO
-            positionDelta = nextPosition
-          otherwise
-            oldPosition = nextPosition
-            positionDelta = ZERO
-      then example becomes
-        // position not entirely closed out:
-        oldPosition = nextPosition = 1
-        positionDelta = 0
-      then
-        (0.2*1 + 0.1*0)/1 = 0.2 = (oldPrice*nextPosition + price*0)/nextPosition = oldPrice
-        // invariant: averagePrice = prevAveragePrice if position partially closed
-    */
-  }
+  // if (!positionDelta.eq(ZERO)) {
+  //   newPrice = (oldPrice.multipliedBy(oldPosition.abs())).plus(price.multipliedBy(positionDelta.abs())).dividedBy(position.abs());
+  /*
+    understanding this formula-
+    consider
+      oldPrice = 0.2
+      oldPosition = 1000
+      price = 0.1
+      positionDelta = -999
+      position = oldPosition + positionDelta = 1
+    then
+      // WRONG because position was partially closed out
+      (0.2*1000 + 0.1*999) / 1 = 99.9
+    but, if position was partially closed out this trade
+      (see SIMPLIFY11 replacement code above)
+      consolidating these:
+        if position entirely closed out this trade:
+          oldPosition = ZERO
+          positionDelta = nextPosition
+        otherwise
+          oldPosition = nextPosition
+          positionDelta = ZERO
+    then example becomes
+      // position not entirely closed out:
+      oldPosition = nextPosition = 1
+      positionDelta = 0
+    then
+      (0.2*1 + 0.1*0)/1 = 0.2 = (oldPrice*nextPosition + price*0)/nextPosition = oldPrice
+      // invariant: averagePrice = prevAveragePrice if position partially closed
+  */
+  // }
 
   const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
     frozenFundsBeforeEvent: {
-      frozenFunds: oldFrozenFunds,
+      frozenFunds,
     },
-    event: makeFrozenFundsEvent(account, profit.minus(oldProfit), marketsRow, tradeData),
+    event: makeFrozenFundsEvent(account, realizedProfitDelta.magnitude, marketsRow, tradeData),
   });
 
-  const realizedCostDelta = quantityClosed.multipliedBy(constOldPrice).expect(Tokens); // TODO doc
-  const nextRealizedCost = prevRealizedCost.plus(realizedCostDelta); // TODO doc
+  const nextRealizedCost = tradeGetNextRealizedCost({
+    realizedCost,
+    netPosition,
+    averagePerSharePriceToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
+
+  const nextAveragePerSharePriceToOpenPosition = tradeGetNextAveragePerSharePriceToOpenPosition({
+    netPosition,
+    averagePerSharePriceToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
 
   // TODO strongly type as ProfitLossTimeseries<BigNumberType>; move ProfitLossTimeseries to types.ts and parameterize BigNumberType; unsure about ProfitLossTimeseries.minPrice, what does that do and why isn't it here?; this can even be ProfitLossTimeseries<string> so that compiler whines when I forget .toString()
   const nextProfitLossTimeseries = {
     account,
     marketId,
     outcome,
-    price: newPrice.toString(),
-    position: position.toString(),
-    profit: profit.toString(),
+    price: nextAveragePerSharePriceToOpenPosition.magnitude.toString(),
+    position: nextNetPosition.magnitude.toString(),
+    profit: nextRealizedProfit.magnitude.toString(),
     transactionHash,
     timestamp,
     blockNumber,

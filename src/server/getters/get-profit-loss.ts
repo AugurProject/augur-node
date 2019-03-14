@@ -9,7 +9,7 @@ import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
 import { Percent, Price, Shares, Tokens } from "../../utils/dimension-quantity";
-import { positionGetCurrentValue, positionGetRealizedProfitPercent, positionGetTotalProfit, positionGetTotalProfitPercent, positionGetUnrealizedProfit, positionGetUnrealizedProfitPercent, positionGetUnrealizedCost } from "../../utils/financial-math";
+import { positionGetCurrentValue, positionGetRealizedProfitPercent, positionGetTotalCost, positionGetTotalProfit, positionGetTotalProfitPercent, positionGetUnrealizedCost, positionGetUnrealizedProfit, positionGetUnrealizedProfitPercent } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
 
@@ -84,6 +84,7 @@ export interface ProfitLossResult extends
   total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
   unrealizedCost: BigNumber;
   realizedCost: BigNumber;
+  totalCost: BigNumber;
   realizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
   unrealizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
   totalPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
@@ -216,7 +217,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     const realizedCost = new Tokens(outcomePl.realizedCost);
     const realizedProfit = new Tokens(outcomePl.profit);
     const outcome = outcomePl.outcome;
-    const averagePrice = new Price(outcomePl.price);
+    const averagePerSharePriceToOpenPosition = new Price(outcomePl.price);
     const minPrice = new Price(outcomePl.minPrice);
     const netPosition = new Shares(outcomePl.position);
     const frozenFunds = new Tokens(outcomePl.frozenFunds);
@@ -225,23 +226,54 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     // but, we want to display averagePrice; for scalar markets this means adding
     // minPrice. Eg. if a user paid an average price of 4.5 for a scalar market, but
     // the minPrice in that market is 3, we actually need to show 4.5+3=7.5 in the UI.
-    const averagePriceDisplay: Price = averagePrice.plus(minPrice);
+    const averagePriceDisplay: Price = averagePerSharePriceToOpenPosition.plus(minPrice);
 
-    const outcomeLastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
+    const lastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
 
-    const unrealizedCost: Tokens = positionGetUnrealizedCost(netPosition, averagePrice);
-    const unrealizedProfit: Tokens =
-      positionGetUnrealizedProfit(netPosition, averagePrice, outcomeLastPrice);
-    const positionCurrentValue: Tokens =
-      positionGetCurrentValue(netPosition, averagePrice, outcomeLastPrice, frozenFunds);
-    const totalProfit: Tokens =
-      positionGetTotalProfit(netPosition, averagePrice, outcomeLastPrice, realizedProfit);
-    const realizedProfitPercent: Percent =
-      positionGetRealizedProfitPercent(realizedCost, realizedProfit);
-    const unrealizedProfitPercent: Percent =
-      positionGetUnrealizedProfitPercent(netPosition, averagePrice, outcomeLastPrice);
-    const totalProfitPercent: Percent =
-      positionGetTotalProfitPercent(netPosition, averagePrice, outcomeLastPrice, realizedCost, realizedProfit);
+    const unrealizedCost: Tokens = positionGetUnrealizedCost({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+    });
+    const unrealizedProfit: Tokens = positionGetUnrealizedProfit({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+    });
+    const totalCost: Tokens = positionGetTotalCost({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+      realizedCost,
+    });
+    const positionCurrentValue: Tokens = positionGetCurrentValue({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+      frozenFunds,
+    });
+    const totalProfit: Tokens = positionGetTotalProfit({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+      realizedProfit,
+    });
+    const realizedProfitPercent: Percent = positionGetRealizedProfitPercent({
+      realizedCost,
+      realizedProfit,
+    });
+    const unrealizedProfitPercent: Percent = positionGetUnrealizedProfitPercent({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+    });
+    const totalProfitPercent: Percent = positionGetTotalProfitPercent({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      lastPrice,
+      realizedCost,
+      realizedProfit,
+    });
 
     return {
       marketId: outcomePl.marketId,
@@ -254,6 +286,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       averagePrice: averagePriceDisplay.magnitude,
       unrealizedCost: unrealizedCost.magnitude,
       realizedCost: realizedCost.magnitude,
+      totalCost: totalCost.magnitude,
       realizedPercent: realizedProfitPercent.magnitude,
       unrealizedPercent: unrealizedProfitPercent.magnitude,
       totalPercent: totalProfitPercent.magnitude,
@@ -378,6 +411,7 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       marketId: "",
       unrealizedCost: ZERO,
       realizedCost: ZERO,
+      totalCost: ZERO,
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
@@ -432,6 +466,7 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       total: startProfit.total.negated(),
       unrealizedCost: startProfit.unrealizedCost.negated(),
       realizedCost: startProfit.realizedCost.negated(),
+      totalCost: startProfit.totalCost.negated(),
       realizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
       unrealizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
       totalPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()

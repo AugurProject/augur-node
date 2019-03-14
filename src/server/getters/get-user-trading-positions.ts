@@ -8,7 +8,7 @@ import { BN_WEI_PER_ETHER, ZERO } from "../../constants";
 import { Address, MarketsRow, OutcomeParam, ReportingState, SortLimitParams } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { Tokens, Percent } from "../../utils/dimension-quantity";
-import { positionGetRealizedProfitPercent, positionGetUnrealizedProfitPercent2, positionGetTotalProfitPercent2 } from "../../utils/financial-math";
+import { positionGetRealizedProfitPercent, positionGetUnrealizedProfitPercent, positionGetTotalProfitPercent } from "../../utils/financial-math";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
 export const UserTradingPositionsParamsSpecific = t.type({
@@ -33,7 +33,7 @@ export interface TradingPosition extends ProfitLossResult, FrozenFunds {
 
 // TODO doc
 export interface MarketTradingPosition extends Pick<ProfitLossResult,
-  "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "realizedPercent" |
+  "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
   "unrealizedPercent" | "totalPercent" | "currentValue"
   >, FrozenFunds { }
 
@@ -142,6 +142,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       timestamp: 0,
       unrealizedCost: ZERO,
       realizedCost: ZERO,
+      totalCost: ZERO,
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
@@ -206,20 +207,22 @@ function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosi
     total: sum(tpsForOneMarketId, (tp) => tp.total),
     unrealizedCost: sum(tpsForOneMarketId, (tp) => tp.unrealizedCost),
     realizedCost: sum(tpsForOneMarketId, (tp) => tp.realizedCost),
+    totalCost: sum(tpsForOneMarketId, (tp) => tp.totalCost),
     currentValue: sum(tpsForOneMarketId, (tp) => tp.currentValue),
     frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
   };
-  const realizedPercent: Percent = positionGetRealizedProfitPercent(
-    new Tokens(partialMarketTradingPosition.realizedCost),
-    new Tokens(partialMarketTradingPosition.realized));
-  const unrealizedPercent: Percent = positionGetUnrealizedProfitPercent2(
-    new Tokens(partialMarketTradingPosition.unrealizedCost),
-    new Tokens(partialMarketTradingPosition.unrealized));
-  const totalPercent: Percent = positionGetTotalProfitPercent2(
-      new Tokens(partialMarketTradingPosition.unrealizedCost),
-      new Tokens(partialMarketTradingPosition.unrealized),
-      new Tokens(partialMarketTradingPosition.realizedCost),
-      new Tokens(partialMarketTradingPosition.realized));
+  const realizedPercent: Percent = positionGetRealizedProfitPercent({
+    realizedCost: new Tokens(partialMarketTradingPosition.realizedCost),
+    realizedProfit: new Tokens(partialMarketTradingPosition.realized),
+  });
+  const unrealizedPercent: Percent = positionGetUnrealizedProfitPercent({
+    unrealizedCost: new Tokens(partialMarketTradingPosition.unrealizedCost),
+    unrealizedProfit: new Tokens(partialMarketTradingPosition.unrealized),
+  });
+  const totalPercent: Percent = positionGetTotalProfitPercent({
+    totalCost: new Tokens(partialMarketTradingPosition.totalCost),
+    totalProfit: new Tokens(partialMarketTradingPosition.total),
+  });
 
   return {
     realizedPercent: realizedPercent.magnitude,
