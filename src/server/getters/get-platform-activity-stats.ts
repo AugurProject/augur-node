@@ -5,7 +5,7 @@ import { BigNumber } from "bignumber.js";
 
 export interface PlatformActivityResult {
   activeUsers: BigNumber;
-  BigNumberOfTrades: BigNumber;
+  numberOfTrades: BigNumber;
   openInterest: BigNumber;
   marketsCreated: BigNumber;
   volume: BigNumber;
