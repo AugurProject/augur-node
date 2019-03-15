@@ -7,8 +7,8 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { BN_WEI_PER_ETHER, ZERO } from "../../constants";
 import { Address, MarketsRow, OutcomeParam, ReportingState, SortLimitParams } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
-import { Tokens, Percent } from "../../utils/dimension-quantity";
-import { positionGetRealizedProfitPercent, positionGetUnrealizedProfitPercent, positionGetTotalProfitPercent } from "../../utils/financial-math";
+import { Tokens } from "../../utils/dimension-quantity";
+import { getRealizedProfitPercent, getTotalProfitPercent, getUnrealizedProfitPercent } from "../../utils/financial-math";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
 export const UserTradingPositionsParamsSpecific = t.type({
@@ -211,23 +211,22 @@ function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosi
     currentValue: sum(tpsForOneMarketId, (tp) => tp.currentValue),
     frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
   };
-  const realizedPercent: Percent = positionGetRealizedProfitPercent({
+  const { realizedProfitPercent } = getRealizedProfitPercent({
     realizedCost: new Tokens(partialMarketTradingPosition.realizedCost),
     realizedProfit: new Tokens(partialMarketTradingPosition.realized),
   });
-  const unrealizedPercent: Percent = positionGetUnrealizedProfitPercent({
+  const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
     unrealizedCost: new Tokens(partialMarketTradingPosition.unrealizedCost),
     unrealizedProfit: new Tokens(partialMarketTradingPosition.unrealized),
   });
-  const totalPercent: Percent = positionGetTotalProfitPercent({
+  const { totalProfitPercent } = getTotalProfitPercent({
     totalCost: new Tokens(partialMarketTradingPosition.totalCost),
     totalProfit: new Tokens(partialMarketTradingPosition.total),
   });
-
   return {
-    realizedPercent: realizedPercent.magnitude,
-    unrealizedPercent: unrealizedPercent.magnitude,
-    totalPercent: totalPercent.magnitude,
+    realizedPercent: realizedProfitPercent.magnitude,
+    unrealizedPercent: unrealizedProfitPercent.magnitude,
+    totalPercent: totalProfitPercent.magnitude,
     ...partialMarketTradingPosition,
   };
 

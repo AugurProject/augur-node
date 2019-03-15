@@ -8,8 +8,8 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
-import { Percent, Price, Shares, Tokens } from "../../utils/dimension-quantity";
-import { positionGetCurrentValue, positionGetRealizedProfitPercent, positionGetTotalCost, positionGetTotalProfit, positionGetTotalProfitPercent, positionGetUnrealizedCost, positionGetUnrealizedProfit, positionGetUnrealizedProfitPercent } from "../../utils/financial-math";
+import { Price, Shares, Tokens } from "../../utils/dimension-quantity";
+import { getCurrentValue, getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
 
@@ -158,15 +158,15 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
   const realizedCost = left.realizedCost.plus(right.realizedCost);
   const totalCost = left.totalCost.plus(right.totalCost);
   const total = realized.plus(unrealized);
-  const unrealizedPercent = positionGetUnrealizedProfitPercent({
+  const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
     unrealizedCost: new Tokens(unrealizedCost),
     unrealizedProfit: new Tokens(unrealized),
   });
-  const realizedPercent = positionGetRealizedProfitPercent({
+  const { realizedProfitPercent } = getRealizedProfitPercent({
     realizedCost: new Tokens(realizedCost),
     realizedProfit: new Tokens(realized),
   });
-  const totalPercent = positionGetTotalProfitPercent({
+  const { totalProfitPercent } = getTotalProfitPercent({
     totalCost: new Tokens(totalCost),
     totalProfit: new Tokens(total),
   });
@@ -181,9 +181,9 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
     unrealizedCost,
     realizedCost,
     totalCost,
-    unrealizedPercent: unrealizedPercent.magnitude,
-    realizedPercent: realizedPercent.magnitude,
-    totalPercent: totalPercent.magnitude,
+    unrealizedPercent: unrealizedProfitPercent.magnitude,
+    realizedPercent: realizedProfitPercent.magnitude,
+    totalPercent: totalProfitPercent.magnitude,
     currentValue,
   });
 }
@@ -240,7 +240,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     const realizedCost = new Tokens(outcomePl.realizedCost);
     const realizedProfit = new Tokens(outcomePl.profit);
     const outcome = outcomePl.outcome;
-    const averagePerSharePriceToOpenPosition = new Price(outcomePl.price);
+    const averagePricePerShareToOpenPosition = new Price(outcomePl.price);
     const minPrice = new Price(outcomePl.minPrice);
     const netPosition = new Shares(outcomePl.position);
     const frozenFunds = new Tokens(outcomePl.frozenFunds);
@@ -249,50 +249,50 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     // but, we want to display averagePrice; for scalar markets this means adding
     // minPrice. Eg. if a user paid an average price of 4.5 for a scalar market, but
     // the minPrice in that market is 3, we actually need to show 4.5+3=7.5 in the UI.
-    const averagePriceDisplay: Price = averagePerSharePriceToOpenPosition.plus(minPrice);
+    const averagePriceDisplay: Price = averagePricePerShareToOpenPosition.plus(minPrice);
 
     const lastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
 
-    const unrealizedCost: Tokens = positionGetUnrealizedCost({
+    const { unrealizedCost } = getUnrealizedCost({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
     });
-    const unrealizedProfit: Tokens = positionGetUnrealizedProfit({
+    const { unrealizedProfit } = getUnrealizedProfit({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
     });
-    const totalCost: Tokens = positionGetTotalCost({
+    const { totalCost } = getTotalCost({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
       realizedCost,
     });
-    const positionCurrentValue: Tokens = positionGetCurrentValue({
+    const { currentValue } = getCurrentValue({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
       frozenFunds,
     });
-    const totalProfit: Tokens = positionGetTotalProfit({
+    const { totalProfit } = getTotalProfit({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
       realizedProfit,
     });
-    const realizedProfitPercent: Percent = positionGetRealizedProfitPercent({
+    const { realizedProfitPercent } = getRealizedProfitPercent({
       realizedCost,
       realizedProfit,
     });
-    const unrealizedProfitPercent: Percent = positionGetUnrealizedProfitPercent({
+    const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
     });
-    const totalProfitPercent: Percent = positionGetTotalProfitPercent({
+    const { totalProfitPercent } = getTotalProfitPercent({
       netPosition,
-      averagePerSharePriceToOpenPosition,
+      averagePricePerShareToOpenPosition,
       lastPrice,
       realizedCost,
       realizedProfit,
@@ -313,7 +313,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       realizedPercent: realizedProfitPercent.magnitude,
       unrealizedPercent: unrealizedProfitPercent.magnitude,
       totalPercent: totalProfitPercent.magnitude,
-      currentValue: positionCurrentValue.magnitude,
+      currentValue: currentValue.magnitude,
       frozenFunds: frozenFunds.magnitude,
     };
   });
