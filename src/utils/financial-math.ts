@@ -85,6 +85,19 @@ export function tradeGetNextNetPosition(params: NetPosition & TradePositionDelta
 }
 
 export function tradeGetNextAveragePerSharePriceToOpenPosition(params: NetPosition & AveragePerSharePriceToOpenPosition & TradePositionDelta & TradePrice): Price {
+  const nextNetPosition = tradeGetNextNetPosition(params);
+  if (nextNetPosition.isZero()) {
+    // TODO doc
+    return Price.sentinel;
+  } else if (nextNetPosition.sign !== params.netPosition.sign) {
+    // TODO doc
+    return params.tradePrice;
+  }
+  const quantityOpened = tradeGetQuantityOpened(params);
+  if (quantityOpened.isZero()) {
+    // TODO doc
+    return params.averagePerSharePriceToOpenPosition;
+  }
   // TODO doc weighted average
   return (
     (params.netPosition.abs().multipliedBy(params.averagePerSharePriceToOpenPosition))
@@ -92,13 +105,31 @@ export function tradeGetNextAveragePerSharePriceToOpenPosition(params: NetPositi
   ).dividedBy(tradeGetNextNetPosition(params).abs()).expect(Price);
 }
 
-// TODO doc ie. netPosition prior to trade ... relationsihp between TradePositionDelta and TradeQuantityClosed
+// TODO doc ie. netPosition prior to trade ... relationship between TradePositionDelta and TradeQuantityClosed
 export function tradeGetQuantityClosed(params: NetPosition & TradePositionDelta): Shares {
   if (params.tradePositionDelta.isZero() ||
     params.tradePositionDelta.sign === params.netPosition.sign) {
     return Shares.sentinel;
   }
   return params.netPosition.abs().min(params.tradePositionDelta.abs());
+}
+
+// TODO doc ie. netPosition prior to trade ... relationship between TradePositionDelta and TradeQuantityOpened
+export function tradeGetQuantityOpened(params: NetPosition & TradePositionDelta): Shares {
+  // TODO simpler algorithm?
+  if (params.tradePositionDelta.isZero()) {
+    return Shares.sentinel;
+  }
+  if (params.tradePositionDelta.sign === params.netPosition.sign) {
+    // position opened further
+    return params.tradePositionDelta.abs();
+  }
+  if (params.tradePositionDelta.abs().gt(params.netPosition.abs())) {
+    // position reversed
+    return params.tradePositionDelta.plus(params.netPosition).abs();
+  }
+  // position partially or fully closed
+  return Shares.sentinel;
 }
 
 // TODO doc ie. netPosition prior to trade
@@ -170,20 +201,6 @@ export function positionGetTotalCost(params: NetPosition & AveragePerSharePriceT
   return positionGetUnrealizedCost(params).plus(params.realizedCost);
 }
 
-// TODO rm
-// // TODO doc eg. currentSharePrice might be lastPrice
-// export function positionGetProfitPerShare(
-//   netPosition: Shares,
-//   averagePerSharePriceToOpenPosition: Price,
-//   currentSharePrice: Price): Price {
-//   if (netPosition.lt(Shares.sentinel)) {
-//     // netPosition is short, so user profits as currentSharePrice decreases
-//     return averagePerSharePriceToOpenPosition.minus(currentSharePrice);
-//   }
-//   // netPosition is long, so user profits as currentSharePrice increases
-//   return currentSharePrice.minus(averagePerSharePriceToOpenPosition);
-// }
-
 // TODO doc
 // TODO allow currentSharePrice to be undefined and return zero
 export function positionGetUnrealizedProfit(params: NetPosition & AveragePerSharePriceToOpenPosition & LastPrice): Tokens {
@@ -192,7 +209,7 @@ export function positionGetUnrealizedProfit(params: NetPosition & AveragePerShar
   }
   // TODO explain how this work for both long/short because -1 * -1 cancels out
   return params.netPosition.multipliedBy(
-    params.lastPrice.minus(params.averagePerSharePriceToOpenPosition)).expect(Tokens);
+    params.lastPrice.minus(params.averagePerSharePriceToOpenPosition)).abs().expect(Tokens); // abs() prevents unrealized profit from appearing as "-0" on JSON.stringify()
 }
 
 export function positionGetTotalProfit(params: NetPosition & AveragePerSharePriceToOpenPosition & LastPrice & RealizedProfit): Tokens {

@@ -3,6 +3,7 @@ import { BigNumber } from "bignumber.js";
 const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
 
+// TODO toString() method "20 tokens", "20 tokens/share", "20 tokens^2*shares^-3"
 // TODO <BigNumberType>
 // TODO ETH/attoETH/erc20
 // TODO can this be assemblyscript?
@@ -130,6 +131,12 @@ abstract class Quantity<T extends Quantity<T>> {
       throw new Error(`lt failed: expected dimensions to be equal, this=${this}, other=${other}`);
     }
     return this.magnitude.lt(other.magnitude);
+  }
+  public gt<B extends Quantity<B>>(other: B): boolean {
+    if (!isEqual(this.dimension, other.dimension)) {
+      throw new Error(`gt failed: expected dimensions to be equal, this=${this}, other=${other}`);
+    }
+    return this.magnitude.gt(other.magnitude);
   }
   public abs(): T {
     return new this.derivedConstructor(this.magnitude.abs());

@@ -102,84 +102,10 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     tradePositionDelta,
     tradePrice,
   });
-
-  // Adjust realized profit for amount of existing position sold
-  // if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) { // TODO this sign comparsion should use embedded design principle, eg. isPositionClose(oldPosition, positionDelta)
-  // const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(quantityClosed.magnitude);
-  // profit = profit.plus(profitDelta);
-  // // BEGIN SIMPLIFY1
-  // oldPosition = quantityClosed.magnitude.gte(oldPosition.abs()) ? ZERO : oldPosition.plus(positionDelta); // set oldPosition to ZERO if position was entirely closed out this trade; otherwise set oldPosition to nextPosition
-  // positionDelta = oldPosition.eq(ZERO) ? position : ZERO; // set positionDelta to nextPosition if position was entirely closed out this trade; otherwise set positionDelta to zero
-  // if (oldPosition.eq(ZERO)) {
-  //   oldPrice = ZERO;
-  // }
-  // END SIMPLIFY1
-  /*
-    // TODO phase1: simplify above logic:
-    // TODO phase2: make everything maximally const
-      I think we can simplify this into a few cases:
-        open position
-        partially close position
-        fully close position
-        [fully close position, open position] = reverse position
-          --> reverse algorithm should be concatenation of these algorithms, not a new algorithm
-    // SIMPLIFY1 replacement code:
-    if (amountSold.gte(oldPosition.abs())) {
-      // position entirely closed out this trade
-      oldPosition = ZERO
-      positionDelta = nextPosition
-      oldPrice = ZERO; // ie. averagePrice resets each new position, is memoryless of previous positions
-    } else {
-      // position partially closed out this trade
-      oldPosition = nextPosition
-      positionDelta = ZERO
-    }
-    // invariant: oldPosition + position == nextPosition && one of them is ZERO
-  */
-  // }
-
-  // let newPrice = oldPrice;
-
-  // Adjust price for new position added
-  // if (!positionDelta.eq(ZERO)) {
-  //   newPrice = (oldPrice.multipliedBy(oldPosition.abs())).plus(price.multipliedBy(positionDelta.abs())).dividedBy(position.abs());
-  /*
-    understanding this formula-
-    consider
-      oldPrice = 0.2
-      oldPosition = 1000
-      price = 0.1
-      positionDelta = -999
-      position = oldPosition + positionDelta = 1
-    then
-      // WRONG because position was partially closed out
-      (0.2*1000 + 0.1*999) / 1 = 99.9
-    but, if position was partially closed out this trade
-      (see SIMPLIFY11 replacement code above)
-      consolidating these:
-        if position entirely closed out this trade:
-          oldPosition = ZERO
-          positionDelta = nextPosition
-        otherwise
-          oldPosition = nextPosition
-          positionDelta = ZERO
-    then example becomes
-      // position not entirely closed out:
-      oldPosition = nextPosition = 1
-      positionDelta = 0
-    then
-      (0.2*1 + 0.1*0)/1 = 0.2 = (oldPrice*nextPosition + price*0)/nextPosition = oldPrice
-      // invariant: averagePrice = prevAveragePrice if position partially closed
-  */
-  // }
-
   const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
-    frozenFundsBeforeEvent: {
-      frozenFunds,
-    },
+    frozenFundsBeforeEvent: { frozenFunds },
     event: makeFrozenFundsEvent(account, realizedProfitDelta.magnitude, marketsRow, tradeData),
   });
-
   const nextRealizedCost = tradeGetNextRealizedCost({
     realizedCost,
     netPosition,
@@ -187,13 +113,13 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     tradePositionDelta,
     tradePrice,
   });
-
-  const nextAveragePerSharePriceToOpenPosition = tradeGetNextAveragePerSharePriceToOpenPosition({
-    netPosition,
-    averagePerSharePriceToOpenPosition,
-    tradePositionDelta,
-    tradePrice,
-  });
+  const nextAveragePerSharePriceToOpenPosition =
+    tradeGetNextAveragePerSharePriceToOpenPosition({
+      netPosition,
+      averagePerSharePriceToOpenPosition,
+      tradePositionDelta,
+      tradePrice,
+    });
 
   // TODO strongly type as ProfitLossTimeseries<BigNumberType>; move ProfitLossTimeseries to types.ts and parameterize BigNumberType; unsure about ProfitLossTimeseries.minPrice, what does that do and why isn't it here?; this can even be ProfitLossTimeseries<string> so that compiler whines when I forget .toString()
   const nextProfitLossTimeseries = {
