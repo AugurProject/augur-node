@@ -151,17 +151,40 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
   // TODO look in get-profit-loss for any other places that new fields need to be added
 
   const netPosition = leftPosition.plus(rightPosition);
+  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
   const realized = left.realized.plus(right.realized);
   const unrealized = left.unrealized.plus(right.unrealized);
+  const unrealizedCost = left.unrealizedCost.plus(right.unrealizedCost);
+  const realizedCost = left.realizedCost.plus(right.realizedCost);
+  const totalCost = left.totalCost.plus(right.totalCost);
   const total = realized.plus(unrealized);
-  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2); // TODO what is significance of dividing by 2 here?
+  const unrealizedPercent = positionGetUnrealizedProfitPercent({
+    unrealizedCost: new Tokens(unrealizedCost),
+    unrealizedProfit: new Tokens(unrealized),
+  });
+  const realizedPercent = positionGetRealizedProfitPercent({
+    realizedCost: new Tokens(realizedCost),
+    realizedProfit: new Tokens(realized),
+  });
+  const totalPercent = positionGetTotalProfitPercent({
+    totalCost: new Tokens(totalCost),
+    totalProfit: new Tokens(total),
+  });
+  const currentValue = left.currentValue.plus(right.currentValue);
 
   return Object.assign(_.clone(left), {
     netPosition,
+    averagePrice,
     realized,
     unrealized,
     total,
-    averagePrice,
+    unrealizedCost,
+    realizedCost,
+    totalCost,
+    unrealizedPercent: unrealizedPercent.magnitude,
+    realizedPercent: realizedPercent.magnitude,
+    totalPercent: totalPercent.magnitude,
+    currentValue,
   });
 }
 
@@ -467,10 +490,10 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       unrealizedCost: startProfit.unrealizedCost.negated(),
       realizedCost: startProfit.realizedCost.negated(),
       totalCost: startProfit.totalCost.negated(),
-      realizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
-      unrealizedPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
-      totalPercent: ZERO, // TODO ?? need to decide how this is handled in sumProfitLossResults()
-      currentValue: startProfit.currentValue.negated(), // TODO
+      realizedPercent: startProfit.realizedPercent,
+      unrealizedPercent: startProfit.unrealizedPercent,
+      totalPercent: startProfit.totalPercent,
+      currentValue: startProfit.currentValue.negated(),
       frozenFunds: startProfit.frozenFunds.negated(),
     };
 

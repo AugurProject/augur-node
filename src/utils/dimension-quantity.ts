@@ -157,7 +157,7 @@ interface QuantityConstructor<T extends Quantity<T>> {
 }
 
 interface VerifiableQuantity<T extends Quantity<T>> extends QuantityConstructor<T> {
-  sentinel: T;
+  ZERO: T;
   isValidMagnitude?(magnitude: BigNumber): undefined | Error; // TODO doc
 }
 
@@ -191,7 +191,7 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
       "expect failed: dimensions not equal, expected Price and got { tokens: 1, shares: -5 }"
   */
   public expect<T extends Quantity<T>>(vq: VerifiableQuantity<T>): T {
-    if (!isEqual(vq.sentinel.dimension, this.dimension)) {
+    if (!isEqual(vq.ZERO.dimension, this.dimension)) {
       throw new Error(`expect failed: dimensions not equal, expected=${vq}, actual=${this}`);
     }
     if (vq.isValidMagnitude !== undefined) {
@@ -208,8 +208,6 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
 // ************************************************************************
 // **** specific units below here; a lot of this could be generated code
 
-// TODO rename sentinel to ZERO; add ONE
-
 export function scalar(magnitude: number | BigNumber): Scalar {
   if (typeof magnitude === "number") {
     return new Scalar(new BigNumber(magnitude));
@@ -221,8 +219,7 @@ const ScalarUnitDimension: DimensionVector = Object.freeze({
   shares: 0,
 });
 export class Scalar extends Quantity<Scalar> {
-  public static sentinel: Scalar = new Scalar(ZERO);
-  public static ONE: Scalar = new Scalar(ONE);
+  public static ZERO: Scalar = new Scalar(ZERO);
   public scalar: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Scalar, magnitude, ScalarUnitDimension);
@@ -236,7 +233,7 @@ export function percent(magnitude: number | BigNumber): Percent {
   return new Percent(magnitude);
 }
 export class Percent extends Quantity<Percent> {
-  public static sentinel: Percent = new Percent(ZERO);
+  public static ZERO: Percent = new Percent(ZERO);
   public percent: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Percent2()`
   constructor(magnitude: BigNumber) {
     super(Percent, magnitude, ScalarUnitDimension);
@@ -254,7 +251,7 @@ const TokensUnitDimension: DimensionVector = Object.freeze({
   shares: 0,
 });
 export class Tokens extends Quantity<Tokens> {
-  public static sentinel: Tokens = new Tokens(ZERO);
+  public static ZERO: Tokens = new Tokens(ZERO);
   public tokens: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Tokens, magnitude, TokensUnitDimension);
@@ -272,7 +269,7 @@ const SharesUnitDimension: DimensionVector = Object.freeze({
   shares: 1,
 });
 export class Shares extends Quantity<Shares> {
-  public static sentinel: Shares = new Shares(ZERO);
+  public static ZERO: Shares = new Shares(ZERO);
   public shares: true; // this unique field makes this unit disjoint with other units so that you can't `a: Shares = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Shares, magnitude, SharesUnitDimension);
@@ -290,7 +287,7 @@ const PriceUnitDimension: DimensionVector = Object.freeze({
   shares: -1,
 });
 export class Price extends Quantity<Price> {
-  public static sentinel: Price = new Price(ZERO);
+  public static ZERO: Price = new Price(ZERO);
   public price: true; // this unique field makes this unit disjoint with other units so that you can't `a: Price = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Price, magnitude, PriceUnitDimension);

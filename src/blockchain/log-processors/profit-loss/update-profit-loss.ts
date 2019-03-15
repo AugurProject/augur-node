@@ -79,10 +79,10 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     .where({ account, marketId, outcome })
     .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
 
-  const netPosition: Shares = prevData ? new Shares(prevData.position) : Shares.sentinel;
-  const averagePerSharePriceToOpenPosition = prevData ? new Price(prevData.price) : Price.sentinel;
-  const realizedCost = prevData ? new Tokens(prevData.realizedCost) : Tokens.sentinel;
-  const realizedProfit = prevData ? new Tokens(prevData.profit) : Tokens.sentinel;
+  const netPosition: Shares = prevData ? new Shares(prevData.position) : Shares.ZERO;
+  const averagePerSharePriceToOpenPosition = prevData ? new Price(prevData.price) : Price.ZERO;
+  const realizedCost = prevData ? new Tokens(prevData.realizedCost) : Tokens.ZERO;
+  const realizedProfit = prevData ? new Tokens(prevData.profit) : Tokens.ZERO;
   const frozenFunds = prevData ? prevData.frozenFunds : ZERO;
 
   const nextNetPosition: Shares = tradeGetNextNetPosition({
