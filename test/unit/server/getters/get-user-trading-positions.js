@@ -75,13 +75,13 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
       offset: null,
     });
 
-    expect(tradingPositions[0].netPosition.toString()).toEqual("-7");
-    expect(tradingPositions[0].averagePrice.toString()).toEqual("0.65");
-    expect(tradingPositions[0].unrealized.toString()).toEqual("0.49");
-    expect(tradingPositions[0].realized.toString()).toEqual("0.21");
-    expect(tradingPositions[0].frozenFunds.toString()).toEqual("2.45");
+    expect(tradingPositions[0].netPosition).toEqual("-7");
+    expect(tradingPositions[0].averagePrice).toEqual("0.65");
+    expect(tradingPositions[0].unrealized).toEqual("0.49");
+    expect(tradingPositions[0].realized).toEqual("0.21");
+    expect(tradingPositions[0].frozenFunds).toEqual("2.45");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(2.45).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(2.45).plus(validityBondSumInEth).toString());
   });
 });
 
@@ -170,13 +170,13 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
       offset: null,
     });
 
-    expect(tradingPositions[0].averagePrice.toString()).toEqual("0.6305");
-    expect(tradingPositions[0].netPosition.toString()).toEqual("-3");
-    expect(tradingPositions[0].realized.toString()).toEqual("4.8785");
-    expect(tradingPositions[0].unrealized.toString()).toEqual("1.4415");
-    expect(tradingPositions[0].frozenFunds.toString()).toEqual("1.1085");
+    expect(tradingPositions[0].averagePrice).toEqual("0.6305");
+    expect(tradingPositions[0].netPosition).toEqual("-3");
+    expect(tradingPositions[0].realized).toEqual("4.8785");
+    expect(tradingPositions[0].unrealized).toEqual("1.4415");
+    expect(tradingPositions[0].frozenFunds).toEqual("1.1085");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(1.1085).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(1.1085).plus(validityBondSumInEth).toString());
   });
 
   it("get the positions for an account which has no trades", async () => {
@@ -281,23 +281,23 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
     const positionB = tradingPositions[1];
     const positionC = tradingPositions[2];
 
-    expect(positionA.netPosition.toString()).toEqual("0");
-    expect(positionA.averagePrice.toString()).toEqual("0");
-    expect(positionA.unrealized.toString()).toEqual("0");
-    expect(positionA.realized.toString()).toEqual("0.3");
-    expect(positionA.frozenFunds.toString()).toEqual("0");
+    expect(positionA.netPosition).toEqual("0");
+    expect(positionA.averagePrice).toEqual("0");
+    expect(positionA.unrealized).toEqual("0");
+    expect(positionA.realized).toEqual("0.3");
+    expect(positionA.frozenFunds).toEqual("0");
 
-    expect(positionB.netPosition.toString()).toEqual("-2");
-    expect(positionB.averagePrice.toString()).toEqual("0.2");
-    expect(positionB.unrealized.toString()).toEqual("0");
-    expect(positionB.realized.toString()).toEqual("0");
-    expect(positionB.frozenFunds.toString()).toEqual("1.6");
+    expect(positionB.netPosition).toEqual("-2");
+    expect(positionB.averagePrice).toEqual("0.2");
+    expect(positionB.unrealized).toEqual("0");
+    expect(positionB.realized).toEqual("0");
+    expect(positionB.frozenFunds).toEqual("1.6");
 
-    expect(positionC.netPosition.toString()).toEqual("0.5");
-    expect(positionC.averagePrice.toString()).toEqual("0.3");
-    expect(positionC.unrealized.toString()).toEqual("0");
-    expect(positionC.realized.toString()).toEqual("0");
-    expect(positionC.frozenFunds.toString()).toEqual("0.15");
+    expect(positionC.netPosition).toEqual("0.5");
+    expect(positionC.averagePrice).toEqual("0.3");
+    expect(positionC.unrealized).toEqual("0");
+    expect(positionC.realized).toEqual("0");
+    expect(positionC.frozenFunds).toEqual("0.15");
 
     expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(1.75).plus(validityBondSumInEth).toString());
   });
@@ -385,25 +385,25 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
     const positionB = tradingPositions[1];
     const positionC = tradingPositions[2];
 
-    expect(positionA.netPosition.toString()).toEqual("-5");
-    expect(positionA.averagePrice.toString()).toEqual("0.4");
-    expect(positionA.unrealized.toString()).toEqual("0");
-    expect(positionA.realized.toString()).toEqual("0");
-    expect(positionA.frozenFunds.toString()).toEqual("3");
+    expect(positionA.netPosition).toEqual("-5");
+    expect(positionA.averagePrice).toEqual("0.4");
+    expect(positionA.unrealized).toEqual("0");
+    expect(positionA.realized).toEqual("0");
+    expect(positionA.frozenFunds).toEqual("3");
 
-    expect(positionB.netPosition.toString()).toEqual("-3");
-    expect(positionB.averagePrice.toString()).toEqual("0.35");
-    expect(positionB.unrealized.toString()).toEqual("0");
-    expect(positionB.realized.toString()).toEqual("0");
-    expect(positionB.frozenFunds.toString()).toEqual("-1.05");
+    expect(positionB.netPosition).toEqual("-3");
+    expect(positionB.averagePrice).toEqual("0.35");
+    expect(positionB.unrealized).toEqual("0");
+    expect(positionB.realized).toEqual("0");
+    expect(positionB.frozenFunds).toEqual("-1.05");
 
-    expect(positionC.netPosition.toString()).toEqual("-2");
-    expect(positionC.averagePrice.toString()).toEqual("0.3");
-    expect(positionC.unrealized.toString()).toEqual("0.4");
-    expect(positionC.realized.toString()).toEqual("1.6");
-    expect(positionC.frozenFunds.toString()).toEqual("-0.6");
+    expect(positionC.netPosition).toEqual("-2");
+    expect(positionC.averagePrice).toEqual("0.3");
+    expect(positionC.unrealized).toEqual("0.4");
+    expect(positionC.realized).toEqual("1.6");
+    expect(positionC.frozenFunds).toEqual("-0.6");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(1.35).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(1.35).plus(validityBondSumInEth).toString());
   });
 });
 
@@ -507,25 +507,25 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     const positionB = tradingPositions[1];
     const positionC = tradingPositions[2];
 
-    expect(positionA.netPosition.toString()).toEqual("0");
-    expect(positionA.averagePrice.toString()).toEqual("0");
-    expect(positionA.unrealized.toString()).toEqual("0");
-    expect(positionA.realized.toString()).toEqual("-0.5");
-    expect(positionA.frozenFunds.toString()).toEqual("2");
+    expect(positionA.netPosition).toEqual("0");
+    expect(positionA.averagePrice).toEqual("0");
+    expect(positionA.unrealized).toEqual("0");
+    expect(positionA.realized).toEqual("-0.5");
+    expect(positionA.frozenFunds).toEqual("2");
 
-    expect(positionB.netPosition.toString()).toEqual("12");
-    expect(positionB.averagePrice.toString()).toEqual("0.1");
-    expect(positionB.unrealized.toString()).toEqual("1.2");
-    expect(positionB.realized.toString()).toEqual("1.3");
-    expect(positionB.frozenFunds.toString()).toEqual("1.2");
+    expect(positionB.netPosition).toEqual("12");
+    expect(positionB.averagePrice).toEqual("0.1");
+    expect(positionB.unrealized).toEqual("1.2");
+    expect(positionB.realized).toEqual("1.3");
+    expect(positionB.frozenFunds).toEqual("1.2");
 
-    expect(positionC.netPosition.toString()).toEqual("2");
-    expect(positionC.averagePrice.toString()).toEqual("0.6");
-    expect(positionC.unrealized.toString()).toEqual("0.4");
-    expect(positionC.realized.toString()).toEqual("0.6");
-    expect(positionC.frozenFunds.toString()).toEqual("-0.8");
+    expect(positionC.netPosition).toEqual("2");
+    expect(positionC.averagePrice).toEqual("0.6");
+    expect(positionC.unrealized).toEqual("0.4");
+    expect(positionC.realized).toEqual("0.6");
+    expect(positionC.frozenFunds).toEqual("-0.8");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(2.4).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(2.4).plus(validityBondSumInEth).toString());
   });
 });
 
@@ -616,13 +616,13 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
 
     expect(tradingPositions.length).toEqual(1);
 
-    expect(tradingPositions[0].netPosition.toString()).toEqual("-3");
-    expect(tradingPositions[0].averagePrice.toString()).toEqual("205");
-    expect(tradingPositions[0].unrealized.toString()).toEqual("165");
-    expect(tradingPositions[0].realized.toString()).toEqual("458");
-    expect(tradingPositions[0].frozenFunds.toString()).toEqual("135");
+    expect(tradingPositions[0].netPosition).toEqual("-3");
+    expect(tradingPositions[0].averagePrice).toEqual("205");
+    expect(tradingPositions[0].unrealized).toEqual("165");
+    expect(tradingPositions[0].realized).toEqual("458");
+    expect(tradingPositions[0].frozenFunds).toEqual("135");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(135).plus(validityBondSumInEth).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(135).plus(validityBondSumInEth).toString());
   });
 });
 
@@ -661,7 +661,7 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
       offset: null,
     });
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(validityBondSumInEth.toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(validityBondSumInEth.toString());
   });
 
   it("get user's full position, ignoring a finalized market", async () => {
@@ -684,6 +684,6 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
 
     const validityBondSizeEthFromFinalizedMarket = bn(0.0128);
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(validityBondSumInEth.minus(validityBondSizeEthFromFinalizedMarket).toString());
+    expect(frozenFundsTotal.frozenFunds).toEqual(validityBondSumInEth.minus(validityBondSizeEthFromFinalizedMarket).toString());
   });
 });

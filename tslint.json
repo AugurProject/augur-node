@@ -105,6 +105,9 @@
     "no-shadowed-variable": false,
     "object-literal-sort-keys": false,
     "array-type": [true, "generic"],
+    "no-consecutive-blank-lines": false,
+    "no-trailing-whitespace": false,
+    "max-classes-per-file": false,
     "prefer-method-signature": true
   }
 }
