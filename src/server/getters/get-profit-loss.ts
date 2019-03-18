@@ -44,18 +44,17 @@ export interface Timestamped {
   timestamp: number;
 }
 
-// TODO doc and move to types.ts
 export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   account: Address;
   marketId: Address;
   outcome: number;
   transactionHash: string;
-  price: BigNumber;
-  position: BigNumber;
+  price: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
+  position: BigNumber; // denominated in shares. Known as "net position", this is the number of shares the user currently owns for this outcome; if it's a positive number, the user is "long" and earns money if the share price goes up; if it's a negative number the user is "short" and earns money if the share price goes down. Eg. "-15" means an open position of short 15 shares.
   numOutcomes: number;
-  profit: BigNumber;
-  realizedCost: BigNumber;
-  minPrice: BigNumber; // TODO what is this?
+  profit: BigNumber; // denominated in tokens. Realized profit of shares that were bought and sold
+  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
+  minPrice: BigNumber; // market minPrice, required to display trade price for scalar markets because `displayPrice = tradePrice + minPrice`
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -77,18 +76,17 @@ export interface ProfitLossResult extends
   marketId: Address; // user's position is in this market
   outcome: number; // user's position is in this market outcome
   netPosition: BigNumber; // current quantity of shares in user's position for this market outcome. "net" position because if user bought 4 shares and sold 6 shares, netPosition would be -2 shares (ie. 4 - 6 = -2). User is "long" this market outcome (gets paid if this outcome occurs) if netPosition is positive. User is "short" this market outcome (gets paid if this outcome does not occur) if netPosition is negative
-  averagePrice: BigNumber; // average price per share user paid to be in this position -- TODO update with my latest understanding that averagePrice is reset each time you fully close a position, and otherwise is weighted average of buys and sells within current position
+  averagePrice: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
   realized: BigNumber; // realized profit in tokens (eg. ETH) user already got from this market outcome. "realized" means the user bought/sold shares in such a way that the profit is already in the user's wallet
-  // TODO doc unrealized is based on current time / last traded price
-  unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. ProfitLossResult is currently not computed for each price change, so unrealized profit may be stale (not updated with latest share price).
+  unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. Computed using last trade price.
   total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
-  unrealizedCost: BigNumber;
-  realizedCost: BigNumber;
-  totalCost: BigNumber;
-  realizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  unrealizedPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  totalPercent: BigNumber; // TODO from 0 to 1, not 0 to 100
-  currentValue: BigNumber; // TODO doc currentValue = unrealized - frozenFunds
+  unrealizedCost: BigNumber; // denominated in tokens. Cost of shares in netPosition
+  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
+  totalCost: BigNumber; // denominated in tokens. Always equal to unrealizedCost + realizedCost
+  realizedPercent: BigNumber; // realized profit percent (ie. profit/cost)
+  unrealizedPercent: BigNumber; // unrealized profit percent (ie. profit/cost)
+  totalPercent: BigNumber; // total profit percent (ie. profit/cost)
+  currentValue: BigNumber; // current value of netPosition, always equal to unrealized minus frozenFunds
 }
 
 export interface ShortPosition {
@@ -146,9 +144,6 @@ export function bucketRangeByInterval(startTime: number, endTime: number, period
 export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right: T): T {
   const leftPosition = new BigNumber(left.netPosition, 10);
   const rightPosition = new BigNumber(right.netPosition, 10);
-
-  // TODO new fields in sumProfitLossResults
-  // TODO look in get-profit-loss for any other places that new fields need to be added
 
   const netPosition = leftPosition.plus(rightPosition);
   const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
@@ -249,6 +244,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     // but, we want to display averagePrice; for scalar markets this means adding
     // minPrice. Eg. if a user paid an average price of 4.5 for a scalar market, but
     // the minPrice in that market is 3, we actually need to show 4.5+3=7.5 in the UI.
+    // TODO use new tradeDisplayPrice() from financialMath?
     const averagePriceDisplay: Price = averagePricePerShareToOpenPosition.plus(minPrice);
 
     const lastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
@@ -428,7 +424,7 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       cost: ZERO,
       averagePrice: ZERO,
       numEscrowed: ZERO,
-      totalPosition: ZERO, // TODO what is a totalPosition? and numEscrowed
+      totalPosition: ZERO,
       outcome: 0,
       netPosition: ZERO,
       marketId: "",
@@ -438,7 +434,7 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
-      currentValue: ZERO, // TODO ??
+      currentValue: ZERO,
       frozenFunds: ZERO,
     }));
   }

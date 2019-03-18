@@ -4,28 +4,15 @@ const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
 
 // TODO toString() method "20 tokens", "20 tokens/share", "20 tokens^2*shares^-3"
-// TODO <BigNumberType>
 // TODO ETH/attoETH/erc20
-// TODO can this be assemblyscript?
 // TODO support derivation for non-unit quantity types, similar to safe-units. Eg. `export const Price = Tokens.dividedBy(Shares)`
 // TODO can we create something like NonNegative<T extends Quantity<T>> and use isValidMagnitude?
 
-/*
-// TODO update outdated doc
-
-Idea here is
-  1. centralize financial formulas instead of inlining them elsewhere, especially to ensure formula correctness
-  2. use domain-specific types like `Ether` instead of BigNumber, to help ensure formula correctness
-
-Long term vision might be to split into two separate libraries:
-  1. domain-specific types for reuse in other projects
-  2. augur-math library for use in other Augur projects
-
-For domain-specific types like `Ether`, we'd prefer compile-time type safety, but
-settle for runtime checks. https://github.com/jscheiny/safe-units is an excellent
-project that provides compile-time type safety and could be extended to include Ether,
-but unfortunately is impractical due to increasing project build time by _minutes_.
-*/
+// For domain-specific types like `Ether`, we'd prefer compile-time type
+// safety, but settle for runtime checks. https://github.com/jscheiny/safe-units
+// is an excellent project that provides compile-time type safety
+// and could be extended to include Ether, but unfortunately is
+// impractical due to extremely long compile times (minutes).
 
 type Dimension = "tokens" | "shares";
 const Dimensions: Array<Dimension> = ["tokens", "shares"];
@@ -51,7 +38,6 @@ abstract class Quantity<T extends Quantity<T>> {
   public readonly dimension: DimensionVector;
   public readonly sign: -1 | 1;
   protected constructor(derivedConstructor: QuantityConstructor<T>, magnitude: BigNumber, dimension: DimensionVector) {
-    // TODO allow magnitude to be a number for convenience
     this.derivedConstructor = derivedConstructor;
     this.magnitude = magnitude;
     this.dimension = dimension;

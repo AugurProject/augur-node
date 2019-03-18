@@ -26,20 +26,18 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
-// TODO doc per outcome
 export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
 }
 
-// TODO doc
 export interface MarketTradingPosition extends Pick<ProfitLossResult,
   "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
   "unrealizedPercent" | "totalPercent" | "currentValue"
   >, FrozenFunds { }
 
 export interface GetUserTradingPositionsResponse {
-  tradingPositions: Array<TradingPosition>; // TODO doc, including fact that unrealized is as of lastPrice and not timestamp
-  tradingPositionsPerMarket: { // TODO doc
+  tradingPositions: Array<TradingPosition>; // per-outcome TradingPosition, where unrealized profit is relative to an outcome's last price (as traded by anyone)
+  tradingPositionsPerMarket: { // per-market rollup of trading positions
     [marketId: string]: MarketTradingPosition,
   };
   frozenFundsTotal: FrozenFunds; // User's total frozen funds. See docs on FrozenFunds. This total includes market validity bonds in addition to sum of frozen funds for all market outcomes in which user has a position.
@@ -195,7 +193,6 @@ function aggregateTradingPositionsByMarket(tps: Array<TradingPosition>): { [mark
   return _.mapValues(tpsByMarketId, aggregateOneMarketTradingPositions);
 }
 
-// TODO doc, unit tests
 function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosition>): MarketTradingPosition {
   // precondition: tpsForOneMarketId non-empty and all tpsForOneMarketId have same marketId
   const first = tpsForOneMarketId[0];

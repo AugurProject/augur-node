@@ -1,8 +1,18 @@
 import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 
-// TODO it's probably unnecessary to document the functions so long as the I/O types are documented
+// This library is intended to be a home for all augur financial
+// formulas. The emphasis is on safety and education with mechanisms like more specific
+// types (eg. Shares instead of BigNumber), named parameters/return values (eg. returning a TradeQuantityOpened instead of Shares), and highly structured nouns (eg. passing around a RealizedProfit instead of Tokens).
 
-// TODO doc ... ie. current net position, or net position prior to the trade being processed.
+// The documentation is centered around the types, the idea
+// being that financial formuals are mostly self-documenting
+// if you can understand the input and output types.
+
+// NetPosition is the number of shares a user currently owns in a market
+// outcome. If NetPosition is positive (negative), the user has a "long"
+// ("short") position and earns money if the price goes up (down). If NetPosition
+// is zero the position is said to be "closed". In the context of a trade,
+// NetPosition is prior to the trade being processed, see NextNetPosition.
 interface NetPosition {
   netPosition: Shares;
 }
@@ -93,16 +103,16 @@ interface TradePositionDelta {
 }
 
 // TODO doc
-interface TradeQuantityClosed { // TODO rename QuantityClosed?
+interface TradeQuantityClosed {
   tradeQuantityClosed: Shares;
 }
 
 // TODO doc
-interface TradeQuantityOpened { // TODO rename QuantityOpened?
+interface TradeQuantityOpened {
   tradeQuantityOpened: Shares;
 }
 
-// TODO explain how TradePrice works with scalars... this is minus minPrice, right? .... we should have something like f :: MarketListPrice -> MarketMinPrice -> TradePrice to codify this
+// TODO explain how TradePrice works with scalars... this is minus minPrice, right? .... we should have something like f :: MarketListPrice -> MarketMinPrice -> TradeDisplayPrice to codify this (UPDATE -- yes do this and then update this formula being used inline in get-profit-loss and update-profit-loss)
 interface TradePrice {
   tradePrice: Price;
 }
@@ -280,7 +290,6 @@ export function getTotalCost(params: NetPosition & AveragePricePerShareToOpenPos
 }
 
 // TODO doc
-// TODO allow currentSharePrice to be undefined and return zero
 export function getUnrealizedProfit(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice): UnrealizedProfit {
   if (params.lastPrice === undefined) {
     return { unrealizedProfit: Tokens.ZERO };
@@ -299,7 +308,6 @@ export function getTotalProfit(params: NetPosition & AveragePricePerShareToOpenP
   };
 }
 
-// TODO doc
 export function getCurrentValue(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice & FrozenFunds): CurrentValue {
   return {
     currentValue: getUnrealizedProfit(params).unrealizedProfit
@@ -307,7 +315,6 @@ export function getCurrentValue(params: NetPosition & AveragePricePerShareToOpen
   };
 }
 
-// TODO doc, returns scale of 0..1
 export function getRealizedProfitPercent(params: RealizedCost & RealizedProfit): RealizedProfitPercent {
   if (params.realizedCost.isZero()) {
     // user spent nothing and so can't have a percent profit on
@@ -337,7 +344,7 @@ export function getUnrealizedProfitPercent(params:
   };
 }
 
-// TODO doc, returns scale of 0..1
+// TODO explain multiple param sets
 export function getTotalProfitPercent(params:
   (NetPosition & AveragePricePerShareToOpenPosition & LastPrice & RealizedCost & RealizedProfit)
   | (TotalCost & TotalProfit)): TotalProfitPercent {

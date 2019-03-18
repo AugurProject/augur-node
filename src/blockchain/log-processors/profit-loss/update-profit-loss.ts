@@ -1,12 +1,13 @@
 import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import { ZERO } from "../../../constants";
+import { ProfitLossTimeseries } from "../../../server/getters/get-profit-loss";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
 import { getNextAveragePricePerShareToOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradeRealizedProfitDelta } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
-import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
+import { FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
 interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType> {
   minPrice: BigNumber;
@@ -14,13 +15,7 @@ interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType>
   numTicks: BigNumber;
 }
 
-// TODO UpdateData should instead be Pick<ProfitLossTimeseries<BigNumber>, ...>
-interface UpdateData extends FrozenFunds {
-  price: BigNumber;
-  position: BigNumber;
-  profit: BigNumber;
-  realizedCost: BigNumber;
-}
+type UpdateData = Pick<ProfitLossTimeseries, "price" | "position" | "profit" | "realizedCost" | "frozenFunds">;
 
 export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address, account: Address, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
   const payouts: PayoutAndMarket<BigNumber> = await db
@@ -71,7 +66,8 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
 
   const marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice"> = await db("markets").first("minPrice", "maxPrice").where({ marketId });
 
-  const tradePrice = new Price(price.minus(marketsRow.minPrice)); // TODO I believe TradePrice is supposed to be minus minPrice eg. realizedRevenueDelta = tradePrice * tradeQuantityClosed
+  // TODO use new tradeDisplayPrice() from financialMath?
+  const tradePrice = new Price(price.minus(marketsRow.minPrice)); // tradePrice at which this trade was executed; in scalar markets this requires subtracting minPrice (and for binary/categoricals minPrice is zero)
 
   const prevData: UpdateData = await db
     .first(["price", "position", "profit", "frozenFunds", "realizedCost"])
@@ -121,8 +117,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
       tradePrice,
     });
 
-  // TODO strongly type as ProfitLossTimeseries<BigNumberType>; move ProfitLossTimeseries to types.ts and parameterize BigNumberType; unsure about ProfitLossTimeseries.minPrice, what does that do and why isn't it here?; this can even be ProfitLossTimeseries<string> so that compiler whines when I forget .toString()
-  const nextProfitLossTimeseries = {
+  const nextProfitLossTimeseries = { // this is of type ProfitLossTimeseries<BigNumberType = string>
     account,
     marketId,
     outcome,
