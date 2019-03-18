@@ -1,8 +1,10 @@
 import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 
-// This library is intended to be a home for all augur financial
-// formulas. The emphasis is on safety and education with mechanisms like more specific
-// types (eg. Shares instead of BigNumber), named parameters/return values (eg. returning a TradeQuantityOpened instead of Shares), and highly structured nouns (eg. passing around a RealizedProfit instead of Tokens).
+// This library is intended to be a home for all augur financial formulas.
+// The emphasis is on safety and education with mechanisms like more specific
+// types (eg. Shares instead of BigNumber), named parameters/return values
+// (eg. returning a TradeQuantityOpened instead of Shares), and highly
+// structured nouns (eg. passing around a RealizedProfit instead of Tokens).
 
 // The documentation is centered around the types, the idea
 // being that financial formuals are mostly self-documenting
