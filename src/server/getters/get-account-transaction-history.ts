@@ -37,13 +37,13 @@ function queryInitialReport(db: Knex, qb: Knex.QueryBuilder, account: Address, s
 }
 
 function queryMarketCreation(db: Knex, qb: Knex.QueryBuilder, account: Address, denomination: string, sortLimit: t.TypeOf<typeof SortLimitParams>) {
-  if (denomination == Denomination.ETH) {
+  if (denomination === Denomination.ETH) {
     return qb.from("markets")
     .select(db.raw("? as outcome", ""), db.raw("? as action", "MARKET_CREATION"), "markets.marketCreator as account", "markets.marketId", "markets.transactionHash", db.raw("? as costBasis", "0"), db.raw("? as denomination", "ETH"), "markets.validityBondSize as fee", "markets.validityBondSize as total")
     .where({
       "markets.marketCreator": account,
     });
-  } else if (denomination == Denomination.REP) {
+  } else if (denomination === Denomination.REP) {
     return qb.from("markets")
     .select(db.raw("? as outcome", ""), db.raw("? as action", "MARKET_CREATION"), "markets.marketCreator as account", "markets.marketId", "markets.transactionHash", db.raw("? as costBasis", "0"), db.raw("? as denomination", "REP"), "markets.designatedReportStake as fee", "markets.designatedReportStake as total")
     .where({
@@ -83,7 +83,7 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
     .whereBetween("blocks.timestamp", [params.earliestTransactionTime, params.latestTransactionTime])
     .orderBy("blocks.timestamp", "desc");
 
-  if (params.actionType != "all" && params.actionType != null) {
+  if (params.actionType !== "all" && params.actionType !== null) {
     // TOOD Filter transactions by transactionType
   }
 }
