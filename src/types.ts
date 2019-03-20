@@ -44,6 +44,21 @@ export enum OrderState {
   CANCELED = "CANCELED",
 }
 
+export enum ActionType {
+  BUY = "BUY",
+  SELL = "SELL",
+  CLAIM = "CLAIM",
+  DISPUTE = "DISPUTE",
+  INITIAL_REPORT = "INITIAL_REPORT",
+  MARKET_FINALIZATION = "MARKET_CREATION",
+  COMPLETE_SET = "COMPLETE_SET",
+}
+
+export enum Denomination {
+  ETH = "ETH",
+  REP = "REP",
+}
+
 export interface ConnectOptions extends NetworkConfiguration {
   propagationDelayWaitMillis?: number;
   maxRetries?: number;
@@ -722,4 +737,19 @@ export interface PendingOrphanedOrderData {
   marketId: Address;
   outcome: number;
   orderType: string;
+}
+
+export interface UIAccountTransactionHistoryRow {
+  timestamp: string;
+  marketId: Address;
+  transactionType: ActionType;
+  costBasis: string;
+  amount: string;
+  denomination: string;
+  fee: string;
+  total: string;
+}
+
+export interface UIAccountTransactionHistory {
+  [transactionHash: string]: UIAccountTransactionHistoryRow;
 }
