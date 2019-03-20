@@ -44,17 +44,18 @@ export enum OrderState {
   CANCELED = "CANCELED",
 }
 
-export enum ActionType {
+export enum Action {
+  ALL = "ALL",
   BUY = "BUY",
   SELL = "SELL",
   CLAIM = "CLAIM",
   DISPUTE = "DISPUTE",
   INITIAL_REPORT = "INITIAL_REPORT",
-  MARKET_FINALIZATION = "MARKET_CREATION",
-  COMPLETE_SET = "COMPLETE_SET",
+  MARKET_CREATION = "MARKET_CREATION",
+  COMPLETE_SETS = "COMPLETE_SETS",
 }
 
-export enum Denomination {
+export enum Coin {
   ETH = "ETH",
   REP = "REP",
 }
@@ -740,16 +741,15 @@ export interface PendingOrphanedOrderData {
 }
 
 export interface UIAccountTransactionHistoryRow {
-  timestamp: string;
-  marketId: Address;
-  transactionType: ActionType;
+  action: Action;
+  coin: string;
   costBasis: string;
-  amount: string;
-  denomination: string;
   fee: string;
+  marketDescription: string;
+  // marketId: Address;
+  outcome: string;
+  quantity: string;
+  timestamp: number;
   total: string;
-}
-
-export interface UIAccountTransactionHistory {
-  [transactionHash: string]: UIAccountTransactionHistoryRow;
+  transactionHash: string;
 }
