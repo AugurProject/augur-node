@@ -32,7 +32,7 @@ import { getUniversesInfo, UniverseInfoParams } from "./getters/get-universes-in
 import { getProfitLoss, GetProfitLossParams, getProfitLossSummary, GetProfitLossSummaryParams } from "./getters/get-profit-loss";
 import { getWinningBalance, WinningBalanceParams } from "./getters/get-winning-balance";
 import { getCategories, CategoriesParams } from "./getters/get-categories";
-import { getAccountTimeRangedStats, AccountTimeRangedStatsParams  } from "./getters/get-account-time-ranged-stats";
+import { getAccountTimeRangedStats, AccountTimeRangedStatsParams, AccountTimeRangedStatsParamsType } from "./getters/get-account-time-ranged-stats";
 
 type GetterFunction<T, R> = (db: Knex, augur: Augur, params: T) => Promise<R>;
 
@@ -46,6 +46,13 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
       throw new Error(`Invalid request object: ${PathReporter.report(decodedParams)}`);
     }
   }
+
+  getAccountTimeRangedStats(db, augur, {
+    startTime: 1532378149,
+    endTime: 1552698593,
+    universe: "0x02149d40d255fceac54a3ee3899807b0539bad60",
+    account: "0x912dc5a027b20bd3d75154502d969991b814d1df",
+  } as AccountTimeRangedStatsParamsType);
 
   switch (request.method) {
     case "getDisputeInfo":

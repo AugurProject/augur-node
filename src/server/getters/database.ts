@@ -51,14 +51,14 @@ async function queryModifierUserland<T>(
   defaultSortOrder: string,
   sortLimitParams: Partial<SortLimit>,
 ): Promise<Array<T>> {
-  type RowWithSort = T&{ xMySorterFieldx: BigNumber };
+  type RowWithSort = T & { xMySorterFieldx: BigNumber };
 
   let sortField: string = defaultSortBy;
   let sortDescending: boolean = defaultSortOrder.toLowerCase() === "desc";
 
   if (sortLimitParams.sortBy != null) {
     sortField = sortLimitParams.sortBy;
-    if (typeof(sortLimitParams.isSortDescending) !== "undefined" && sortLimitParams.isSortDescending !== null) {
+    if (typeof (sortLimitParams.isSortDescending) !== "undefined" && sortLimitParams.isSortDescending !== null) {
       sortDescending = sortLimitParams.isSortDescending;
     }
   }
@@ -96,8 +96,8 @@ export function reshapeOutcomesRowToUIOutcomeInfo(outcomesRow: OutcomesRow<BigNu
   };
 }
 
-export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber>|null): UIMarketInfo<string> {
-  let consensus: NormalizedPayout<string>|null = null;
+export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber> | null): UIMarketInfo<string> {
+  let consensus: NormalizedPayout<string> | null = null;
   if (winningPayoutRow != null) {
     consensus = normalizedPayoutsToFixed(normalizePayouts(winningPayoutRow));
   }
@@ -173,7 +173,7 @@ export function getMarketsWithReportingState(db: Knex, selectColumns?: Array<str
 export function normalizePayouts(payoutRow: Payout<BigNumber>): NormalizedPayout<BigNumber> {
   const payout = [];
   for (let i = 0; i < 8; i++) {
-    const payoutNumerator = payoutRow[("payout" + i) as keyof Payout<BigNumber>] as BigNumber|null;
+    const payoutNumerator = payoutRow[("payout" + i) as keyof Payout<BigNumber>] as BigNumber | null;
     if (payoutNumerator == null) break;
     payout.push(payoutNumerator);
   }
@@ -214,27 +214,55 @@ export async function queryTradingHistoryParams(db: Knex, params: t.TypeOf<typeo
       params.limit,
       params.offset,
       params.ignoreSelfTrades,
-      (err: Error|null, userTradingHistory?: Array<TradingHistoryRow>): void => {
+      (err: Error | null, userTradingHistory?: Array<TradingHistoryRow>): void => {
         if (err) return reject(err);
         resolve(userTradingHistory);
       });
   });
 }
 
+/*
+  * Given a random timestamp will return q query for the apropos block number for the time period in question.
+  * If a zero is given, will return the highest or lowest blocknumber we have in the db.
+  * If the time period is out of range will return a query that will return noting (technically an error).
+  * @param {db} knex handle
+  * @param {timestamp} a timestamp for which you want a block or zero
+  * @param {prefix} 'start' or 'end' for weather you want a startBlock, startTime or endBlock, endTime
+  * @returns {Promise<Knex>} the query
+  */
+export function blockNumberForTimestampQuery(db: Knex, timestamp: number, prefix: string): Knex.QueryBuilder {
+  // This constant is related to the maximum recorded time between blocks so that
+  // our query will pick up a blockNumber for the timestamp in unusual conditions.
+  const MAX_BLOCKTIME_DELTA = 29;
+
+  if (timestamp === 0) {
+    return db.select(`blockNumber as ${prefix}Block`, `timestamp as ${prefix}Time`)
+      .from("blocks")
+      .orderBy("blockNumber", prefix === "start" ? "asc" : "desc")
+      .limit(1);
+  }
+
+  return db.select(`blockNumber as ${prefix}Block`, `timestamp as ${prefix}Time`)
+    .from("blocks")
+    .whereBetween("timestamp", [timestamp - MAX_BLOCKTIME_DELTA, timestamp])
+    .orderBy("blockNumber", "desc")
+    .limit(1);
+}
+
 export function queryTradingHistory(
-  db: Knex|Knex.Transaction,
-  universe: Address|null|undefined,
-  account: Address|null|undefined,
-  marketId: Address|null|undefined,
-  outcome: number|null|undefined,
-  orderType: string|null|undefined,
-  earliestCreationTime: number|null|undefined,
-  latestCreationTime: number|null|undefined,
-  sortBy: string|null|undefined,
-  isSortDescending: boolean|null|undefined,
-  limit: number|null|undefined,
-  offset: number|null|undefined,
-  ignoreSelfTrades: boolean|null|undefined,
+  db: Knex | Knex.Transaction,
+  universe: Address | null | undefined,
+  account: Address | null | undefined,
+  marketId: Address | null | undefined,
+  outcome: number | null | undefined,
+  orderType: string | null | undefined,
+  earliestCreationTime: number | null | undefined,
+  latestCreationTime: number | null | undefined,
+  sortBy: string | null | undefined,
+  isSortDescending: boolean | null | undefined,
+  limit: number | null | undefined,
+  offset: number | null | undefined,
+  ignoreSelfTrades: boolean | null | undefined,
   callback: GenericCallback<Array<TradingHistoryRow>>,
 ): void {
   if (universe == null && marketId == null) throw new Error("Must provide reference to universe, specify universe or marketId");
@@ -270,7 +298,7 @@ export function queryTradingHistory(
   if (latestCreationTime != null) query.where("timestamp", "<=", latestCreationTime);
   if (ignoreSelfTrades) query.where("trades.creator", "!=", db.raw("trades.filler"));
 
-  queryModifier<TradingHistoryRow>(db, query, "trades.blockNumber", "desc", {sortBy, isSortDescending, limit, offset})
+  queryModifier<TradingHistoryRow>(db, query, "trades.blockNumber", "desc", { sortBy, isSortDescending, limit, offset })
     .then((results) => callback(null, results))
     .catch(callback);
 }
@@ -280,10 +308,10 @@ export function groupByAndSum<T extends Dictionary>(rows: Array<T>, groupFields:
     .groupBy((row) => _.values(_.pick(row, groupFields)))
     .values()
     .map((groupedRows: Array<T>): T => {
-      return _.reduce(groupedRows, (result: T|undefined, row: T): T => {
+      return _.reduce(groupedRows, (result: T | undefined, row: T): T => {
         if (typeof result === "undefined") return row;
 
-        const mapped = _.map(row, (value: BigNumber|number|null, key: string): Array<any> => {
+        const mapped = _.map(row, (value: BigNumber | number | null, key: string): Array<any> => {
           const previousValue = result[key];
           if (sumFields.indexOf(key) === -1 || typeof previousValue === "undefined" || value === null || typeof value === "undefined") {
             return [key, value];
