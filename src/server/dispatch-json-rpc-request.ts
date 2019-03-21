@@ -49,7 +49,7 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
 
   getAccountTimeRangedStats(db, augur, {
     startTime: 1532378149,
-    endTime: 1552698593,
+    endTime: 1553095891,
     universe: "0x02149d40d255fceac54a3ee3899807b0539bad60",
     account: "0x912dc5a027b20bd3d75154502d969991b814d1df",
   } as AccountTimeRangedStatsParamsType);

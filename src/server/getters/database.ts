@@ -244,8 +244,8 @@ export function blockNumberForTimestampQuery(db: Knex, timestamp: number, prefix
 
   return db.select(`blockNumber as ${prefix}Block`, `timestamp as ${prefix}Time`)
     .from("blocks")
-    .whereBetween("timestamp", [timestamp - MAX_BLOCKTIME_DELTA, timestamp])
-    .orderBy("blockNumber", "desc")
+    .where("timestamp", ">=", timestamp)
+    .orderBy("blockNumber", "asc")
     .limit(1);
 }
 
