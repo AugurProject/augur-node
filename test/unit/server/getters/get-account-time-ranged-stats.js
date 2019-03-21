@@ -16,17 +16,18 @@ describe("server/getters/get-account-time-ranged-stats", () => {
       universe: "0x000000000000000000000000000000000000000b",
       account: "0x000000000000000000000000000000000000000c",
       endTime: null,
+      startTime: null,
     };
     await expect(dispatchJsonRpcRequest(db, {
       method: "getAccountTimeRangedStats",
       params,
     }, null)).resolves.toEqual({
-      "marketsCreated": 13,
-      "marketsTraded": 16,
-      "numberOfTrades": 14,
-      "positions": 12,
-      "redeemedPositions": 17,
-      "successfulDisputes": 15,
+      "marketsCreated": 0,
+      "marketsTraded": 0,
+      "numberOfTrades": 0,
+      "positions": 0,
+      "redeemedPositions": 0,
+      "successfulDisputes": 0,
     });
   });
 });
