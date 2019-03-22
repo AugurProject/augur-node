@@ -49,7 +49,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
       .where({
         "crowdsourcer_redeemed.reporter": params.account,
-        "markets.universe": params.universe
+        "markets.universe": params.universe,
       });
     });
 
@@ -72,7 +72,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
       .join("fee_windows", "fee_windows.feeWindow", "participation_token_redeemed.feeWindow")
       .where({
         "participation_token_redeemed.reporter": params.account,
-        "fee_windows.universe": params.universe
+        "fee_windows.universe": params.universe,
       });
     });
 
@@ -104,7 +104,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
       .where({
         "crowdsourcer_redeemed.reporter": params.account,
-        "markets.universe": params.universe
+        "markets.universe": params.universe,
       });
     });
 
@@ -224,10 +224,10 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
       "markets.universe": params.universe,
     });
 
-    // Get complete sets sold
-    // TODO Finish this once old PL code gets re-added
-    console.log(qb.toString());
-    return qb;
+  // Get complete sets sold
+  // TODO Finish this once old PL code gets re-added
+
+  return qb;
 }
 
 // TODO Once all queries are finished, double-check them to make sure they all are filtering by universe
@@ -239,37 +239,37 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
     // if (params.action === Action.BUY || params.action === Action.ALL) {
     //   qb.union((qb: Knex.QueryBuilder) => {
     //     queryBuy(db, qb, params);
-    //   })
+    //   });
     // }
     // if ((params.action === Action.SELL || params.action === Action.ALL) && params.coin === "ETH") {
     //   qb.union((qb: Knex.QueryBuilder) => {
     //     querySell(db, qb, params);
-    //   })
+    //   });
     // }
     if (params.action === Action.CLAIM || params.action === Action.ALL) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryClaim(db, qb, params);
-      })
+      });
     }
     if (params.action === Action.MARKET_CREATION || params.action === Action.ALL) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryMarketCreation(db, qb, params);
-      })
+      });
     }
     if ((params.action === Action.DISPUTE || params.action === Action.ALL) && (params.coin === "REP" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryDispute(db, qb, params);
-      })
+      });
     }
     if ((params.action === Action.INITIAL_REPORT || params.action === Action.ALL) && (params.coin === "REP" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryInitialReport(db, qb, params);
-      })
+      });
     }
     if ((params.action === Action.COMPLETE_SETS || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryCompleteSets(db, qb, params);
-      })
+      });
     }
     if (qb.toString() === "select *") {
       // TODO Handle invalid action/coin combination

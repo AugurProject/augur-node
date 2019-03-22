@@ -749,7 +749,7 @@ export interface UIAccountTransactionHistoryRow {
   fee: string;
   marketDescription: string;
   outcome: string;
-  outcomeDescription: string,
+  outcomeDescription: string;
   quantity: string;
   timestamp: number;
   total: string;
