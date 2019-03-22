@@ -1,3 +1,5 @@
+.indium.json
+tsconfig-local.json
 .nyc_output
 yarn.lock
 node_modules/
