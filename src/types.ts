@@ -48,6 +48,7 @@ export enum Action {
   ALL = "ALL",
   BUY = "BUY",
   SELL = "SELL",
+  CANCEL = "CANCEL",
   CLAIM = "CLAIM",
   DISPUTE = "DISPUTE",
   INITIAL_REPORT = "INITIAL_REPORT",
@@ -744,7 +745,6 @@ export interface PendingOrphanedOrderData {
 export interface UIAccountTransactionHistoryRow {
   action: Action;
   coin: string;
-  costBasis: string;
   details: string;
   fee: string;
   marketDescription: string;
