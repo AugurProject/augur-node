@@ -83,18 +83,6 @@ exports.seed = async (knex: Knex): Promise<any> => {
       blockNumber: 1500002,
       transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000F01",
       logIndex: 1,
-    }, {
-      crowdsourcerId: "0x0000000000000000001000000000000000000008",
-      marketId: "0x0000000000000000000000000000000000000011",
-      feeWindow: "0x2000000000000000000000000000000000000000",
-      payoutId: 3,
-      size: "20000",
-      amountStaked: "20000",
-      blockNumber: 1400101,
-      completed: 1,
-      transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000E01",
-      logIndex: 0,
-      disavowed: 0,
     }];
     return knex.batchInsert("crowdsourcers", seedData, seedData.length);
   });
