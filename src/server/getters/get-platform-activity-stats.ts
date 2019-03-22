@@ -24,7 +24,7 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
   // openInterest comes from markets or categories
   // marketsCreated comes from markets
   // volume (markets has this already)
-  // moneyAtStake
+  // moneyAtStake ???
   const result: PlatformActivityResult = {
     activeUsers: new BigNumber(12, 10),
     numberOfTrades: new BigNumber(13, 10),
@@ -34,7 +34,5 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
     moneyAtStake: new BigNumber(17, 10),
   };
 
-  return new Promise<PlatformActivityResult>((resolve, reject) => {
-    resolve(result);
-  });
+  return result;
 }
