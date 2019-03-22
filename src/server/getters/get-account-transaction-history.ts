@@ -246,36 +246,24 @@ function queryInitialReport(db: Knex, qb: Knex.QueryBuilder, params: GetAccountT
 }
 
 function queryMarketCreation(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
-  // if (params.coin === Coin.ETH) {
-    return qb.from("markets")
-    .select(db.raw("? as action", Action.MARKET_CREATION), db.raw("'ETH' as coin"), db.raw("'ETH validity bond for market creation' as details"), "markets.creationFee as fee", "markets.marketId", db.raw("'' as outcome"), db.raw("'' as outcomeDescription"), db.raw("'0' as price"), db.raw("'0' as quantity"), "markets.shortDescription", db.raw("'0' as total"), "markets.transactionHash")
-    .where({
-      "markets.marketCreator": params.account,
-      "markets.universe": params.universe,
-    });
-  // } else if (params.coin === Coin.REP) {
-  //   return qb.from("markets")
-  //   .select(db.raw("? as action", Action.MARKET_CREATION), db.raw("'REP' as coin"), db.raw("'REP no-show bond for market creation' as details"), "markets.creationFee as fee", "markets.marketId", db.raw("'' as outcome"), db.raw("'' as outcomeDescription"), db.raw("'0' as price"), db.raw("'0' as quantity"), "markets.shortDescription", db.raw("'0' as total"), "markets.transactionHash")
-  //   .where({
-  //     "markets.marketCreator": params.account,
-  //     "markets.universe": params.universe,
-  //   });
-  // } else {
-  //   return qb.from("markets")
-  //   .select(db.raw("? as action", Action.MARKET_CREATION), db.raw("'ETH' as coin"), db.raw("'ETH validity bond for market creation' as details"), "markets.creationFee as fee", "markets.marketId", db.raw("'' as outcome"), db.raw("'' as outcomeDescription"), db.raw("'0' as price"), db.raw("'0' as quantity"), "markets.shortDescription", db.raw("'0' as total"), "markets.transactionHash")
-  //   .where({
-  //     "markets.marketCreator": params.account,
-  //     "markets.universe": params.universe,
-  //   })
-  //   .union((qb: Knex.QueryBuilder) => {
-  //     qb.from("markets")
-  //     .select(db.raw("? as action", Action.MARKET_CREATION), db.raw("'REP' as coin"), db.raw("'REP no-show bond for market creation' as details"), "markets.creationFee as fee", "markets.marketId", db.raw("'' as outcome"), db.raw("'' as outcomeDescription"), db.raw("'0' as price"), db.raw("'0' as quantity"), "markets.shortDescription", db.raw("'0' as total"), "markets.transactionHash")
-  //     .where({
-  //       "markets.marketCreator": params.account,
-  //       "markets.universe": params.universe,
-  //     });
-  //   });
-  // }
+  return qb.select(
+    db.raw("? as action", Action.MARKET_CREATION), 
+    db.raw("'ETH' as coin"), 
+    db.raw("'ETH validity bond for market creation' as details"), 
+    "markets.creationFee as fee", 
+    "markets.marketId", 
+    db.raw("'' as outcome"), 
+    db.raw("'' as outcomeDescription"), 
+    db.raw("'0' as price"), 
+    db.raw("'0' as quantity"), 
+    "markets.shortDescription", 
+    db.raw("'0' as total"), 
+    "markets.transactionHash")
+  .from("markets")
+  .where({
+    "markets.marketCreator": params.account,
+    "markets.universe": params.universe,
+  });
 }
 
 function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
@@ -332,10 +320,10 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
   return qb;
 }
 
-// TODO Once all queries are finished, double-check them to make sure they all are filtering by universe
 // TODO Check formatting of values
 // TODO Add outcome info/payout numerators to all queries
 // TODO Enable use of SortLimitParams
+// TODO Once all queries are finished, double-check them to make sure they all are filtering by universe
 export async function getAccountTransactionHistory(db: Knex, augur: {}, params: GetAccountTransactionHistoryParamsType) {
   params.account = params.account.toLowerCase();
   params.universe = params.universe.toLowerCase();
