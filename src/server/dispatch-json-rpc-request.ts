@@ -33,6 +33,8 @@ import { getUniversesInfo, UniverseInfoParams } from "./getters/get-universes-in
 import { getProfitLoss, GetProfitLossParams, getProfitLossSummary, GetProfitLossSummaryParams } from "./getters/get-profit-loss";
 import { getWinningBalance, WinningBalanceParams } from "./getters/get-winning-balance";
 import { getCategories, CategoriesParams } from "./getters/get-categories";
+import { getAccountTimeRangedStats, AccountTimeRangedStatsParams  } from "./getters/get-account-time-ranged-stats";
+import { getPlatformActivityStats, PlatformActivityStatsParams  } from "./getters/get-platform-activity-stats";
 
 type GetterFunction<T, R> = (db: Knex, augur: Augur, params: T) => Promise<R>;
 
@@ -56,6 +58,10 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
       return dispatchResponse(getMarketPriceHistory, MarketPriceHistoryParams.decode(request.params));
     case "getCategories":
       return dispatchResponse(getCategories, CategoriesParams.decode(request.params));
+    case "getAccountTimeRangedStats":
+      return dispatchResponse(getAccountTimeRangedStats, AccountTimeRangedStatsParams.decode(request.params));
+    case "getPlatformActivityStats":
+      return dispatchResponse(getPlatformActivityStats, PlatformActivityStatsParams.decode(request.params));
     case "getContractAddresses":
     case "getSyncData":
       return dispatchResponse(getSyncData, NoParams.decode({}));
