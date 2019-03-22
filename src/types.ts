@@ -56,6 +56,7 @@ export enum Action {
 }
 
 export enum Coin {
+  ALL = "ALL",
   ETH = "ETH",
   REP = "REP",
 }
@@ -744,10 +745,11 @@ export interface UIAccountTransactionHistoryRow {
   action: Action;
   coin: string;
   costBasis: string;
+  details: string;
   fee: string;
   marketDescription: string;
-  // marketId: Address;
   outcome: string;
+  outcomeDescription: string,
   quantity: string;
   timestamp: number;
   total: string;
