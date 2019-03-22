@@ -16,6 +16,7 @@ describe("server/getters/get-platform-activity-stats", () => {
     const params = {
       universe: "0x000000000000000000000000000000000000000b",
       endTime: null,
+      startTime: null,
     };
     const stats = await dispatchJsonRpcRequest(db, {
       method: "getPlatformActivityStats",
