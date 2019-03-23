@@ -746,11 +746,12 @@ export interface UIAccountTransactionHistoryRow<BigNumberType> {
   action: Action;
   coin: string;
   details: string;
-  fee: string;
+  fee: BigNumberType;
   marketDescription: string;
   outcomeDescription: string;
-  quantity: string;
+  price: BigNumberType;
+  quantity: BigNumberType;
   timestamp: number;
-  total: string;
+  total: BigNumberType;
   transactionHash: string;
 }
