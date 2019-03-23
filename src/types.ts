@@ -742,13 +742,12 @@ export interface PendingOrphanedOrderData {
   orderType: string;
 }
 
-export interface UIAccountTransactionHistoryRow {
+export interface UIAccountTransactionHistoryRow<BigNumberType> {
   action: Action;
   coin: string;
   details: string;
   fee: string;
   marketDescription: string;
-  outcome: string;
   outcomeDescription: string;
   quantity: string;
   timestamp: number;
