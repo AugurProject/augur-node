@@ -336,17 +336,17 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
   params.universe = params.universe.toLowerCase();
 
   const query = db.select("data.*", "blocks.timestamp").from((qb: Knex.QueryBuilder) => {
-    if ((params.action === Action.BUY || params.action === Action.ALL) && (params.coin === "ETH"|| params.coin === "ALL")) {
+    if ((params.action === Action.BUY || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryBuy(db, qb, params);
       });
     }
-    if ((params.action === Action.SELL || params.action === Action.ALL) && (params.coin === "ETH"|| params.coin === "ALL")) {
+    if ((params.action === Action.SELL || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         querySell(db, qb, params);
       });
     }
-    if ((params.action === Action.CANCEL || params.action === Action.ALL) && (params.coin === "ETH"|| params.coin === "ALL")) {
+    if ((params.action === Action.CANCEL || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryCanceled(db, qb, params);
       });
@@ -356,7 +356,7 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
         queryClaim(db, qb, params);
       });
     }
-    if ((params.action === Action.MARKET_CREATION || params.action === Action.ALL) && (params.coin === "ETH"|| params.coin === "ALL")) {
+    if ((params.action === Action.MARKET_CREATION || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryMarketCreation(db, qb, params);
       });
