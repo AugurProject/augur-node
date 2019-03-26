@@ -3,6 +3,7 @@ import * as Knex from "knex";
 import { Action, Coin, SortLimitParams, UIAccountTransactionHistoryRow } from "../../types";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { queryModifier } from "./database";
+import { AccountManager } from "augur-core/output/libraries/AccountManager";
 
 export const GetAccountTransactionHistoryParams = t.intersection([
   SortLimitParams,
@@ -152,7 +153,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("'ETH' as coin"),
         db.raw("'Claimed trading proceeds' as details"),
         db.raw("CAST((CAST(trading_proceeds.numShares as real) / 100000000000000000 * CAST(outcomes.price as real)) - (CAST(trading_proceeds.numPayoutTokens as real) / 100000000000000000) as text) as fee"),
-        db.raw("'' as marketDescription"),
+        "markets.shortDescription as marketDescription",
         "outcomes.outcome",
         db.raw("outcomes.description as outcomeDescription"),
         db.raw("CAST(outcomes.price as text) as price"),
@@ -172,9 +173,6 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         "markets.universe": params.universe,
       });
     });
-
-    // TODO Get ETH claimed from market creator mailbox (i.e., market creator fees & validity bonds)
-    // once new code is added to allow querying for this info
   }
 
   if (params.coin === Coin.REP || params.coin === Coin.ALL) {
@@ -200,9 +198,6 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         "markets.universe": params.universe,
       });
     });
-
-    // TODO Get REP claimed from market creator mailbox (i.e., no-show bonds)
-    // once new code is added to allow querying for this info
   }
 
   return qb;

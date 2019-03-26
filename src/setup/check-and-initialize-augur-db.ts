@@ -60,6 +60,8 @@ async function getFreshDatabase(db: Knex|null, networkId: string, dbPath: string
 
 async function isDatabaseDamaged(db: Knex): Promise<boolean> {
   try {
+    const migrationsLock = await db("knex_migrations_lock").first(["is_locked"]);
+    if (migrationsLock.is_locked === 1) return true;
     const errorRow: { error: undefined|null|string } = await db("network_id").first(["error"]).whereNotNull("error");
     return errorRow.error != null;
   } catch {
