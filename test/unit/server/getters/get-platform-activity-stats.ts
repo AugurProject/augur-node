@@ -33,7 +33,7 @@ describe("server/getters/get-platform-activity-stats", () => {
     }, augur)).resolves.toEqual({
       "activeUsers": new BigNumber("6", 10),
       "amountStaked": new BigNumber("1259", 10),
-      "disputedMarkets": new BigNumber("16", 10),
+      "disputedMarkets": new BigNumber("4", 10),
       "marketsCreated": new BigNumber("17", 10),
       "numberOfTrades": new BigNumber("11", 10),
       "openInterest": new BigNumber("54321", 10),
@@ -67,7 +67,7 @@ describe("server/getters/get-platform-activity-stats", () => {
     }, augur)).resolves.toEqual({
       "activeUsers": new BigNumber("6", 10),
       "amountStaked": new BigNumber("1259", 10),
-      "disputedMarkets": new BigNumber("16", 10),
+      "disputedMarkets": new BigNumber("4", 10),
       "marketsCreated": new BigNumber("17", 10),
       "numberOfTrades": new BigNumber("11", 10),
       "openInterest": new BigNumber("54321", 10),

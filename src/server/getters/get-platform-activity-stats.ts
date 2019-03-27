@@ -88,13 +88,10 @@ async function getDisputedMarkets(db: Knex, startBlock: number, endBlock: number
   return db
     .countDistinct("markets.marketId as disputedMarkets")
     .from("markets")
+    .innerJoin("market_state", "markets.marketId", "market_state.marketId")
     .whereBetween("markets.creationBlockNumber", [startBlock, endBlock])
     .andWhere("markets.universe", params.universe)
-    .whereNotIn("markets.marketId", function(this: Knex.QueryBuilder) {
-      this.select("crowdSourcers.marketId")
-        .from("crowdsourcers")
-        .where("crowdsourcers.completed", true);
-    });
+    .andWhere("market_state.reportingState", "CROWDSOURCING_DISPUTE");
 }
 
 async function getNumberOfTrades(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
