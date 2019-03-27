@@ -502,7 +502,6 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
     });
 
   // Get complete sets sold
-  // TODO Calculate fee (currently difficult to do in Augur Node)
   qb.union((qb: Knex.QueryBuilder) => {
     qb.select(
       db.raw("? as action", Action.COMPLETE_SETS),
@@ -544,8 +543,8 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
   return qb;
 }
 
-// TODO Figure out sold complete sets fee?
-// TODO Fix fee negative fee values when claiming trading proceeds & negative total values for sells
+// TODO Calculate sold complete sets fee? (currently difficult to do in Augur Node)
+// TODO Fix negative fee values when claiming trading proceeds & negative total values for buys/sells
 export async function getAccountTransactionHistory(db: Knex, augur: {}, params: GetAccountTransactionHistoryParamsType) {
   params.account = params.account.toLowerCase();
   params.universe = params.universe.toLowerCase();
@@ -592,8 +591,7 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
       });
     }
     if (qb.toString() === "select *") {
-      // TODO Handle invalid action/coin combination
-      console.log("Invalid action/coin combination");
+      throw new Error("Invalid action/coin combination");
     }
     qb.as("data");
   })
