@@ -54,6 +54,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
       crowdsourcerId: "0x0000000000000000001000000000000000000004",
       amountStaked: "16",
     }];
+
     return knex.batchInsert("disputes", seedData, seedData.length);
   });
 };

@@ -8,6 +8,8 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
+import { Price, Shares, Tokens } from "../../utils/dimension-quantity";
+import { getCurrentValue, getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
 
@@ -22,6 +24,7 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     position: ZERO,
     numOutcomes: 2,
     profit: ZERO,
+    realizedCost: ZERO,
     minPrice: ZERO,
     frozenFunds: ZERO,
   };
@@ -46,11 +49,12 @@ export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   marketId: Address;
   outcome: number;
   transactionHash: string;
-  price: BigNumber;
-  position: BigNumber;
+  price: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
+  position: BigNumber; // denominated in shares. Known as "net position", this is the number of shares the user currently owns for this outcome; if it's a positive number, the user is "long" and earns money if the share price goes up; if it's a negative number the user is "short" and earns money if the share price goes down. Eg. "-15" means an open position of short 15 shares.
   numOutcomes: number;
-  profit: BigNumber;
-  minPrice: BigNumber;
+  profit: BigNumber; // denominated in tokens. Realized profit of shares that were bought and sold
+  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
+  minPrice: BigNumber; // market minPrice, required to display trade price for scalar markets because `displayPrice = tradePrice + minPrice`
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -60,14 +64,29 @@ export interface OutcomeValueTimeseries extends Timestamped {
   transactionHash: string;
 }
 
-export interface ProfitLossResult extends Timestamped, FrozenFunds {
-  netPosition: BigNumber;
-  averagePrice: BigNumber;
-  realized: BigNumber;
-  unrealized: BigNumber;
-  outcome: number;
-  marketId: Address;
-  total: BigNumber;
+// ProfitLossResult is the profit or loss result, at a particular point in
+// time, of a user's position in a single market outcome. ProfitLossResult
+// represents the total accumulation of history (for this market
+// outcome) as of an instantaneous point in time, like a balance sheet in
+// accounting. A user's "position" refers to the shares they have bought
+// ("long" position) or sold ("short" position) in this market outcome.
+export interface ProfitLossResult extends
+  Timestamped, // profit and loss as of this timestamp
+  FrozenFunds { // funds the user froze to be in this position (see FrozenFunds docs)
+  marketId: Address; // user's position is in this market
+  outcome: number; // user's position is in this market outcome
+  netPosition: BigNumber; // current quantity of shares in user's position for this market outcome. "net" position because if user bought 4 shares and sold 6 shares, netPosition would be -2 shares (ie. 4 - 6 = -2). User is "long" this market outcome (gets paid if this outcome occurs) if netPosition is positive. User is "short" this market outcome (gets paid if this outcome does not occur) if netPosition is negative
+  averagePrice: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
+  realized: BigNumber; // realized profit in tokens (eg. ETH) user already got from this market outcome. "realized" means the user bought/sold shares in such a way that the profit is already in the user's wallet
+  unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. Computed using last trade price.
+  total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
+  unrealizedCost: BigNumber; // denominated in tokens. Cost of shares in netPosition
+  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
+  totalCost: BigNumber; // denominated in tokens. Always equal to unrealizedCost + realizedCost
+  realizedPercent: BigNumber; // realized profit percent (ie. profit/cost)
+  unrealizedPercent: BigNumber; // unrealized profit percent (ie. profit/cost)
+  totalPercent: BigNumber; // total profit percent (ie. profit/cost)
+  currentValue: BigNumber; // current value of netPosition, always equal to unrealized minus frozenFunds
 }
 
 export interface ShortPosition {
@@ -127,17 +146,40 @@ export function sumProfitLossResults<T extends ProfitLossResult>(left: T, right:
   const rightPosition = new BigNumber(right.netPosition, 10);
 
   const netPosition = leftPosition.plus(rightPosition);
+  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
   const realized = left.realized.plus(right.realized);
   const unrealized = left.unrealized.plus(right.unrealized);
+  const unrealizedCost = left.unrealizedCost.plus(right.unrealizedCost);
+  const realizedCost = left.realizedCost.plus(right.realizedCost);
+  const totalCost = left.totalCost.plus(right.totalCost);
   const total = realized.plus(unrealized);
-  const averagePrice = left.averagePrice.plus(right.averagePrice).dividedBy(2);
+  const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
+    unrealizedCost: new Tokens(unrealizedCost),
+    unrealizedProfit: new Tokens(unrealized),
+  });
+  const { realizedProfitPercent } = getRealizedProfitPercent({
+    realizedCost: new Tokens(realizedCost),
+    realizedProfit: new Tokens(realized),
+  });
+  const { totalProfitPercent } = getTotalProfitPercent({
+    totalCost: new Tokens(totalCost),
+    totalProfit: new Tokens(total),
+  });
+  const currentValue = left.currentValue.plus(right.currentValue);
 
   return Object.assign(_.clone(left), {
     netPosition,
+    averagePrice,
     realized,
     unrealized,
     total,
-    averagePrice,
+    unrealizedCost,
+    realizedCost,
+    totalCost,
+    unrealizedPercent: unrealizedProfitPercent.magnitude,
+    realizedPercent: realizedProfitPercent.magnitude,
+    totalPercent: totalProfitPercent.magnitude,
+    currentValue,
   });
 }
 
@@ -190,36 +232,85 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
 
 function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries> | null): Array<ProfitLossResult> {
   const unsortedResults: Array<ProfitLossResult> = plsAtTimestamp.map((outcomePl) => {
-    const realized = outcomePl!.profit;
-    const outcome = outcomePl!.outcome;
-    const timestamp = outcomePl!.timestamp;
-    const marketId = outcomePl!.marketId;
-    let averagePrice = outcomePl!.price;
-    const minPrice = outcomePl!.minPrice;
-    const position = outcomePl!.position;
+    const realizedCost = new Tokens(outcomePl.realizedCost);
+    const realizedProfit = new Tokens(outcomePl.profit);
+    const outcome = outcomePl.outcome;
+    const averagePricePerShareToOpenPosition = new Price(outcomePl.price);
+    const minPrice = new Price(outcomePl.minPrice);
+    const netPosition = new Shares(outcomePl.position);
+    const frozenFunds = new Tokens(outcomePl.frozenFunds);
 
-    let unrealized = ZERO;
-    if (outcomeValuesAtTimestamp) {
-      const outcomeValue = outcomeValuesAtTimestamp[outcome].value.minus(minPrice);
-      const shareProfit = position.lt(ZERO) ? averagePrice.minus(outcomeValue) : outcomeValue.minus(averagePrice);
-      unrealized = shareProfit.multipliedBy(position.abs());
-    }
+    // averagePrice is average price per share user paid to open this position;
+    // but, we want to display averagePrice; for scalar markets this means adding
+    // minPrice. Eg. if a user paid an average price of 4.5 for a scalar market, but
+    // the minPrice in that market is 3, we actually need to show 4.5+3=7.5 in the UI.
+    // TODO use new tradeDisplayPrice() from financialMath?
+    const averagePriceDisplay: Price = averagePricePerShareToOpenPosition.plus(minPrice);
 
-    // Adjust display for scalars
-    averagePrice = averagePrice.plus(minPrice);
+    const lastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(minPrice) : undefined;
 
-    const total = realized.plus(unrealized);
+    const { unrealizedCost } = getUnrealizedCost({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+    });
+    const { unrealizedProfit } = getUnrealizedProfit({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+    });
+    const { totalCost } = getTotalCost({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+      realizedCost,
+    });
+    const { currentValue } = getCurrentValue({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+      frozenFunds,
+    });
+    const { totalProfit } = getTotalProfit({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+      realizedProfit,
+    });
+    const { realizedProfitPercent } = getRealizedProfitPercent({
+      realizedCost,
+      realizedProfit,
+    });
+    const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+    });
+    const { totalProfitPercent } = getTotalProfitPercent({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      lastPrice,
+      realizedCost,
+      realizedProfit,
+    });
 
     return {
-      timestamp,
-      netPosition: position,
-      realized,
-      unrealized,
-      total,
-      averagePrice,
+      marketId: outcomePl.marketId,
       outcome,
-      marketId,
-      frozenFunds: outcomePl.frozenFunds,
+      timestamp: outcomePl.timestamp,
+      netPosition: netPosition.magnitude,
+      realized: realizedProfit.magnitude,
+      unrealized: unrealizedProfit.magnitude,
+      total: totalProfit.magnitude,
+      averagePrice: averagePriceDisplay.magnitude,
+      unrealizedCost: unrealizedCost.magnitude,
+      realizedCost: realizedCost.magnitude,
+      totalCost: totalCost.magnitude,
+      realizedPercent: realizedProfitPercent.magnitude,
+      unrealizedPercent: unrealizedProfitPercent.magnitude,
+      totalPercent: totalProfitPercent.magnitude,
+      currentValue: currentValue.magnitude,
+      frozenFunds: frozenFunds.magnitude,
     };
   });
   return _.sortBy(unsortedResults, "outcome")!;
@@ -337,6 +428,13 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       outcome: 0,
       netPosition: ZERO,
       marketId: "",
+      unrealizedCost: ZERO,
+      realizedCost: ZERO,
+      totalCost: ZERO,
+      realizedPercent: ZERO,
+      unrealizedPercent: ZERO,
+      totalPercent: ZERO,
+      currentValue: ZERO,
       frozenFunds: ZERO,
     }));
   }
@@ -378,13 +476,20 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
 
     const negativeStartProfit: ProfitLossResult = {
       timestamp: startProfit.timestamp,
+      marketId: startProfit.marketId,
+      outcome: startProfit.outcome,
       netPosition: startProfit.netPosition.negated(),
+      averagePrice: startProfit.averagePrice,
       realized: startProfit.realized.negated(),
       unrealized: startProfit.unrealized.negated(),
       total: startProfit.total.negated(),
-      averagePrice: startProfit.averagePrice,
-      outcome: startProfit.outcome,
-      marketId: startProfit.marketId,
+      unrealizedCost: startProfit.unrealizedCost.negated(),
+      realizedCost: startProfit.realizedCost.negated(),
+      totalCost: startProfit.totalCost.negated(),
+      realizedPercent: startProfit.realizedPercent,
+      unrealizedPercent: startProfit.unrealizedPercent,
+      totalPercent: startProfit.totalPercent,
+      currentValue: startProfit.currentValue.negated(),
       frozenFunds: startProfit.frozenFunds.negated(),
     };
 
