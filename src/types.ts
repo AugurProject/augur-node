@@ -748,6 +748,7 @@ export interface AccountTransactionHistoryRow<BigNumberType> {
   details: string;
   fee: BigNumberType;
   marketDescription: string;
+  outcome: number;
   outcomeDescription: string;
   payout0: BigNumberType;
   payout1: BigNumberType;
@@ -778,6 +779,7 @@ export interface UIAccountTransactionHistoryRow<BigNumberType> {
   details: string;
   fee: BigNumberType;
   marketDescription: string;
+  outcome: number;
   outcomeDescription: string;
   price: BigNumberType;
   quantity: BigNumberType;

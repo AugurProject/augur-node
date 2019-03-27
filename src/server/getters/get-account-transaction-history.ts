@@ -1,7 +1,7 @@
 import * as t from "io-ts";
 import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { Action, Coin, SortLimitParams, UIAccountTransactionHistoryRow } from "../../types";
+import { Action, Coin, SortLimitParams, AccountTransactionHistoryRow } from "../../types";
 import { queryModifier } from "./database";
 
 export const GetAccountTransactionHistoryParams = t.intersection([
@@ -17,16 +17,53 @@ export const GetAccountTransactionHistoryParams = t.intersection([
 ]);
 type GetAccountTransactionHistoryParamsType = t.TypeOf<typeof GetAccountTransactionHistoryParams>;
 
-function transformQueryResults(queryResults: any) {
-  return queryResults.map((queryResult: any) => {
+function transformQueryResults(queryResults: Array<AccountTransactionHistoryRow<BigNumber>>) {
+  return queryResults.map((queryResult: AccountTransactionHistoryRow<BigNumber>) => {
     if (queryResult.action === "BUY") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = (queryResult.numCreatorShares.times((queryResult.maxPrice).minus(queryResult.price))).minus(queryResult.numCreatorTokens);
     } else if (queryResult.action === "SELL") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = (queryResult.numCreatorShares.times(queryResult.price)).minus(queryResult.numCreatorTokens);
-    } else if (queryResult.action === "CLAIM" && queryResult.details === "Claimed trading proceeds") {
-      queryResult.fee = (queryResult.numShares.dividedBy(new BigNumber(100000000000000000)).times(queryResult.price)).minus((queryResult.numPayoutTokens.times(new BigNumber(100000000000000000))));
+    } else if (queryResult.action === "CLAIM") {
+      const divisor = new BigNumber(100000000000000000);
+      queryResult.quantity = new BigNumber(queryResult.quantity).dividedBy(divisor);
+      queryResult.total = new BigNumber(queryResult.total).dividedBy(divisor);
+      if (queryResult.details === "Claimed trading proceeds") {
+        let payoutAmount;
+        switch (queryResult.outcome) {
+          case 0:
+            payoutAmount = queryResult.payout0;
+            break;
+          case 1:
+            payoutAmount = queryResult.payout1;
+            break;
+          case 2:
+            payoutAmount = queryResult.payout2;
+            break;
+          case 3:
+            payoutAmount = queryResult.payout3;
+            break;
+          case 4:
+            payoutAmount = queryResult.payout4;
+            break;
+          case 5:
+            payoutAmount = queryResult.payout5;
+            break;
+          case 6:
+            payoutAmount = queryResult.payout6;
+            break;
+          case 7:
+            payoutAmount = queryResult.payout7;
+            break;
+        }
+        if (payoutAmount) {
+          queryResult.fee = queryResult.numShares.times(new BigNumber(payoutAmount)).minus(queryResult.numPayoutTokens).dividedBy(divisor);
+          if (queryResult.fee.isLessThan(0)) {
+            queryResult.fee = new BigNumber(0);
+          }
+        }
+      }
     }
     delete queryResult.marketCreatorFees;
     delete queryResult.maxPrice;
@@ -197,7 +234,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("payouts.payout7"),
         db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
-        db.raw("'0' as quantity"),
+        db.raw("0 as quantity"),
         db.raw("crowdsourcer_redeemed.reportingFeesReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
@@ -241,7 +278,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("NULL as payout7"),
         db.raw("NULL as isInvalid"),
         db.raw("'0' as price"),
-        db.raw("'0' as quantity"),
+        db.raw("0 as quantity"),
         db.raw("participation_token_redeemed.reportingFeesReceived as total"),
         "participation_token_redeemed.transactionHash")
       .from("participation_token_redeemed")
@@ -269,21 +306,22 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         "markets.shortDescription as marketDescription",
         "outcomes.outcome",
         db.raw("outcomes.description as outcomeDescription"),
-        db.raw("NULL as payout0"),
-        db.raw("NULL as payout1"),
-        db.raw("NULL as payout2"),
-        db.raw("NULL as payout3"),
-        db.raw("NULL as payout4"),
-        db.raw("NULL as payout5"),
-        db.raw("NULL as payout6"),
-        db.raw("NULL as payout7"),
-        db.raw("NULL as isInvalid"),
+        db.raw("payouts.payout0"),
+        db.raw("payouts.payout1"),
+        db.raw("payouts.payout2"),
+        db.raw("payouts.payout3"),
+        db.raw("payouts.payout4"),
+        db.raw("payouts.payout5"),
+        db.raw("payouts.payout6"),
+        db.raw("payouts.payout7"),
+        db.raw("payouts.isInvalid"),
         "outcomes.price",
         db.raw("trading_proceeds.numShares as quantity"),
         db.raw("trading_proceeds.numPayoutTokens as total"),
         "trading_proceeds.transactionHash")
       .from("trading_proceeds")
       .join("markets", "markets.marketId", "trading_proceeds.marketId")
+      .join("payouts", "payouts.marketId", "markets.marketId")
       .join("tokens", "tokens.contractAddress", "trading_proceeds.shareToken")
       .join("outcomes", function () {
         this
@@ -325,7 +363,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("payouts.payout7"),
         db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
-        db.raw("'0' as quantity"),
+        db.raw("0 as quantity"),
         db.raw("crowdsourcer_redeemed.repReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
@@ -545,6 +583,7 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
 
 // TODO Calculate sold complete sets fee? (currently difficult to do in Augur Node)
 // TODO Fix negative fee values when claiming trading proceeds & negative total values for buys/sells
+// TODO Claim mailbox Cash burn fees?
 export async function getAccountTransactionHistory(db: Knex, augur: {}, params: GetAccountTransactionHistoryParamsType) {
   params.account = params.account.toLowerCase();
   params.universe = params.universe.toLowerCase();
@@ -599,7 +638,7 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
   .join("blocks", "transactionHashes.blockNumber", "blocks.blockNumber")
   .whereBetween("blocks.timestamp", [params.earliestTransactionTime, params.latestTransactionTime]);
 
-  const accountTransactionHistory: Array<UIAccountTransactionHistoryRow<BigNumber>> = await queryModifier<UIAccountTransactionHistoryRow<BigNumber>>(db, query, "blocks.timestamp", "desc", params);
+  const accountTransactionHistory: Array<AccountTransactionHistoryRow<BigNumber>> = await queryModifier<AccountTransactionHistoryRow<BigNumber>>(db, query, "blocks.timestamp", "desc", params);
   
   return transformQueryResults(accountTransactionHistory);
 }
