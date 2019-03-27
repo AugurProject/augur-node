@@ -123,7 +123,7 @@
     "replace-in-file": "3.0.0",
     "tslint": "5.7.0",
     "tslint-eslint-rules": "4.1.1",
-    "typescript": "3.1.6"
+    "typescript": "3.3.3333"
   },
   "buildDependencies": [
     "typescript",

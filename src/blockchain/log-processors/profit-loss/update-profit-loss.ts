@@ -1,10 +1,13 @@
 import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import { ZERO } from "../../../constants";
+import { ProfitLossTimeseries } from "../../../server/getters/get-profit-loss";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
+import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
+import { getNextAveragePricePerShareToOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradeRealizedProfitDelta } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
-import { FrozenFunds, FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
+import { FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
 interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType> {
   minPrice: BigNumber;
@@ -12,11 +15,7 @@ interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType>
   numTicks: BigNumber;
 }
 
-interface UpdateData extends FrozenFunds {
-  price: BigNumber;
-  position: BigNumber;
-  profit: BigNumber;
-}
+type UpdateData = Pick<ProfitLossTimeseries, "price" | "position" | "profit" | "realizedCost" | "frozenFunds">;
 
 export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address, account: Address, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
   const payouts: PayoutAndMarket<BigNumber> = await db
@@ -62,69 +61,78 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
 export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, price: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData: undefined | Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
 
+  const tradePositionDelta = new Shares(positionDelta);
   const timestamp = getCurrentTime();
 
   const marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice"> = await db("markets").first("minPrice", "maxPrice").where({ marketId });
 
-  price = price.minus(marketsRow.minPrice);
+  // TODO use new tradeDisplayPrice() from financialMath?
+  const tradePrice = new Price(price.minus(marketsRow.minPrice)); // tradePrice at which this trade was executed; in scalar markets this requires subtracting minPrice (and for binary/categoricals minPrice is zero)
 
-  const lastData: UpdateData = await db
-    .first(["price", "position", "profit", "frozenFunds"])
+  const prevData: UpdateData = await db
+    .first(["price", "position", "profit", "frozenFunds", "realizedCost"])
     .from("wcl_profit_loss_timeseries")
     .where({ account, marketId, outcome })
     .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
 
-  let oldPosition = lastData ? lastData.position : ZERO;
-  let oldPrice = lastData ? lastData.price : ZERO;
-  const oldProfit = lastData ? lastData.profit : ZERO;
-  const oldFrozenFunds = lastData ? lastData.frozenFunds : ZERO;
+  const netPosition: Shares = prevData ? new Shares(prevData.position) : Shares.ZERO;
+  const averagePricePerShareToOpenPosition = prevData ? new Price(prevData.price) : Price.ZERO;
+  const realizedCost = prevData ? new Tokens(prevData.realizedCost) : Tokens.ZERO;
+  const realizedProfit = prevData ? new Tokens(prevData.profit) : Tokens.ZERO;
+  const frozenFunds = prevData ? prevData.frozenFunds : ZERO;
 
-  let profit = oldProfit;
-
-  // Adjust postion
-  const position = oldPosition.plus(positionDelta);
-
-  // Adjust realized profit for amount of existing position sold
-  if (!oldPosition.eq(ZERO) && oldPosition.s !== positionDelta.s) {
-    const amountSold = BigNumber.min(oldPosition.abs(), positionDelta.abs());
-    const profitDelta = (oldPosition.lt(ZERO) ? oldPrice.minus(price) : price.minus(oldPrice)).multipliedBy(amountSold);
-    oldPosition = amountSold.gte(oldPosition.abs()) ? ZERO : oldPosition.plus(positionDelta);
-    positionDelta = oldPosition.eq(ZERO) ? position : ZERO;
-    profit = profit.plus(profitDelta);
-    if (oldPosition.eq(ZERO)) {
-      oldPrice = ZERO;
-    }
-  }
-
-  let newPrice = oldPrice;
-
-  // Adjust price for new position added
-  if (!positionDelta.eq(ZERO)) {
-    newPrice = (oldPrice.multipliedBy(oldPosition.abs())).plus(price.multipliedBy(positionDelta.abs())).dividedBy(position.abs());
-  }
-
-  const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
-    frozenFundsBeforeEvent: {
-      frozenFunds: oldFrozenFunds,
-    },
-    event: makeFrozenFundsEvent(account, profit.minus(oldProfit), marketsRow, tradeData),
+  const { nextNetPosition } = getNextNetPosition({
+    netPosition,
+    tradePositionDelta,
   });
+  const { tradeRealizedProfitDelta } = getTradeRealizedProfitDelta({
+    netPosition,
+    averagePricePerShareToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
+  const { nextRealizedProfit } = getNextRealizedProfit({
+    realizedProfit,
+    netPosition,
+    averagePricePerShareToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
+  const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
+    frozenFundsBeforeEvent: { frozenFunds },
+    event: makeFrozenFundsEvent(account, tradeRealizedProfitDelta.magnitude, marketsRow, tradeData),
+  });
+  const { nextRealizedCost } = getNextRealizedCost({
+    realizedCost,
+    netPosition,
+    averagePricePerShareToOpenPosition,
+    tradePositionDelta,
+    tradePrice,
+  });
+  const { nextAveragePricePerShareToOpenPosition } =
+    getNextAveragePricePerShareToOpenPosition({
+      netPosition,
+      averagePricePerShareToOpenPosition,
+      tradePositionDelta,
+      tradePrice,
+    });
 
-  const insertData = {
+  const nextProfitLossTimeseries = { // this is of type ProfitLossTimeseries<BigNumberType = string>
     account,
     marketId,
     outcome,
-    price: newPrice.toString(),
-    position: position.toString(),
-    profit: profit.toString(),
+    price: nextAveragePricePerShareToOpenPosition.magnitude.toString(),
+    position: nextNetPosition.magnitude.toString(),
+    profit: nextRealizedProfit.magnitude.toString(),
     transactionHash,
     timestamp,
     blockNumber,
     logIndex,
     frozenFunds: nextFrozenFunds.frozenFunds.toString(),
+    realizedCost: nextRealizedCost.magnitude.toString(),
   };
 
-  await db.insert(insertData).into("wcl_profit_loss_timeseries");
+  await db.insert(nextProfitLossTimeseries).into("wcl_profit_loss_timeseries");
 }
 
 export async function updateProfitLossRemoveRow(db: Knex, transactionHash: string): Promise<void> {
@@ -133,6 +141,7 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
     .delete()
     .where({ transactionHash });
 }
+
 
 // makeFrozenFundsEvent() is a helper function of updateProfitLoss(). Passed
 // tradeData is associated data from the trade for which this user's profit and
