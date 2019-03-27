@@ -25,11 +25,16 @@ function transformQueryResults(queryResults: Array<AccountTransactionHistoryRow<
     } else if (queryResult.action === "SELL") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = (queryResult.numCreatorShares.times(queryResult.price)).minus(queryResult.numCreatorTokens);
-    } else if (queryResult.action === "CLAIM") {
+    } else if (
+      queryResult.action === Action.CLAIM_MARKET_CREATOR_FEES || 
+      queryResult.action === Action.CLAIM_PARTICIPATION_TOKENS || 
+      queryResult.action === Action.CLAIM_TRADING_PROCEEDS ||
+      queryResult.action === Action.CLAIM_WINNING_CROWDSOURCERS
+    ) {
       const divisor = new BigNumber(100000000000000000);
       queryResult.quantity = new BigNumber(queryResult.quantity).dividedBy(divisor);
       queryResult.total = new BigNumber(queryResult.total).dividedBy(divisor);
-      if (queryResult.details === "Claimed trading proceeds") {
+      if (queryResult.action === Action.CLAIM_TRADING_PROCEEDS) {
         let payoutAmount;
         switch (queryResult.outcome) {
           case 0:
@@ -210,7 +215,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
     // Get reporting fees claimed from winning crowdsourcers
     qb.union((qb: Knex.QueryBuilder) => {
       qb.select(
-        db.raw("? as action", Action.CLAIM),
+        db.raw("? as action", Action.CLAIM_WINNING_CROWDSOURCERS),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed reporting fees from crowdsourcers' as details"),
         db.raw("NULL as marketCreatorFees"),
@@ -234,7 +239,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("payouts.payout7"),
         db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
-        db.raw("0 as quantity"),
+        db.raw("'0' as quantity"),
         db.raw("crowdsourcer_redeemed.reportingFeesReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
@@ -251,10 +256,49 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
       });
     });
 
+    // Get market creator fees claimed
+    qb.union((qb: Knex.QueryBuilder) => {
+      qb.select(
+        db.raw("? as action", Action.CLAIM_MARKET_CREATOR_FEES),
+        db.raw("'ETH' as coin"),
+        db.raw("'Claimed market creator fees' as details"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        db.raw("NULL as numPayoutTokens"),
+        db.raw("NULL as numShares"),
+        db.raw("NULL as reporterFees"),
+        db.raw("'0' as fee"),
+        db.raw("markets.shortDescription as marketDescription"),
+        db.raw("NULL as outcome"),
+        db.raw("NULL as outcomeDescription"),
+        db.raw("NULL as payout0"),
+        db.raw("NULL as payout1"),
+        db.raw("NULL as payout2"),
+        db.raw("NULL as payout3"),
+        db.raw("NULL as payout4"),
+        db.raw("NULL as payout5"),
+        db.raw("NULL as payout6"),
+        db.raw("NULL as payout7"),
+        db.raw("NULL as isInvalid"),
+        db.raw("'0' as price"),
+        db.raw("'0' as quantity"),
+        db.raw("transfers.value as total"),
+        "transfers.transactionHash")
+      .from("transfers")
+      .join("markets", "markets.marketCreatorMailbox", "transfers.sender")
+      .whereNull("transfers.recipient")
+      .where({
+        "markets.marketCreator": params.account,
+        "markets.universe": params.universe,
+      });
+    });
+
     // Get reporting fees claimed from participation tokens
     qb.union((qb: Knex.QueryBuilder) => {
       qb.select(
-        db.raw("? as action", Action.CLAIM),
+        db.raw("? as action", Action.CLAIM_PARTICIPATION_TOKENS),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed reporting fees from participation tokens' as details"),
         db.raw("NULL as marketCreatorFees"),
@@ -278,7 +322,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("NULL as payout7"),
         db.raw("NULL as isInvalid"),
         db.raw("'0' as price"),
-        db.raw("0 as quantity"),
+        db.raw("'0' as quantity"),
         db.raw("participation_token_redeemed.reportingFeesReceived as total"),
         "participation_token_redeemed.transactionHash")
       .from("participation_token_redeemed")
@@ -292,7 +336,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
     // Get claimed trading proceeds
     qb.union((qb: Knex.QueryBuilder) => {
       qb.select(
-        db.raw("? as action", Action.CLAIM),
+        db.raw("? as action", Action.CLAIM_TRADING_PROCEEDS),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed trading proceeds' as details"),
         db.raw("NULL as marketCreatorFees"),
@@ -339,7 +383,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
     // Get REP claimed from winning crowdsourcers
     qb.union((qb: Knex.QueryBuilder) => {
       qb.select(
-        db.raw("? as action", Action.CLAIM),
+        db.raw("? as action", Action.CLAIM_WINNING_CROWDSOURCERS),
         db.raw("'REP' as coin"),
         db.raw("'Claimed REP fees from crowdsourcers' as details"),
         db.raw("NULL as marketCreatorFees"),
@@ -363,7 +407,7 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("payouts.payout7"),
         db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
-        db.raw("0 as quantity"),
+        db.raw("'0' as quantity"),
         db.raw("crowdsourcer_redeemed.repReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
@@ -583,7 +627,6 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
 
 // TODO Calculate sold complete sets fee? (currently difficult to do in Augur Node)
 // TODO Fix negative fee values when claiming trading proceeds & negative total values for buys/sells
-// TODO Claim mailbox Cash burn fees?
 export async function getAccountTransactionHistory(db: Knex, augur: {}, params: GetAccountTransactionHistoryParamsType) {
   params.account = params.account.toLowerCase();
   params.universe = params.universe.toLowerCase();
