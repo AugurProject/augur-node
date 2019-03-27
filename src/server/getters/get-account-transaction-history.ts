@@ -1,9 +1,8 @@
 import * as t from "io-ts";
 import * as Knex from "knex";
+import { BigNumber } from "bignumber.js";
 import { Action, Coin, SortLimitParams, UIAccountTransactionHistoryRow } from "../../types";
-import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
 import { queryModifier } from "./database";
-import { AccountManager } from "augur-core/output/libraries/AccountManager";
 
 export const GetAccountTransactionHistoryParams = t.intersection([
   SortLimitParams,
@@ -18,18 +17,56 @@ export const GetAccountTransactionHistoryParams = t.intersection([
 ]);
 type GetAccountTransactionHistoryParamsType = t.TypeOf<typeof GetAccountTransactionHistoryParams>;
 
+function transformQueryResults(queryResults: any) {
+  return queryResults.map((queryResult: any) => {
+    if (queryResult.action === "BUY") {
+      queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
+      queryResult.total = (queryResult.numCreatorShares.times((queryResult.maxPrice).minus(queryResult.price))).minus(queryResult.numCreatorTokens);
+    } else if (queryResult.action === "SELL") {
+      queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
+      queryResult.total = (queryResult.numCreatorShares.times(queryResult.price)).minus(queryResult.numCreatorTokens);
+    } else if (queryResult.action === "CLAIM" && queryResult.details === "Claimed trading proceeds") {
+      queryResult.fee = (queryResult.numShares.dividedBy(new BigNumber(100000000000000000)).times(queryResult.price)).minus((queryResult.numPayoutTokens.times(new BigNumber(100000000000000000))));
+    }
+    delete queryResult.marketCreatorFees;
+    delete queryResult.maxPrice;
+    delete queryResult.numCreatorShares;
+    delete queryResult.numCreatorTokens;
+    delete queryResult.numPayoutTokens;
+    delete queryResult.numShares;
+    delete queryResult.reporterFees;
+    return queryResult;
+  });
+}
+
 function queryBuy(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
   return qb.select(
     db.raw("? as action", Action.BUY),
     db.raw("'ETH' as coin"),
     db.raw("'Buy order' as details"),
-    db.raw("CAST(CAST(trades.reporterFees as real) + CAST(trades.marketCreatorFees as real) as text) as fee"),
+    "trades.marketCreatorFees",
+    "markets.maxPrice",
+    "trades.numCreatorShares",
+    "trades.numCreatorTokens",
+    db.raw("NULL as numPayoutTokens"),
+    db.raw("NULL as numShares"),
+    "trades.reporterFees",
+    db.raw("NULL as fee"),
     "markets.shortDescription as marketDescription",
     "outcomes.outcome",
     db.raw("outcomes.description as outcomeDescription"),
-    db.raw("CAST(trades.price as text) as price"),
-    db.raw("CAST(trades.amount as text) as quantity"),
-    db.raw("CAST(CAST(trades.numCreatorShares as real) * (CAST(markets.maxPrice as real) - CAST(trades.price as real)) as text) as total"),
+    db.raw("NULL as payout0"),
+    db.raw("NULL as payout1"),
+    db.raw("NULL as payout2"),
+    db.raw("NULL as payout3"),
+    db.raw("NULL as payout4"),
+    db.raw("NULL as payout5"),
+    db.raw("NULL as payout6"),
+    db.raw("NULL as payout7"),
+    db.raw("NULL as isInvalid"),
+    "trades.price",
+    db.raw("trades.amount as quantity"),
+    db.raw("NULL as total"),
     "trades.transactionHash")
   .from("trades")
   .join("markets", "markets.marketId", "trades.marketId")
@@ -50,13 +87,29 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
     db.raw("? as action", Action.SELL),
     db.raw("'ETH' as coin"),
     db.raw("'Sell order' as details"),
-    db.raw("CAST(CAST(trades.reporterFees as real) + CAST(trades.marketCreatorFees as real) as text) as fee"),
+    "trades.marketCreatorFees",
+    db.raw("NULL as maxPrice"),
+    "trades.numCreatorShares",
+    "trades.numCreatorTokens",
+    db.raw("NULL as numPayoutTokens"),
+    db.raw("NULL as numShares"),
+    "trades.reporterFees",
+    db.raw("NULL as fee"),
     "markets.shortDescription as marketDescription",
     "outcomes.outcome",
     db.raw("outcomes.description as outcomeDescription"),
-    db.raw("CAST(trades.price as text) as price"),
-    db.raw("CAST(trades.amount as text) as quantity"),
-    db.raw("CAST(CAST(trades.numCreatorShares as real) * (CAST(trades.price as real) - CAST(trades.numCreatorTokens as real)) as text) as total"),
+    db.raw("NULL as payout0"),
+    db.raw("NULL as payout1"),
+    db.raw("NULL as payout2"),
+    db.raw("NULL as payout3"),
+    db.raw("NULL as payout4"),
+    db.raw("NULL as payout5"),
+    db.raw("NULL as payout6"),
+    db.raw("NULL as payout7"),
+    db.raw("NULL as isInvalid"),
+    "trades.price",
+    db.raw("trades.amount as quantity"),
+    db.raw("NULL as total"),
     "trades.transactionHash")
   .from("trades")
   .join("markets", "markets.marketId", "trades.marketId")
@@ -77,12 +130,28 @@ function queryCanceled(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransa
     db.raw("? as action", Action.CANCEL),
     db.raw("'ETH' as coin"),
     db.raw("'Canceled order' as details"),
+    db.raw("NULL as marketCreatorFees"),
+    db.raw("NULL as maxPrice"),
+    db.raw("NULL as numCreatorShares"),
+    db.raw("NULL as numCreatorTokens"),
+    db.raw("NULL as numPayoutTokens"),
+    db.raw("NULL as numShares"),
+    db.raw("NULL as reporterFees"),
     db.raw("'0' as fee"),
     "markets.shortDescription as marketDescription",
     "outcomes.outcome",
     db.raw("outcomes.description as outcomeDescription"),
+    db.raw("NULL as payout0"),
+    db.raw("NULL as payout1"),
+    db.raw("NULL as payout2"),
+    db.raw("NULL as payout3"),
+    db.raw("NULL as payout4"),
+    db.raw("NULL as payout5"),
+    db.raw("NULL as payout6"),
+    db.raw("NULL as payout7"),
+    db.raw("NULL as isInvalid"),
     db.raw("'0' as price"),
-    db.raw("CAST(orders.amount as text) as quantity"),
+    db.raw("orders.amount as quantity"),
     db.raw("'0' as total"),
     "orders_canceled.transactionHash")
   .from("orders_canceled")
@@ -107,17 +176,38 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("? as action", Action.CLAIM),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed reporting fees from crowdsourcers' as details"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        db.raw("NULL as numPayoutTokens"),
+        db.raw("NULL as numShares"),
+        db.raw("NULL as reporterFees"),
         db.raw("'0' as fee"),
         "markets.shortDescription as marketDescription",
         db.raw("NULL as outcome"),
         db.raw("NULL as outcomeDescription"),
+        db.raw("payouts.payout0"),
+        db.raw("payouts.payout1"),
+        db.raw("payouts.payout2"),
+        db.raw("payouts.payout3"),
+        db.raw("payouts.payout4"),
+        db.raw("payouts.payout5"),
+        db.raw("payouts.payout6"),
+        db.raw("payouts.payout7"),
+        db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
         db.raw("'0' as quantity"),
-        db.raw("CAST(crowdsourcer_redeemed.reportingFeesReceived as text) as total"),
+        db.raw("crowdsourcer_redeemed.reportingFeesReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
       .join("markets", "markets.marketId", "crowdsourcers.marketId")
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
+      .join("payouts", function () {
+        this
+          .on("payouts.payoutId", "crowdsourcers.payoutId")
+          .on("payouts.marketId", "markets.marketId");
+      })
       .where({
         "crowdsourcer_redeemed.reporter": params.account,
         "markets.universe": params.universe,
@@ -130,13 +220,29 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("? as action", Action.CLAIM),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed reporting fees from participation tokens' as details"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        db.raw("NULL as numPayoutTokens"),
+        db.raw("NULL as numShares"),
+        db.raw("NULL as reporterFees"),
         db.raw("'0' as fee"),
         db.raw("'' as marketDescription"),
         db.raw("NULL as outcome"),
         db.raw("NULL as outcomeDescription"),
+        db.raw("NULL as payout0"),
+        db.raw("NULL as payout1"),
+        db.raw("NULL as payout2"),
+        db.raw("NULL as payout3"),
+        db.raw("NULL as payout4"),
+        db.raw("NULL as payout5"),
+        db.raw("NULL as payout6"),
+        db.raw("NULL as payout7"),
+        db.raw("NULL as isInvalid"),
         db.raw("'0' as price"),
         db.raw("'0' as quantity"),
-        db.raw("CAST(participation_token_redeemed.reportingFeesReceived as text) as total"),
+        db.raw("participation_token_redeemed.reportingFeesReceived as total"),
         "participation_token_redeemed.transactionHash")
       .from("participation_token_redeemed")
       .join("fee_windows", "fee_windows.feeWindow", "participation_token_redeemed.feeWindow")
@@ -152,13 +258,29 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("? as action", Action.CLAIM),
         db.raw("'ETH' as coin"),
         db.raw("'Claimed trading proceeds' as details"),
-        db.raw("CAST((CAST(trading_proceeds.numShares as real) / 100000000000000000 * CAST(outcomes.price as real)) - (CAST(trading_proceeds.numPayoutTokens as real) / 100000000000000000) as text) as fee"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        "trading_proceeds.numPayoutTokens",
+        "trading_proceeds.numShares",
+        db.raw("NULL as reporterFees"),
+        db.raw("NULL as fee"),
         "markets.shortDescription as marketDescription",
         "outcomes.outcome",
         db.raw("outcomes.description as outcomeDescription"),
-        db.raw("CAST(outcomes.price as text) as price"),
-        db.raw("CAST(trading_proceeds.numShares as text) as quantity"),
-        db.raw("CAST(trading_proceeds.numPayoutTokens as text) as total"),
+        db.raw("NULL as payout0"),
+        db.raw("NULL as payout1"),
+        db.raw("NULL as payout2"),
+        db.raw("NULL as payout3"),
+        db.raw("NULL as payout4"),
+        db.raw("NULL as payout5"),
+        db.raw("NULL as payout6"),
+        db.raw("NULL as payout7"),
+        db.raw("NULL as isInvalid"),
+        "outcomes.price",
+        db.raw("trading_proceeds.numShares as quantity"),
+        db.raw("trading_proceeds.numPayoutTokens as total"),
         "trading_proceeds.transactionHash")
       .from("trading_proceeds")
       .join("markets", "markets.marketId", "trading_proceeds.marketId")
@@ -182,17 +304,38 @@ function queryClaim(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransacti
         db.raw("? as action", Action.CLAIM),
         db.raw("'REP' as coin"),
         db.raw("'Claimed REP fees from crowdsourcers' as details"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        db.raw("NULL as numPayoutTokens"),
+        db.raw("NULL as numShares"),
+        db.raw("NULL as reporterFees"),
         db.raw("'0' as fee"),
         "markets.shortDescription as marketDescription",
         db.raw("NULL as outcome"),
         db.raw("NULL as outcomeDescription"),
+        db.raw("payouts.payout0"),
+        db.raw("payouts.payout1"),
+        db.raw("payouts.payout2"),
+        db.raw("payouts.payout3"),
+        db.raw("payouts.payout4"),
+        db.raw("payouts.payout5"),
+        db.raw("payouts.payout6"),
+        db.raw("payouts.payout7"),
+        db.raw("payouts.isInvalid"),
         db.raw("'0' as price"),
         db.raw("'0' as quantity"),
-        db.raw("CAST(crowdsourcer_redeemed.repReceived as text) as total"),
+        db.raw("crowdsourcer_redeemed.repReceived as total"),
         "crowdsourcer_redeemed.transactionHash")
       .from("crowdsourcer_redeemed")
       .join("markets", "markets.marketId", "crowdsourcers.marketId")
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
+      .join("payouts", function () {
+        this
+          .on("payouts.payoutId", "crowdsourcers.payoutId")
+          .on("payouts.marketId", "markets.marketId");
+      })
       .where({
         "crowdsourcer_redeemed.reporter": params.account,
         "markets.universe": params.universe,
@@ -209,12 +352,28 @@ function queryDispute(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransac
       db.raw("? as action", Action.DISPUTE), 
       db.raw("'REP' as coin"),
       db.raw("'REP staked in dispute crowdsourcers' as details"),
+      db.raw("NULL as marketCreatorFees"),
+      db.raw("NULL as maxPrice"),
+      db.raw("NULL as numCreatorShares"),
+      db.raw("NULL as numCreatorTokens"),
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      db.raw("NULL as reporterFees"),
       db.raw("'0' as fee"),
       "markets.shortDescription as marketDescription", 
       db.raw("NULL as outcome"),
       db.raw("NULL as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
       db.raw("'0' as price"),
-      db.raw("CAST(disputes.amountStaked as text) as quantity"),
+      db.raw("disputes.amountStaked as quantity"),
       db.raw("'0' as total"),
       "disputes.transactionHash")
     .from("disputes")
@@ -233,10 +392,26 @@ function queryInitialReport(db: Knex, qb: Knex.QueryBuilder, params: GetAccountT
     db.raw("? as action", Action.INITIAL_REPORT), 
     db.raw("'REP' as coin"),
     db.raw("'REP staked in initial reports' as details"),
+    db.raw("NULL as marketCreatorFees"),
+    db.raw("NULL as maxPrice"),
+    db.raw("NULL as numCreatorShares"),
+    db.raw("NULL as numCreatorTokens"),
+    db.raw("NULL as numPayoutTokens"),
+    db.raw("NULL as numShares"),
+    db.raw("NULL as reporterFees"),
     db.raw("'0' as fee"),
     "markets.shortDescription as marketDescription",
     db.raw("NULL as outcome"),
     db.raw("NULL as outcomeDescription"),
+    db.raw("NULL as payout0"),
+    db.raw("NULL as payout1"),
+    db.raw("NULL as payout2"),
+    db.raw("NULL as payout3"),
+    db.raw("NULL as payout4"),
+    db.raw("NULL as payout5"),
+    db.raw("NULL as payout6"),
+    db.raw("NULL as payout7"),
+    db.raw("NULL as isInvalid"),
     db.raw("'0' as price"),
     "initial_reports.amountStaked as quantity",
     db.raw("'0' as total"),
@@ -254,11 +429,27 @@ function queryMarketCreation(db: Knex, qb: Knex.QueryBuilder, params: GetAccount
   return qb.select(
     db.raw("? as action", Action.MARKET_CREATION), 
     db.raw("'ETH' as coin"), 
-    db.raw("'ETH validity bond for market creation' as details"), 
-    db.raw("CAST(markets.creationFee as text) as fee"), 
+    db.raw("'ETH validity bond for market creation' as details"),
+    db.raw("NULL as marketCreatorFees"),
+    db.raw("NULL as maxPrice"),
+    db.raw("NULL as numCreatorShares"),
+    db.raw("NULL as numCreatorTokens"),
+    db.raw("NULL as numPayoutTokens"),
+    db.raw("NULL as numShares"),
+    db.raw("NULL as reporterFees"),
+    db.raw("markets.creationFee as fee"), 
     "markets.shortDescription as marketDescription",
     db.raw("NULL as outcome"),
     db.raw("NULL as outcomeDescription"),
+    db.raw("NULL as payout0"),
+    db.raw("NULL as payout1"),
+    db.raw("NULL as payout2"),
+    db.raw("NULL as payout3"),
+    db.raw("NULL as payout4"),
+    db.raw("NULL as payout5"),
+    db.raw("NULL as payout6"),
+    db.raw("NULL as payout7"),
+    db.raw("NULL as isInvalid"),
     db.raw("'0' as price"), 
     db.raw("'0' as quantity"), 
     db.raw("'0' as total"), 
@@ -276,14 +467,29 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
     qb.select(
         db.raw("? as action", Action.COMPLETE_SETS),
         db.raw("'ETH' as coin"),
-        db.raw("'Buy complete sets' as details"), 
-        // db.raw("printf('%.18f', 0) as fee"),
+        db.raw("'Buy complete sets' as details"),
+        db.raw("NULL as marketCreatorFees"),
+        db.raw("NULL as maxPrice"),
+        db.raw("NULL as numCreatorShares"),
+        db.raw("NULL as numCreatorTokens"),
+        db.raw("NULL as numPayoutTokens"),
+        db.raw("NULL as numShares"),
+        db.raw("NULL as reporterFees"),
         db.raw("'0' as fee"),
         "markets.shortDescription as marketDescription", 
         db.raw("NULL as outcome"),
         db.raw("NULL as outcomeDescription"),
-        db.raw("CAST(markets.numTicks as text) as price"),
-        db.raw("CAST(completeSets.numCompleteSets as text) as quantity"),
+        db.raw("NULL as payout0"),
+        db.raw("NULL as payout1"),
+        db.raw("NULL as payout2"),
+        db.raw("NULL as payout3"),
+        db.raw("NULL as payout4"),
+        db.raw("NULL as payout5"),
+        db.raw("NULL as payout6"),
+        db.raw("NULL as payout7"),
+        db.raw("NULL as isInvalid"),
+        db.raw("markets.numTicks as price"),
+        db.raw("completeSets.numCompleteSets as quantity"),
         db.raw("'0' as total"),
         "completeSets.transactionHash")
       .from("completeSets")
@@ -301,11 +507,27 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
     qb.select(
       db.raw("? as action", Action.COMPLETE_SETS),
       db.raw("'ETH' as coin"),
-      db.raw("'Sell complete sets' as details"), 
+      db.raw("'Sell complete sets' as details"),
+      db.raw("NULL as marketCreatorFees"),
+      db.raw("NULL as maxPrice"),
+      db.raw("NULL as numCreatorShares"),
+      db.raw("NULL as numCreatorTokens"),
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      db.raw("NULL as reporterFees"),
       db.raw("'0' as fee"),
       "markets.shortDescription as marketDescription", 
       db.raw("NULL as outcome"),
       db.raw("NULL as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
       "markets.numTicks as price",
       "completeSets.numCompleteSets as quantity",
       db.raw("'0' as total"),
@@ -322,10 +544,8 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
   return qb;
 }
 
-// TODO Add payout numerators values to query results (needed for crowdsourcer queries)
-// TODO Figure out a better way to cast values than using CAST()
-// TODO Fix fee values/formatting when claiming trading proceeds (sometimes they are negative or have the format "2.0e-06")
-// TODO Once all queries are finished, double-check them to make sure they all are filtering by universe
+// TODO Figure out sold complete sets fee?
+// TODO Fix fee negative fee values when claiming trading proceeds & negative total values for sells
 export async function getAccountTransactionHistory(db: Knex, augur: {}, params: GetAccountTransactionHistoryParamsType) {
   params.account = params.account.toLowerCase();
   params.universe = params.universe.toLowerCase();
@@ -382,7 +602,6 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
   .whereBetween("blocks.timestamp", [params.earliestTransactionTime, params.latestTransactionTime]);
 
   const accountTransactionHistory: Array<UIAccountTransactionHistoryRow<BigNumber>> = await queryModifier<UIAccountTransactionHistoryRow<BigNumber>>(db, query, "blocks.timestamp", "desc", params);
-  return accountTransactionHistory.map((accountTransactionHistoryRow) => {
-    return formatBigNumberAsFixed<UIAccountTransactionHistoryRow<BigNumber>, UIAccountTransactionHistoryRow<string>>(accountTransactionHistoryRow);
-  });
+  
+  return transformQueryResults(accountTransactionHistory);
 }

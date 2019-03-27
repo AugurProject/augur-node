@@ -742,6 +742,36 @@ export interface PendingOrphanedOrderData {
   orderType: string;
 }
 
+export interface AccountTransactionHistoryRow<BigNumberType> {
+  action: Action;
+  coin: string;
+  details: string;
+  fee: BigNumberType;
+  marketDescription: string;
+  outcomeDescription: string;
+  payout0: BigNumberType;
+  payout1: BigNumberType;
+  payout2: BigNumberType;
+  payout3: BigNumberType;
+  payout4: BigNumberType;
+  payout5: BigNumberType;
+  payout6: BigNumberType;
+  payout7: BigNumberType;
+  isInvalid: boolean;
+  price: BigNumberType;
+  quantity: BigNumberType;
+  timestamp: number;
+  total: BigNumberType;
+  transactionHash: string;
+  marketCreatorFees: BigNumberType;
+  maxPrice: BigNumberType;
+  numCreatorShares: BigNumberType;
+  numCreatorTokens: BigNumberType;
+  numPayoutTokens: BigNumberType;
+  numShares: BigNumberType;
+  reporterFees: BigNumberType;
+}
+
 export interface UIAccountTransactionHistoryRow<BigNumberType> {
   action: Action;
   coin: string;
