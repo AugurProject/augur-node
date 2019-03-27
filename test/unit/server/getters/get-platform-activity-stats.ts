@@ -1,7 +1,15 @@
 import * as Knex from "knex";
-import { setupTestDb, seedDb } from "test.database";
+import { setupTestDb, seedDb, makeMockAugur } from "test.database";
 import { dispatchJsonRpcRequest } from "src/server/dispatch-json-rpc-request";
 import { BigNumber } from "bignumber.js";
+
+const augur = makeMockAugur({
+  api: {
+    Universe: {
+      getOpenInterestInAttoEth: () => 54321,
+    },
+  },
+});
 
 describe("server/getters/get-platform-activity-stats", () => {
   let db;
@@ -22,13 +30,14 @@ describe("server/getters/get-platform-activity-stats", () => {
     return await expect(dispatchJsonRpcRequest(db, {
       method: "getPlatformActivityStats",
       params,
-    }, null)).resolves.toEqual({
-      "activeUsers": new BigNumber(11, 10),
-      "NumberOfTrades": new BigNumber(11, 10),
-      "openInterest": new BigNumber(11, 10),
-      "marketsCreated": new BigNumber(11, 10),
-      "volume": new BigNumber(11, 10),
-      "stakedRep": new BigNumber(11, 10),
+    }, augur)).resolves.toEqual({
+      "activeUsers": new BigNumber("6", 10),
+      "amountStaked": new BigNumber("1259", 10),
+      "disputedMarkets": new BigNumber("16", 10),
+      "marketsCreated": new BigNumber("17", 10),
+      "numberOfTrades": new BigNumber("11", 10),
+      "openInterest": new BigNumber("54321", 10),
+      "volume": new BigNumber("118.89", 10),
     });
   });
 
@@ -42,7 +51,7 @@ describe("server/getters/get-platform-activity-stats", () => {
     return await expect(dispatchJsonRpcRequest(db, {
       method: "getPlatformActivityStats",
       params,
-    }, null)).rejects.toEqual(new Error("startTime must be less than or equal to endTime"));
+    }, augur)).rejects.toEqual(new Error("startTime must be less than or equal to endTime"));
   });
 
   test("main stats query in specific time range", async () => {
@@ -55,13 +64,14 @@ describe("server/getters/get-platform-activity-stats", () => {
     return await expect(dispatchJsonRpcRequest(db, {
       method: "getPlatformActivityStats",
       params,
-    }, null)).resolves.toEqual({
-      "activeUsers": new BigNumber(11, 10),
-      "NumberOfTrades": new BigNumber(11, 10),
-      "openInterest": new BigNumber(11, 10),
-      "marketsCreated": new BigNumber(11, 10),
-      "volume": new BigNumber(11, 10),
-      "stakedRep": new BigNumber(11, 10),
+    }, augur)).resolves.toEqual({
+      "activeUsers": new BigNumber("6", 10),
+      "amountStaked": new BigNumber("1259", 10),
+      "disputedMarkets": new BigNumber("16", 10),
+      "marketsCreated": new BigNumber("17", 10),
+      "numberOfTrades": new BigNumber("11", 10),
+      "openInterest": new BigNumber("54321", 10),
+      "volume": new BigNumber("118.89", 10),
     });
   });
 
@@ -75,6 +85,6 @@ describe("server/getters/get-platform-activity-stats", () => {
     return await expect(dispatchJsonRpcRequest(db, {
       method: "getPlatformActivityStats",
       params,
-    }, null)).rejects.toEqual(new Error("startTime/endTime error"));
+    }, augur)).rejects.toEqual(new Error("startTime/endTime error"));
   });
 });

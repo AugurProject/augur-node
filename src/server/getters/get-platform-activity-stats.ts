@@ -19,6 +19,7 @@ export interface PlatformActivityResult {
   marketsCreated: BigNumber;
   volume: BigNumber;
   amountStaked: BigNumber;
+  disputedMarkets: BigNumber;
 }
 
 export const PlatformActivityStatsParams = t.type({
@@ -59,30 +60,53 @@ async function getActiveUsers(db: Knex, startBlock: number, endBlock: number, pa
           this.select("markets.marketId")
             .from("markets")
             .where("universe", params.universe);
-        });
-    })
-    .union(function(this: Knex.QueryBuilder) {
-      this.select("filler as account").from("trades")
-        .whereBetween("trades.blockNumber", [startBlock, endBlock])
-        .whereIn("trades.marketId", function(this: Knex.QueryBuilder) {
-          this.select("markets.marketId")
-            .from("markets")
-            .where("universe", params.universe);
-        });
-    })
-    .union(function(this: Knex.QueryBuilder) {
-      this.select("reporter as account")
-        .from("disputes")
-        .innerJoin("crowdsourcers", "disputes.crowdsourcerId", "crowdsourcers.crowdsourcerId")
-        .whereBetween("disputes.blockNumber", [startBlock, endBlock])
-        .whereIn("crowdsourcers.marketid", function(this: Knex.QueryBuilder) {
-          this.select("markets.marketId")
-            .from("markets")
-            .where("universe", params.universe);
+        })
+        .union(function(this: Knex.QueryBuilder) {
+          this.select("filler as account").from("trades")
+            .whereBetween("trades.blockNumber", [startBlock, endBlock])
+            .whereIn("trades.marketId", function(this: Knex.QueryBuilder) {
+              this.select("markets.marketId")
+                .from("markets")
+                .where("universe", params.universe);
+            });
+        })
+        .union(function(this: Knex.QueryBuilder) {
+          this.select("reporter as account")
+            .from("disputes")
+            .innerJoin("crowdsourcers", "disputes.crowdsourcerId", "crowdsourcers.crowdsourcerId")
+            .whereBetween("disputes.blockNumber", [startBlock, endBlock])
+            .whereIn("crowdsourcers.marketid", function(this: Knex.QueryBuilder) {
+              this.select("markets.marketId")
+                .from("markets")
+                .where("universe", params.universe);
+            });
         });
     });
+}
 
-  return query;
+async function getDisputedMarkets(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
+  return db
+    .countDistinct("markets.marketId as disputedMarkets")
+    .from("markets")
+    .whereBetween("markets.creationBlockNumber", [startBlock, endBlock])
+    .andWhere("markets.universe", params.universe)
+    .whereNotIn("markets.marketId", function(this: Knex.QueryBuilder) {
+      this.select("crowdSourcers.marketId")
+        .from("crowdsourcers")
+        .where("crowdsourcers.completed", true);
+    });
+}
+
+async function getNumberOfTrades(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
+  return db
+    .countDistinct("trades.transactionHash as numberOfTrades")
+    .from("trades")
+    .whereBetween("trades.blockNumber", [startBlock, endBlock])
+    .whereIn("trades.marketId", function(this: Knex.QueryBuilder) {
+      this.select("markets.marketId")
+        .from("markets")
+        .where("markets.universe", params.universe);
+    });
 }
 
 export async function getPlatformActivityStats(db: Knex, augur: Augur, params: PlatformActivityStatsParamsType): Promise<PlatformActivityResult> {
@@ -95,12 +119,9 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
   // collates stats from several joins unrelated except by blockNumbers
   const sql = db.select(["startBlock", "endBlock"])
     .countDistinct("markets.marketId as marketsCreated")
-    .countDistinct("trades.transactionhash as numberOfTrades")
     .from(db.raw(blockNumberForTimestampQuery(db, params.startTime, "start").toString()).wrap("(", ")"))
     .join(db.raw(blockNumberForTimestampQuery(db, params.endTime, "end").toString()).wrap("(", ")"))
-    .leftJoin(db.raw("markets on universe=? and markets.creationBlockNumber between startBlock and endBlock",
-      [params.universe]))
-    .leftJoin(db.raw("trades as trades on trades.blockNumber between startBlock and endblock AND trades.marketId in (select markets.marketId from markets where universe=?)",
+    .leftJoin(db.raw("markets on universe = ? and markets.creationBlockNumber between startBlock and endBlock",
       [params.universe]));
 
   const res = (await sql).shift();
@@ -108,30 +129,45 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
   const startBlock = res.startBlock;
   const endBlock = res.endBlock;
   const marketsCreated = res.marketsCreated;
-  const numberOfTrades = res.numberOfTrades;
 
   if (!startBlock || !endBlock || startBlock > endBlock)
     throw new Error("startTime/endTime error");
 
-  const activeUsers = (await getActiveUsers(db, startBlock, endBlock, params)).shift();
+  const activeUsersPromise = await getActiveUsers(db, startBlock, endBlock, params);
+  const volumePromise = await getVolume(db, startBlock, endBlock, params);
+  const amountStakedPromise = await getAmountStaked(db, startBlock, endBlock, params);
+  const openInterestPromise = await augur.api.Universe.getOpenInterestInAttoEth({});
+  const disputedMarketsPromise = await getDisputedMarkets(db, startBlock, endBlock, params);
+  const numberOfTradesPromise = await getNumberOfTrades(db, startBlock, endBlock, params);
 
-  let volume = new BigNumber(0, 10);
-  const volumeRows = await getVolume(db, startBlock, endBlock, params);
-  if (volumeRows.length) {
-    volume = volumeRows.reduce((acc: BigNumber, cur: VolumeRow<BigNumber>) => {
-      acc.plus(cur.volume);
-    });
+  const [activeUsersValue, volumeRows, amountStakedRows, openInterest, disputedMarketsValue, numberOfTradesValue] = await Promise.all(
+    [activeUsersPromise,
+      volumePromise,
+      amountStakedPromise,
+      openInterestPromise,
+      disputedMarketsPromise,
+      numberOfTradesPromise,
+    ]);
+
+  const activeUsers = activeUsersValue.shift().activeUsers;
+  const disputedMarkets = disputedMarketsValue.shift().disputedMarkets;
+  const numberOfTrades = numberOfTradesValue.shift().numberOfTrades;
+
+  let volume = 0;
+  if (volumeRows && volumeRows.length) {
+    volume = volumeRows.reduce((acc: VolumeRow<BigNumber>, cur: VolumeRow<BigNumber>) => {
+      acc.volume = acc.volume.plus(cur.volume);
+      return acc;
+    }).volume;
   }
 
-  let amountStaked = new BigNumber(0, 10);
-  const amountStakedRows = await getAmountStaked(db, startBlock, endBlock, params);
-  if (amountStakedRows.length) {
-    amountStaked = amountStakedRows.reduce((acc: BigNumber, cur: StakedRow<BigNumber>) => {
-      acc.plus(cur.amountStaked);
-    });
+  let amountStaked = 0;
+  if (amountStakedRows && amountStakedRows.length) {
+    amountStaked = amountStakedRows.reduce((acc: StakedRow<BigNumber>, cur: StakedRow<BigNumber>) => {
+      acc.amountStaked = acc.amountStaked.plus(cur.amountStaked);
+      return acc;
+    }).amountStaked;
   }
-
-  const openInterest = await augur.api.Universe.getOpenInterestInAttoEth({});
 
   const result: PlatformActivityResult = {
     activeUsers: new BigNumber(activeUsers, 10),
@@ -140,6 +176,7 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
     marketsCreated: new BigNumber(marketsCreated, 10),
     volume: new BigNumber(volume, 10),
     amountStaked: new BigNumber(amountStaked, 10),
+    disputedMarkets: new BigNumber(disputedMarkets, 10),
   };
 
   return result;
