@@ -48,14 +48,6 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
     }
   }
 
-  const p: PlatformActivityStatsParamsType = {
-    universe: "01",
-    startTime: 1,
-    endTime: 1599991,
-  };
-
-  getPlatformActivityStats(db, augur, p);
-
   switch (request.method) {
     case "getDisputeInfo":
       return dispatchResponse(getDisputeInfo, DisputeInfoParams.decode(request.params));
