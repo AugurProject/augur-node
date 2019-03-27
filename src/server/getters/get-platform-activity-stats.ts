@@ -29,18 +29,15 @@ export const PlatformActivityStatsParams = t.type({
 export type PlatformActivityStatsParamsType = t.TypeOf<typeof PlatformActivityStatsParams>;
 
 async function getVolume(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
-  const query = db
+  return db
     .select("volume")
     .from("markets")
     .where("universe", params.universe)
     .whereBetween("creationBlockNumber", [startBlock, endBlock]);
-
-  console.log(query.toString());
-  return query;
 }
 
 async function getAmountStaked(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
-  const query = db
+  return db
     .select(["disputes.amountStaked"])
     .from("disputes")
     .innerJoin("crowdsourcers", "disputes.crowdsourcerId", "crowdsourcers.crowdsourcerId")
@@ -50,12 +47,10 @@ async function getAmountStaked(db: Knex, startBlock: number, endBlock: number, p
         .from("markets")
         .where("universe", params.universe);
     });
-
-  return query;
 }
 
 async function getActiveUsers(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
-  const query = db
+  return db
     .countDistinct("account as activeUsers")
     .from(function(this: Knex.QueryBuilder) {
       this.select("filler as account").from("trades")
@@ -131,14 +126,12 @@ export async function getPlatformActivityStats(db: Knex, augur: Augur, params: P
   let amountStaked = new BigNumber(0, 10);
   const amountStakedRows = await getAmountStaked(db, startBlock, endBlock, params);
   if (amountStakedRows.length) {
-    const amountStaked = amountStakedRows.reduce((acc: BigNumber, cur: StakedRow<BigNumber>) => {
+    amountStaked = amountStakedRows.reduce((acc: BigNumber, cur: StakedRow<BigNumber>) => {
       acc.plus(cur.amountStaked);
     });
   }
 
   const openInterest = await augur.api.Universe.getOpenInterestInAttoEth({});
-
-  debugger;
 
   const result: PlatformActivityResult = {
     activeUsers: new BigNumber(activeUsers, 10),
