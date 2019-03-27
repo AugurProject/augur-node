@@ -8,7 +8,7 @@ import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 
 // The documentation is centered around the types, the idea
 // being that financial formuals are mostly self-documenting
-// if you can understand the input and output types.
+// given time spent understanding the input and output types.
 
 // NetPosition is the number of shares a user currently owns in a market
 // outcome. If NetPosition is positive (negative), the user has a "long"
@@ -24,19 +24,23 @@ interface NextNetPosition {
   nextNetPosition: Shares;
 }
 
-// TODO doc
-interface AveragePricePerShareToOpenPosition {
-  averagePricePerShareToOpenPosition: Price;
+// TODO doc NB this average is based on TradePriceMinusMinPrice... see note on TradePriceMinusMinPrice ... not to be confused with SharePrice
+interface AverageTradePriceMinusMinPriceForOpenPosition {
+  averageTradePriceMinusMinPriceForOpenPosition: Price;
 }
 
 // TODO doc
-interface NextAveragePricePerShareToOpenPosition {
-  nextAveragePricePerShareToOpenPosition: Price;
+interface NextAverageTradePriceMinusMinPriceForOpenPosition {
+  nextAverageTradePriceMinusMinPriceForOpenPosition: Price;
 }
 
 // TODO doc
 interface UnrealizedCost {
   unrealizedCost: Tokens;
+}
+
+interface UnrealizedRevenue {
+  unrealizedRevenue: Tokens;
 }
 
 // TODO doc
@@ -89,16 +93,6 @@ interface TotalProfitPercent {
   totalProfitPercent: Percent;
 }
 
-// TODO doc
-interface CurrentValue {
-  currentValue: Tokens;
-}
-
-// TODO doc
-interface FrozenFunds {
-  frozenFunds: Tokens;
-}
-
 // TODO doc... vs. trade quantity, and trade quantity closed
 interface TradePositionDelta {
   tradePositionDelta: Shares;
@@ -112,11 +106,6 @@ interface TradeQuantityClosed {
 // TODO doc
 interface TradeQuantityOpened {
   tradeQuantityOpened: Shares;
-}
-
-// TODO explain how TradePrice works with scalars... this is minus minPrice, right? .... we should have something like f :: MarketListPrice -> MarketMinPrice -> TradeDisplayPrice to codify this (UPDATE -- yes do this and then update this formula being used inline in get-profit-loss and update-profit-loss)
-interface TradePrice {
-  tradePrice: Price;
 }
 
 // TODO doc
@@ -134,9 +123,34 @@ interface TradeRealizedProfitDelta {
   tradeRealizedProfitDelta: Tokens;
 }
 
+// TODO doc ... wcl_profit_loss_timeseries.price is of this type ... vs TradePrice, LastPrice, SharePrice
+interface TradePriceMinusMinPrice {
+  tradePriceMinusMinPrice: Price;
+}
+
 // TODO doc
+interface TradePrice {
+  tradePrice: Price;
+}
+
+// TODO doc ... some formulas should be using SharePrice instead of TradePriceMinusMinPrice ... ... same for open/close position... price paid or received for shares with this type of position ... NB this isn't "minus min price"... this is the actual price paid/received
+interface SharePrice {
+  sharePrice: Price;
+}
+
+// TODO doc ... vs TradePrice
 interface LastPrice {
   lastPrice: Price | undefined; // TODO explain lastPrice can be undefined because ...
+}
+
+// TODO doc
+interface MarketMinPrice {
+  marketMinPrice: Price;
+}
+
+// TODO doc
+interface MarketMaxPrice {
+  marketMaxPrice: Price;
 }
 
 // TODO doc
@@ -156,37 +170,68 @@ export function getPositionType(params: NetPosition): PositionType {
   return PositionType.LONG;
 }
 
+export function getTradePrice(params: MarketMinPrice & TradePriceMinusMinPrice): TradePrice {
+  return {
+    tradePrice: params.marketMinPrice.plus(params.tradePriceMinusMinPrice),
+  };
+}
+
+export function getTradePriceMinusMinPrice(params: MarketMinPrice & TradePrice): TradePriceMinusMinPrice {
+  return {
+    tradePriceMinusMinPrice: params.tradePrice.minus(params.marketMinPrice),
+  };
+}
+
+export function getSharePriceForPosition(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePriceMinusMinPrice): SharePrice {
+  // For example, in a scalar market with marketMinPrice=20, marketMaxPrice=25,
+  // and tradePrice=22, the sharePrice for a long position is 2 Tokens/Share
+  // (ie. tradePrice-marketMinPrice = 22-20 = 2), and for a short position
+  // is 3 Tokens/Share (ie. marketMaxPrice-tradePrice = 25-22 = 3)
+  switch (getPositionType(params)) {
+    case PositionType.CLOSED:
+      return { sharePrice: Price.ZERO };
+    case PositionType.SHORT:
+      return {
+        sharePrice: params.marketMaxPrice.minus(getTradePrice(params).tradePrice),
+      };
+    case PositionType.LONG:
+      return {
+        sharePrice: params.tradePriceMinusMinPrice,
+      };
+  }
+}
+
 export function getNextNetPosition(params: NetPosition & TradePositionDelta): NextNetPosition {
   return {
     nextNetPosition: params.netPosition.plus(params.tradePositionDelta),
   };
 }
 
-export function getNextAveragePricePerShareToOpenPosition(params: NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): NextAveragePricePerShareToOpenPosition {
+export function getNextAverageTradePriceMinusMinPriceForOpenPosition(params: NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & TradePositionDelta & TradePriceMinusMinPrice): NextAverageTradePriceMinusMinPriceForOpenPosition {
   const { nextNetPosition } = getNextNetPosition(params);
   if (nextNetPosition.isZero()) {
     // TODO doc
-    return { nextAveragePricePerShareToOpenPosition: Price.ZERO };
+    return { nextAverageTradePriceMinusMinPriceForOpenPosition: Price.ZERO };
   } else if (nextNetPosition.sign !== params.netPosition.sign) {
     // TODO doc
-    return { nextAveragePricePerShareToOpenPosition: params.tradePrice };
+    return { nextAverageTradePriceMinusMinPriceForOpenPosition: params.tradePriceMinusMinPrice };
   }
   const { tradeQuantityOpened } = getTradeQuantityOpened(params);
   if (tradeQuantityOpened.isZero()) {
     // TODO doc
-    return { nextAveragePricePerShareToOpenPosition: params.averagePricePerShareToOpenPosition };
+    return { nextAverageTradePriceMinusMinPriceForOpenPosition: params.averageTradePriceMinusMinPriceForOpenPosition };
   }
+  // invariant: tradeQuantityOpened == tradePositionDelta, ie. position opened further
   // TODO doc weighted average
   return {
-    nextAveragePricePerShareToOpenPosition: (
+    nextAverageTradePriceMinusMinPriceForOpenPosition: (
       (params.netPosition.abs()
-        .multipliedBy(params.averagePricePerShareToOpenPosition))
-        .plus(params.tradePositionDelta.abs().multipliedBy(params.tradePrice))
+        .multipliedBy(params.averageTradePriceMinusMinPriceForOpenPosition))
+        .plus(params.tradePositionDelta.abs().multipliedBy(params.tradePriceMinusMinPrice))
     ).dividedBy(nextNetPosition.abs()).expect(Price),
   };
 }
 
-// TODO doc ie. netPosition prior to trade ... relationship between TradePositionDelta and TradeQuantityClosed
 export function getTradeQuantityClosed(params: NetPosition & TradePositionDelta): TradeQuantityClosed {
   if (params.tradePositionDelta.isZero() ||
     params.tradePositionDelta.sign === params.netPosition.sign) {
@@ -195,7 +240,6 @@ export function getTradeQuantityClosed(params: NetPosition & TradePositionDelta)
   return { tradeQuantityClosed: params.netPosition.abs().min(params.tradePositionDelta.abs()) };
 }
 
-// TODO doc ie. netPosition prior to trade ... relationship between TradePositionDelta and TradeQuantityOpened
 export function getTradeQuantityOpened(params: NetPosition & TradePositionDelta): TradeQuantityOpened {
   if (params.tradePositionDelta.isZero()) {
     return { tradeQuantityOpened: Shares.ZERO };
@@ -207,113 +251,48 @@ export function getTradeQuantityOpened(params: NetPosition & TradePositionDelta)
   return { tradeQuantityOpened: Shares.ZERO }; // position partially or fully closed
 }
 
-// TODO doc ie. netPosition prior to trade
-export function getTradeRealizedCostDelta(params: NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): TradeRealizedCostDelta {
-  const positionType = getPositionType(params);
-  if (positionType === PositionType.CLOSED) {
-    return { tradeRealizedCostDelta: Tokens.ZERO };
-  }
+export function getTradeRealizedCostDelta(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePositionDelta & AverageTradePriceMinusMinPriceForOpenPosition): TradeRealizedCostDelta {
+  const { sharePrice } = getSharePriceForPosition({
+    ...params,
+    // the user has closed `tradeQuantityClosed` number of shares at some
+    // price X; this function doesn't care about price X; we are computing
+    // _cost_, which is what the user previously paid to open this position,
+    // that's why we use averageTradePriceMinusMinPriceForOpenPosition.
+    tradePriceMinusMinPrice: params.averageTradePriceMinusMinPriceForOpenPosition,
+  });
   const { tradeQuantityClosed } = getTradeQuantityClosed(params);
-  if (positionType === PositionType.SHORT) {
-    // TODO doc
-    return { tradeRealizedCostDelta: params.tradePrice.multipliedBy(tradeQuantityClosed).expect(Tokens) };
-  }
-  // positionType is long
-  // TODO doc
   return {
-    tradeRealizedCostDelta: params.averagePricePerShareToOpenPosition
-      .multipliedBy(tradeQuantityClosed).expect(Tokens),
+    tradeRealizedCostDelta: sharePrice.multipliedBy(tradeQuantityClosed).expect(Tokens),
   };
 }
 
-export function getNextRealizedCost(params: RealizedCost & NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): NextRealizedCost {
+export function getNextRealizedCost(params: MarketMinPrice & MarketMaxPrice & RealizedCost & NetPosition & TradePositionDelta & AverageTradePriceMinusMinPriceForOpenPosition): NextRealizedCost {
+  const { tradeRealizedCostDelta } = getTradeRealizedCostDelta(params);
   return {
-    nextRealizedCost: params.realizedCost
-      .plus(getTradeRealizedCostDelta(params).tradeRealizedCostDelta),
+    nextRealizedCost: params.realizedCost.plus(tradeRealizedCostDelta),
   };
 }
 
-// TODO doc ie. netPosition prior to trade
-export function getTradeRealizedRevenueDelta(params: NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): TradeRealizedRevenueDelta {
-  const positionType = getPositionType(params);
-  if (positionType === PositionType.CLOSED) {
-    return { tradeRealizedRevenueDelta: Tokens.ZERO };
-  }
+export function getTradeRealizedRevenueDelta(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePositionDelta & TradePriceMinusMinPrice): TradeRealizedRevenueDelta {
+  const { sharePrice } = getSharePriceForPosition(params);
   const { tradeQuantityClosed } = getTradeQuantityClosed(params);
-  if (positionType === PositionType.SHORT) {
-    // TODO doc
-    return {
-      tradeRealizedRevenueDelta: params.averagePricePerShareToOpenPosition
-        .multipliedBy(tradeQuantityClosed).expect(Tokens),
-    };
-  }
-  // positionType is long
-  // TODO doc
-  return { tradeRealizedRevenueDelta: params.tradePrice.multipliedBy(tradeQuantityClosed).expect(Tokens) };
-}
-
-export function getTradeRealizedProfitDelta(params: NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): TradeRealizedProfitDelta {
   return {
-    tradeRealizedProfitDelta: getTradeRealizedRevenueDelta(params).tradeRealizedRevenueDelta
-      .minus(getTradeRealizedCostDelta(params).tradeRealizedCostDelta),
+    tradeRealizedRevenueDelta: sharePrice.multipliedBy(tradeQuantityClosed).expect(Tokens),
   };
 }
 
-export function getNextRealizedProfit(params: RealizedProfit & NetPosition & AveragePricePerShareToOpenPosition & TradePositionDelta & TradePrice): NextRealizedProfit {
+export function getTradeRealizedProfitDelta(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePositionDelta & AverageTradePriceMinusMinPriceForOpenPosition & TradePriceMinusMinPrice): TradeRealizedProfitDelta {
+  const { tradeRealizedRevenueDelta } = getTradeRealizedRevenueDelta(params);
+  const { tradeRealizedCostDelta } = getTradeRealizedCostDelta(params);
   return {
-    nextRealizedProfit: params.realizedProfit
-      .plus(getTradeRealizedProfitDelta(params).tradeRealizedProfitDelta),
+    tradeRealizedProfitDelta: tradeRealizedRevenueDelta.minus(tradeRealizedCostDelta),
   };
 }
 
-// TODO doc ie. netPosition prior to trade
-export function getUnrealizedCost(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice): UnrealizedCost {
-  switch (getPositionType(params)) {
-    case PositionType.CLOSED:
-      return { unrealizedCost: Tokens.ZERO };
-    case PositionType.SHORT:
-      // TODO doc
-      if (params.lastPrice === undefined) {
-        return { unrealizedCost: Tokens.ZERO };
-      }
-      return { unrealizedCost: params.netPosition.abs().multipliedBy(params.lastPrice).expect(Tokens) };
-    case PositionType.LONG:
-      // TODO doc
-      return {
-        unrealizedCost: params.netPosition.abs()
-          .multipliedBy(params.averagePricePerShareToOpenPosition).expect(Tokens),
-      };
-  }
-}
-
-// TODO doc
-export function getTotalCost(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice & RealizedCost): TotalCost {
-  return { totalCost: getUnrealizedCost(params).unrealizedCost.plus(params.realizedCost) };
-}
-
-// TODO doc
-export function getUnrealizedProfit(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice): UnrealizedProfit {
-  if (params.lastPrice === undefined) {
-    return { unrealizedProfit: Tokens.ZERO };
-  }
-  // TODO explain how this work for both long/short because -1 * -1 cancels out
+export function getNextRealizedProfit(params: RealizedProfit & MarketMinPrice & MarketMaxPrice & NetPosition & TradePositionDelta & AverageTradePriceMinusMinPriceForOpenPosition & TradePriceMinusMinPrice): NextRealizedProfit {
+  const { tradeRealizedProfitDelta } = getTradeRealizedProfitDelta(params);
   return {
-    unrealizedProfit: params.netPosition.multipliedBy(
-      params.lastPrice.minus(params.averagePricePerShareToOpenPosition)).abs().expect(Tokens), // abs() prevents unrealized profit from appearing as "-0" on JSON.stringify()
-  };
-}
-
-export function getTotalProfit(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice & RealizedProfit): TotalProfit {
-  return {
-    totalProfit: getUnrealizedProfit(params).unrealizedProfit
-      .plus(params.realizedProfit),
-  };
-}
-
-export function getCurrentValue(params: NetPosition & AveragePricePerShareToOpenPosition & LastPrice & FrozenFunds): CurrentValue {
-  return {
-    currentValue: getUnrealizedProfit(params).unrealizedProfit
-      .minus(params.frozenFunds),
+    nextRealizedProfit: params.realizedProfit.plus(tradeRealizedProfitDelta),
   };
 }
 
@@ -329,9 +308,47 @@ export function getRealizedProfitPercent(params: RealizedCost & RealizedProfit):
   };
 }
 
-// TODO doc, returns scale of 0..1 ... clients should default to providing netposition/etc. instead of passing unrealizedCost/unraelizedProfit, to minimize derived state in the client's local scope and maximize computations done safely in this library. But, some clients don't have access to LastPrice/etc. and that's why we support passing unrealizedCost/unrealizedProfit.
+export function getUnrealizedCost(params: MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition): UnrealizedCost {
+  const { sharePrice } = getSharePriceForPosition({
+    ...params,
+    // user has an open position; we are computing _cost_, which is
+    // what the user previously paid to open this position, that's
+    // why we use averageTradePriceMinusMinPriceForOpenPosition.
+    tradePriceMinusMinPrice: params.averageTradePriceMinusMinPriceForOpenPosition,
+  });
+  return {
+    unrealizedCost: sharePrice.multipliedBy(params.netPosition.abs()).expect(Tokens),
+  };
+}
+
+export function getUnrealizedRevenue(params: MarketMinPrice & MarketMaxPrice & NetPosition & LastPrice): UnrealizedRevenue {
+  if (params.lastPrice === undefined) {
+    // lastPrice is undefined (ie. unavailable for some reason); we might consider
+    // unrealizedRevenue to be undefined, but instead we return zero for convenience.
+    return { unrealizedRevenue: Tokens.ZERO };
+  }
+  const { sharePrice } = getSharePriceForPosition({
+    ...params,
+    // user has an open position; we are computing potential revenue user would get
+    // if they fully closed the position at LastPrice, that's why we use LastPrice.
+    tradePriceMinusMinPrice: params.lastPrice,
+  });
+  return {
+    unrealizedRevenue: sharePrice.multipliedBy(params.netPosition.abs()).expect(Tokens),
+  };
+}
+
+export function getUnrealizedProfit(params: MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & LastPrice): UnrealizedProfit {
+  const { unrealizedRevenue } = getUnrealizedRevenue(params);
+  const { unrealizedCost } = getUnrealizedCost(params);
+  return {
+    unrealizedProfit: unrealizedRevenue.minus(unrealizedCost),
+  };
+}
+
+// TODO doc clients should default to providing netposition/etc. instead of passing unrealizedCost/unraelizedProfit, to minimize derived state in the client's local scope and maximize computations done safely in this library. But, some clients don't have access to LastPrice/etc. and that's why we support passing unrealizedCost/unrealizedProfit.
 export function getUnrealizedProfitPercent(params:
-  (NetPosition & AveragePricePerShareToOpenPosition & LastPrice)
+  (MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & LastPrice)
   | (UnrealizedCost & UnrealizedProfit)): UnrealizedProfitPercent {
   const { unrealizedCost } = "unrealizedCost" in params ? params : getUnrealizedCost(params);
   if (unrealizedCost.isZero()) {
@@ -346,9 +363,23 @@ export function getUnrealizedProfitPercent(params:
   };
 }
 
+export function getTotalCost(params: MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & RealizedCost): TotalCost {
+  const { unrealizedCost } = getUnrealizedCost(params);
+  return {
+    totalCost: unrealizedCost.plus(params.realizedCost),
+  };
+}
+
+export function getTotalProfit(params: MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & LastPrice & RealizedProfit): TotalProfit {
+  const { unrealizedProfit } = getUnrealizedProfit(params);
+  return {
+    totalProfit: unrealizedProfit.plus(params.realizedProfit),
+  };
+}
+
 // TODO explain multiple param sets
 export function getTotalProfitPercent(params:
-  (NetPosition & AveragePricePerShareToOpenPosition & LastPrice & RealizedCost & RealizedProfit)
+  (MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition & LastPrice & RealizedCost & RealizedProfit)
   | (TotalCost & TotalProfit)): TotalProfitPercent {
   const { totalCost } = "totalCost" in params ? params : getTotalCost(params);
   if (totalCost.isZero()) {

@@ -102,7 +102,7 @@ abstract class Quantity<T extends Quantity<T>> {
     const newMagnitude = this.magnitude.plus(other.magnitude);
     return new this.derivedConstructor(newMagnitude);
   }
-  public minus<B extends Quantity<B>>(other: B): T {
+  public minus<B extends Quantity<B>>(other: B): T { // TODO should this really be `other: B`, how about `other: T | UnverifiedQuantity`? This would disallow adding quantities of different types but equal dimensions, like say for example you had a `myShares.minus(myOtherShares: Shares2)` because for some reason we had type Shares2 with same dimensions as Shares; but this seems like an edge case / anti-pattern. Instead we should require the types are equal or UnverifiedQuantity. But, if this is an UnverifiedQuantity, then other is as-is now, an anonymous type that needs dimensions checked.
     if (!isEqual(this.dimension, other.dimension)) {
       throw new Error(`minus failed: expected dimensions to be equal, this=${this}, other=${other}`);
     }
@@ -314,3 +314,5 @@ const pr: Price = new UnverifiedQuantity(ONE, {
 }).expect(Price);
 
 const shouldBePrice: Price = t.dividedBy(new Shares(ONE)).expect(Price);
+
+// const shouldCompileError = t.minus(s); // TODO this should be a compile error instead of a runtime error

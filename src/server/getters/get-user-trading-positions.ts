@@ -32,7 +32,7 @@ export interface TradingPosition extends ProfitLossResult, FrozenFunds {
 
 export interface MarketTradingPosition extends Pick<ProfitLossResult,
   "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
-  "unrealizedPercent" | "totalPercent" | "currentValue"
+  "unrealizedPercent" | "totalPercent" | "unrealizedRevenue"
   >, FrozenFunds { }
 
 export interface GetUserTradingPositionsResponse {
@@ -144,7 +144,7 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       realizedPercent: ZERO,
       unrealizedPercent: ZERO,
       totalPercent: ZERO,
-      currentValue: ZERO,
+      unrealizedRevenue: ZERO,
       frozenFunds: ZERO,
     };
   });
@@ -205,7 +205,7 @@ function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosi
     unrealizedCost: sum(tpsForOneMarketId, (tp) => tp.unrealizedCost),
     realizedCost: sum(tpsForOneMarketId, (tp) => tp.realizedCost),
     totalCost: sum(tpsForOneMarketId, (tp) => tp.totalCost),
-    currentValue: sum(tpsForOneMarketId, (tp) => tp.currentValue),
+    unrealizedRevenue: sum(tpsForOneMarketId, (tp) => tp.unrealizedRevenue),
     frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
   };
   const { realizedProfitPercent } = getRealizedProfitPercent({
