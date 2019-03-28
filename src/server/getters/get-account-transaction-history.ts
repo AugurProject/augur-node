@@ -25,15 +25,16 @@ function transformQueryResults(queryResults: Array<AccountTransactionHistoryRow<
     } else if (queryResult.action === "SELL") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = (queryResult.numCreatorShares.times(queryResult.price)).minus(queryResult.numCreatorTokens);
+    } else if (queryResult.action === "DISPUTE" || queryResult.action === "INITIAL_REPORT") {
+      const divisor = new BigNumber(100000000000000000);
+      queryResult.quantity = new BigNumber(queryResult.quantity).dividedBy(divisor);
     } else if (
       queryResult.action === Action.CLAIM_MARKET_CREATOR_FEES || 
       queryResult.action === Action.CLAIM_PARTICIPATION_TOKENS || 
-      queryResult.action === Action.CLAIM_TRADING_PROCEEDS ||
+      queryResult.action === Action.CLAIM_TRADING_PROCEEDS || 
       queryResult.action === Action.CLAIM_WINNING_CROWDSOURCERS
     ) {
       const divisor = new BigNumber(100000000000000000);
-      queryResult.quantity = new BigNumber(queryResult.quantity).dividedBy(divisor);
-      queryResult.total = new BigNumber(queryResult.total).dividedBy(divisor);
       if (queryResult.action === Action.CLAIM_TRADING_PROCEEDS) {
         let payoutAmount;
         switch (queryResult.outcome) {
@@ -69,9 +70,11 @@ function transformQueryResults(queryResults: Array<AccountTransactionHistoryRow<
           }
         }
       }
+      queryResult.quantity = new BigNumber(queryResult.quantity).dividedBy(divisor);
+      queryResult.total = new BigNumber(queryResult.total).dividedBy(divisor);
     } else if (queryResult.action === Action.COMPLETE_SETS && queryResult.details === "Sell complete sets") {
       queryResult.total = new BigNumber(queryResult.quantity).times(queryResult.price); // Calculate total before subtracting fees
-      queryResult.fee = (new BigNumber(queryResult.fee).times(queryResult.total)).plus((queryResult.marketCreatorFees).times(queryResult.total));
+      queryResult.fee = (new BigNumber(queryResult.fee).times(queryResult.total)).plus((queryResult.marketCreatorFees).times(queryResult.total)); // (reporting fee rate * total) + (creator fee rate * total)
       queryResult.total = queryResult.total.minus(queryResult.fee); // Subtract fees from total
     }
 
@@ -197,7 +200,7 @@ function queryCanceled(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransa
     db.raw("NULL as payout6"),
     db.raw("NULL as payout7"),
     db.raw("NULL as isInvalid"),
-    db.raw("'0' as price"),
+    db.raw("orders.price as price"),
     db.raw("orders.amount as quantity"),
     db.raw("'0' as total"),
     "orders_canceled.transactionHash")
