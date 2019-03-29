@@ -251,7 +251,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       tradePriceMinusMinPrice: averageTradePriceMinusMinPriceForOpenPosition,
     }).tradePrice;
 
-    const lastPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(marketMinPrice) : undefined;
+    const lastTradePriceMinusMinPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(marketMinPrice) : undefined;
 
     const { unrealizedCost } = getUnrealizedCost({
       marketMinPrice,
@@ -263,14 +263,14 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       marketMinPrice,
       marketMaxPrice,
       netPosition,
-      lastPrice,
+      lastTradePriceMinusMinPrice,
     });
     const { unrealizedProfit } = getUnrealizedProfit({
       marketMinPrice,
       marketMaxPrice,
       netPosition,
       averageTradePriceMinusMinPriceForOpenPosition,
-      lastPrice,
+      lastTradePriceMinusMinPrice,
     });
     const { totalCost } = getTotalCost({
       marketMinPrice,
@@ -284,7 +284,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       marketMaxPrice,
       netPosition,
       averageTradePriceMinusMinPriceForOpenPosition,
-      lastPrice,
+      lastTradePriceMinusMinPrice,
       realizedProfit,
     });
     const { realizedProfitPercent } = getRealizedProfitPercent({
@@ -296,14 +296,14 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       marketMaxPrice,
       netPosition,
       averageTradePriceMinusMinPriceForOpenPosition,
-      lastPrice,
+      lastTradePriceMinusMinPrice,
     });
     const { totalProfitPercent } = getTotalProfitPercent({
       marketMinPrice,
       marketMaxPrice,
       netPosition,
       averageTradePriceMinusMinPriceForOpenPosition,
-      lastPrice,
+      lastTradePriceMinusMinPrice,
       realizedCost,
       realizedProfit,
     });
