@@ -751,6 +751,7 @@ export interface AccountTransactionHistoryRow<BigNumberType> {
   details: string;
   fee: BigNumberType;
   marketDescription: string;
+  marketType: string;
   outcome: number;
   outcomeDescription: string;
   payout0: BigNumberType;
