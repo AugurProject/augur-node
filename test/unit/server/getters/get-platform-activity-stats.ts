@@ -37,7 +37,7 @@ describe("server/getters/get-platform-activity-stats", () => {
       "marketsCreated": new BigNumber("17", 10),
       "numberOfTrades": new BigNumber("11", 10),
       "openInterest": new BigNumber("54321", 10),
-      "volume": new BigNumber("118.89", 10),
+      "volume": new BigNumber("3.8", 10),
     });
   });
 
@@ -71,7 +71,7 @@ describe("server/getters/get-platform-activity-stats", () => {
       "marketsCreated": new BigNumber("17", 10),
       "numberOfTrades": new BigNumber("11", 10),
       "openInterest": new BigNumber("54321", 10),
-      "volume": new BigNumber("118.89", 10),
+      "volume": new BigNumber("3.8", 10),
     });
   });
 

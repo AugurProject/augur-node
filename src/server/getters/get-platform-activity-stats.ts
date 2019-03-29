@@ -31,10 +31,11 @@ export type PlatformActivityStatsParamsType = t.TypeOf<typeof PlatformActivitySt
 
 async function getVolume(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
   return db
-    .select("volume")
-    .from("markets")
-    .where("universe", params.universe)
-    .whereBetween("creationBlockNumber", [startBlock, endBlock]);
+    .select("amount as volume")
+    .from("trades")
+    .innerJoin("markets", "markets.marketId", "trades.marketId")
+    .whereBetween("trades.blockNumber", [startBlock, endBlock])
+    .andWhere("markets.universe", params.universe);
 }
 
 async function getAmountStaked(db: Knex, startBlock: number, endBlock: number, params: PlatformActivityStatsParamsType): Promise<Knex.QueryBuilder> {
