@@ -74,7 +74,7 @@ function transformQueryResults(queryResults: Array<AccountTransactionHistoryRow<
               queryResult.payout4.toNumber(), 
               queryResult.payout5.toNumber(),
               queryResult.payout6.toNumber(), 
-              queryResult.payout7.toNumber()
+              queryResult.payout7.toNumber(),
             );
           }
         }
