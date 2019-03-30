@@ -12,6 +12,7 @@ import { getMarketPriceHistory, MarketPriceHistoryParams } from "./getters/get-m
 import { getMarketPriceCandlesticks, MarketPriceCandlesticksParams } from "./getters/get-market-price-candlesticks";
 import { getUserTradingPositions, UserTradingPositionsParams } from "./getters/get-user-trading-positions";
 import { getUserShareBalances, UserShareBalancesParams } from "./getters/get-user-share-balances";
+import { getAccountTransactionHistory, GetAccountTransactionHistoryParams } from "./getters/get-account-transaction-history";
 import { FeeWindowsParams, getFeeWindows } from "./getters/get-fee-windows";
 import { FeeWindowParams, getFeeWindow } from "./getters/get-fee-window";
 import { getUnclaimedMarketCreatorFees, UnclaimedMarketCreatorFeesParams } from "./getters/get-unclaimed-market-creator-fees";
@@ -32,8 +33,8 @@ import { getUniversesInfo, UniverseInfoParams } from "./getters/get-universes-in
 import { getProfitLoss, GetProfitLossParams, getProfitLossSummary, GetProfitLossSummaryParams } from "./getters/get-profit-loss";
 import { getWinningBalance, WinningBalanceParams } from "./getters/get-winning-balance";
 import { getCategories, CategoriesParams } from "./getters/get-categories";
-import { getAccountTimeRangedStats, AccountTimeRangedStatsParams  } from "./getters/get-account-time-ranged-stats";
-import { getPlatformActivityStats, PlatformActivityStatsParams  } from "./getters/get-platform-activity-stats";
+import { getAccountTimeRangedStats, AccountTimeRangedStatsParams } from "./getters/get-account-time-ranged-stats";
+import { getPlatformActivityStats, PlatformActivityStatsParams, PlatformActivityStatsParamsType } from "./getters/get-platform-activity-stats";
 
 type GetterFunction<T, R> = (db: Knex, augur: Augur, params: T) => Promise<R>;
 
@@ -110,6 +111,8 @@ export function dispatchJsonRpcRequest(db: Knex, request: JsonRpcRequest, augur:
       return dispatchResponse(getUniversesInfo, UniverseInfoParams.decode(request.params));
     case "getUserShareBalances":
       return dispatchResponse(getUserShareBalances, UserShareBalancesParams.decode(request.params));
+    case "getAccountTransactionHistory":
+      return dispatchResponse(getAccountTransactionHistory, GetAccountTransactionHistoryParams.decode(request.params));
     case "getProfitLoss":
       return dispatchResponse(getProfitLoss, GetProfitLossParams.decode(request.params));
     case "getProfitLossSummary":

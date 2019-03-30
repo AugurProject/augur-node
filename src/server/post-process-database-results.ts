@@ -57,6 +57,7 @@ const whitelist: TableWhitelist = {
   },
   completeSets: {
     value: true,
+    numCompleteSets: true,
   },
   transfers: {
     value: true,
@@ -70,6 +71,9 @@ const whitelist: TableWhitelist = {
     marketCreatorFees: true,
     price: true,
     amount: true,
+    quantity: true,
+    total: true,
+    fee: true,
   },
   outcomes: {
     price: true,

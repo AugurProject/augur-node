@@ -1,4 +1,5 @@
 const { setupTestDb, seedDb } = require("test.database");
+const { BigNumber } = require("bignumber.js");
 const { processCompleteSetsPurchasedOrSoldLog, processCompleteSetsPurchasedOrSoldLogRemoval } = require("src/blockchain/log-processors/completesets");
 const Augur = require("augur.js");
 const augur = new Augur();
@@ -42,7 +43,7 @@ describe("blockchain/log-processors/completesets", () => {
         logIndex: 0,
         eventName: "CompleteSetsPurchased",
         marketId: "0x0000000000000000000000000000000000000002",
-        numCompleteSets: "2",
+        numCompleteSets: new BigNumber("2", 10),
         numPurchasedOrSold: "2",
         transactionHash: "0x00000000000000000000000000000000deadbeef",
         universe: "0x0000000000000000000000000000000000000001",
