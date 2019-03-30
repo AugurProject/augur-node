@@ -55,8 +55,8 @@ export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   numOutcomes: number;
   profit: BigNumber; // denominated in tokens. Realized profit of shares that were bought and sold
   realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
-  minPrice: BigNumber; // market minPrice in tokens. Required to convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
-  maxPrice: BigNumber; // market maxPrice in tokens. Required to convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
+  minPrice: BigNumber; // market minPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
+  maxPrice: BigNumber; // market maxPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
 }
 
 export interface OutcomeValueTimeseries extends Timestamped {
@@ -77,18 +77,18 @@ export interface ProfitLossResult extends
   FrozenFunds { // funds the user froze to be in this position (see FrozenFunds docs)
   marketId: Address; // user's position is in this market
   outcome: number; // user's position is in this market outcome
-  netPosition: BigNumber; // current quantity of shares in user's position for this market outcome. "net" position because if user bought 4 shares and sold 6 shares, netPosition would be -2 shares (ie. 4 - 6 = -2). User is "long" this market outcome (gets paid if this outcome occurs) if netPosition is positive. User is "short" this market outcome (gets paid if this outcome does not occur) if netPosition is negative
-  averagePrice: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position. Same as AverageTradePriceMinusMinPriceForOpenPosition
-  unrealizedCost: BigNumber; // denominated in tokens. Cost of shares in netPosition
-  unrealizedRevenue: BigNumber; // current value of netPosition, always equal to unrealized minus frozenFunds
-  unrealized: BigNumber; // unrealized profit in tokens (eg. ETH) user could get from this market outcome. "unrealized" means the profit isn't in the user's wallet yet; the user could close the position to "realize" the profit, but instead is holding onto the shares. Computed using last trade price.
-  unrealizedPercent: BigNumber; // unrealized profit percent (ie. profit/cost)
-  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
-  realized: BigNumber; // realized profit in tokens (eg. ETH) user already got from this market outcome. "realized" means the user bought/sold shares in such a way that the profit is already in the user's wallet
-  realizedPercent: BigNumber; // realized profit percent (ie. profit/cost)
-  totalCost: BigNumber; // denominated in tokens. Always equal to unrealizedCost + realizedCost
-  total: BigNumber; // total profit in tokens (eg. ETH). Always equal to realized + unrealized
-  totalPercent: BigNumber; // total profit percent (ie. profit/cost)
+  netPosition: BigNumber; // denominated in shares. See NetPosition
+  averagePrice: BigNumber; // denominated in tokens/share. See AverageTradePriceMinusMinPriceForOpenPosition
+  unrealizedCost: BigNumber; // denominated in tokens. See UnrealizedCost
+  unrealizedRevenue: BigNumber; // denominated in tokens. See UnrealizedRevenue
+  unrealized: BigNumber; // ie. unrealizedProfit. Denominated in tokens. See UnrealizedProfit
+  unrealizedPercent: BigNumber; // unrealized profit percent. See UnrealizedProfitPercent
+  realizedCost: BigNumber; // denominated in tokens. See RealizedCost
+  realized: BigNumber; // ie. realizedProfit. Denominated in tokens. See RealizedProfit
+  realizedPercent: BigNumber; // realized profit percent. See RealizedProfitPercent
+  totalCost: BigNumber; // denominated in tokens. See TotalCost
+  total: BigNumber; // ie totalProfit. Denominated in tokens. See TotalProfit
+  totalPercent: BigNumber; // total profit percent. See TotalProfitPercent
 }
 
 export interface ShortPosition {
