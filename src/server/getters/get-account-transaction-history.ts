@@ -87,7 +87,7 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
                     .from("outcomes")
                     .where({
                       marketId: queryResult.marketId, 
-                      outcome: payoutIndex 
+                      outcome: payoutIndex ,
                     });
                 });
                 queryResult.outcome = outcomeInfo[0].outcome;
