@@ -54,56 +54,55 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
       queryResult.total = queryResult.total.minus(queryResult.fee); // Subtract fees from total
     }
 
+    // Ensure outcome is set
     if (queryResult.payout0 !== null) {
       if (queryResult.isInvalid) {
         queryResult.outcomeDescription = "Invalid";
       } else {
-        // Set outcome & outcomeDescription
         if (queryResult.marketType === "yesNo") {
-          if (queryResult.payout0.isGreaterThanOrEqualTo(queryResult.payout1)) {
-            queryResult.outcome = 0;
-            queryResult.outcomeDescription = "No";
-          } else {
-            queryResult.outcome = 1;
-            queryResult.outcomeDescription = "Yes";
-          }
+          queryResult.outcome = queryResult.payout0.isGreaterThanOrEqualTo(queryResult.payout1) ? 0 : 1;
         } else if (queryResult.marketType === "scalar") {
-          if (queryResult.payout0.isGreaterThanOrEqualTo(queryResult.payout1)) {
-            queryResult.outcome = queryResult.payout0.toNumber();
-          } else {
-            queryResult.outcome = queryResult.payout1.toNumber();
-          }
-        } else {
-          queryResult.outcome = queryResult.payout0.toNumber();
+          queryResult.outcome = queryResult.payout0.isGreaterThanOrEqualTo(queryResult.payout1) ? queryResult.payout0.toNumber() : queryResult.payout1.toNumber();
+        } else if (queryResult.marketType === "categorical") {
+          queryResult.outcome = 0;
           const maxPayouts = 8;
           for (let payoutIndex = 1; payoutIndex < maxPayouts; payoutIndex++) {
             const payoutKey = `payout${payoutIndex}` as keyof AccountTransactionHistoryRow<BigNumber>;
             if (queryResult[payoutKey] !== null) {
               const payoutAmount = queryResult[payoutKey] as BigNumber;
-              if (queryResult[payoutKey] > queryResult.outcome) {
-                const outcomeInfo = await db.select("*")
-                  .from((qb: Knex.QueryBuilder) => {
-                    return qb.select("outcomes.outcome", "outcomes.description")
-                    .from("outcomes")
-                    .where({
-                      marketId: queryResult.marketId, 
-                      outcome: payoutIndex ,
-                    });
-                });
-                queryResult.outcome = outcomeInfo[0].outcome;
-                queryResult.outcomeDescription = outcomeInfo[0].description;
+              if (payoutAmount.isGreaterThan(new BigNumber(queryResult.outcome))) {
+                queryResult.outcome = payoutIndex;
+                break;
               }
             }
           }
         }
       }
-    } else if (queryResult.outcome !== null && queryResult.outcomeDescription === null) {
-      if (queryResult.marketType === "yesNo") {
+    }
+
+    // Ensure outcomeDescription is set
+    if (queryResult.outcome !== null && queryResult.outcomeDescription === null) {
+      if (queryResult.isInvalid) {
+        queryResult.outcomeDescription = "Invalid";
+      } else if (queryResult.marketType === "yesNo") {
         if (queryResult.outcome === 0) {
           queryResult.outcomeDescription = "No";
         } else {
           queryResult.outcomeDescription = "Yes";
         }
+      } else if (queryResult.marketType === "scalar") {
+        queryResult.outcomeDescription = queryResult.scalarDenomination;
+      } else if (queryResult.marketType === "categorical") {
+        const outcomeInfo = await db.select("*")
+        .from((qb: Knex.QueryBuilder) => {
+          return qb.select("outcomes.description")
+          .from("outcomes")
+          .where({
+            marketId: queryResult.marketId, 
+            outcome: queryResult.outcome,
+          });
+        });
+        queryResult.outcomeDescription = outcomeInfo[0].description;
       }
     }
 
