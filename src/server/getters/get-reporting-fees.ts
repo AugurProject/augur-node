@@ -293,9 +293,17 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
     const getsRep = feeWindowCompletionStake.winning || disavowed || !feeWindowCompletionStake.completed;
     const earnsRep = feeWindowCompletionStake.completed && (feeWindowCompletionStake.winning > 0);
     const lostRep = feeWindowCompletionStake.completed && (feeWindowCompletionStake.winning === 0);
+    const cUnclaimedRepEarned = feeWindowCompletionStake.forking ? ZERO : (!earnsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO)).div(2);
+    const cUnclaimedRepStaked = feeWindowCompletionStake.forking ? ZERO : (!getsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO));
+
+    const market: ClaimableMarket = {
+      marketId: feeWindowCompletionStake.marketId,
+      unclaimedRepTotal: cUnclaimedRepEarned.plus(cUnclaimedRepStaked),
+    };
+    markets.push(market);
     return {
       unclaimedRepStaked: acc.unclaimedRepStaked.plus(feeWindowCompletionStake.forking ? ZERO : (!getsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO))),
-      unclaimedRepEarned: acc.unclaimedRepEarned.plus(feeWindowCompletionStake.forking ? ZERO : (!earnsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO)).div(2)),
+      unclaimedRepEarned: acc.unclaimedRepEarned.plus(cUnclaimedRepEarned),
       lostRep: acc.lostRep.plus(lostRep ? (feeWindowCompletionStake.amountStaked || ZERO) : ZERO),
       unclaimedForkRepStaked: acc.unclaimedForkRepStaked.plus(feeWindowCompletionStake.forking ? (feeWindowCompletionStake.amountStaked || ZERO) : ZERO),
     };
