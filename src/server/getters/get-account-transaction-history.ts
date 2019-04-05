@@ -156,7 +156,7 @@ function queryBuy(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransaction
     "trades.price",
     db.raw("trades.amount as quantity"),
     db.raw("NULL as total"),
-    "trades.transactionHash")
+    "trades.blockNumber")
   .from("trades")
   .join("markets", "markets.marketId", "trades.marketId")
   .join("outcomes", function () {
@@ -200,7 +200,7 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
     "trades.price",
     db.raw("trades.amount as quantity"),
     db.raw("NULL as total"),
-    "trades.transactionHash")
+    "trades.blockNumber")
   .from("trades")
   .join("markets", "markets.marketId", "trades.marketId")
   .join("outcomes", function () {
@@ -244,7 +244,7 @@ function queryCanceled(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransa
     db.raw("orders.price as price"),
     db.raw("orders.amount as quantity"),
     db.raw("'0' as total"),
-    "orders_canceled.transactionHash")
+    "orders_canceled.blockNumber")
   .from("orders_canceled")
   .join("markets", "markets.marketId", "orders.marketId")
   .join("orders", "orders.orderId", "orders_canceled.orderId")
@@ -288,7 +288,7 @@ function queryClaimMarketCreatorFees(db: Knex, qb: Knex.QueryBuilder, params: Ge
     db.raw("'0' as price"),
     db.raw("'0' as quantity"),
     db.raw("transfers.value as total"),
-    "transfers.transactionHash")
+    "transfers.blockNumber")
   .from("transfers")
   .join("markets", "markets.marketCreatorMailbox", "transfers.sender")
   .whereNull("transfers.recipient")
@@ -327,7 +327,7 @@ function queryClaimParticipationTokens(db: Knex, qb: Knex.QueryBuilder, params: 
     db.raw("'0' as price"),
     db.raw("'0' as quantity"),
     db.raw("participation_token_redeemed.reportingFeesReceived as total"),
-    "participation_token_redeemed.transactionHash")
+    "participation_token_redeemed.blockNumber")
   .from("participation_token_redeemed")
   .join("fee_windows", "fee_windows.feeWindow", "participation_token_redeemed.feeWindow")
   .where({
@@ -365,7 +365,7 @@ function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetA
     "outcomes.price",
     db.raw("trading_proceeds.numShares as quantity"),
     db.raw("trading_proceeds.numPayoutTokens as total"),
-    "trading_proceeds.transactionHash")
+    "trading_proceeds.blockNumber")
   .from("trading_proceeds")
   .join("markets", "markets.marketId", "trading_proceeds.marketId")
   .join("payouts", "payouts.marketId", "markets.marketId")
@@ -413,7 +413,7 @@ function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params:
         db.raw("'0' as price"),
         db.raw("'0' as quantity"),
         db.raw("crowdsourcer_redeemed.reportingFeesReceived as total"),
-        "crowdsourcer_redeemed.transactionHash")
+        "crowdsourcer_redeemed.blockNumber")
       .from("crowdsourcer_redeemed")
       .join("markets", "markets.marketId", "crowdsourcers.marketId")
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
@@ -460,7 +460,7 @@ function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params:
         db.raw("'0' as price"),
         db.raw("'0' as quantity"),
         db.raw("crowdsourcer_redeemed.repReceived as total"),
-        "crowdsourcer_redeemed.transactionHash")
+        "crowdsourcer_redeemed.blockNumber")
       .from("crowdsourcer_redeemed")
       .join("markets", "markets.marketId", "crowdsourcers.marketId")
       .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "crowdsourcer_redeemed.crowdsourcer")
@@ -509,7 +509,7 @@ function queryDispute(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransac
     db.raw("'0' as price"),
     db.raw("disputes.amountStaked as quantity"),
     db.raw("'0' as total"),
-    "disputes.transactionHash")
+    "disputes.blockNumber")
   .from("disputes")
   .join("crowdsourcers", "crowdsourcers.crowdsourcerId", "disputes.crowdsourcerId")
   .join("payouts", "payouts.payoutId", "crowdsourcers.payoutId")
@@ -550,7 +550,7 @@ function queryInitialReport(db: Knex, qb: Knex.QueryBuilder, params: GetAccountT
     db.raw("'0' as price"),
     "initial_reports.amountStaked as quantity",
     db.raw("'0' as total"),
-    "initial_reports.transactionHash")
+    "initial_reports.blockNumber")
   .from("initial_reports")
   .join("payouts", "payouts.payoutId", "initial_reports.payoutId")
   .join("markets", "markets.marketId", "initial_reports.marketId")
@@ -589,7 +589,7 @@ function queryMarketCreation(db: Knex, qb: Knex.QueryBuilder, params: GetAccount
     db.raw("'0' as price"), 
     db.raw("'0' as quantity"), 
     db.raw("'0' as total"), 
-    "markets.transactionHash")
+    db.raw("markets.creationBlockNumber as blockNumber"))
   .from("markets")
   .where({
     "markets.marketCreator": params.account,
@@ -628,7 +628,7 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
       db.raw("markets.numTicks as price"),
       db.raw("completeSets.numCompleteSets as quantity"),
       db.raw("'0' as total"),
-      "completeSets.transactionHash")
+      "completeSets.blockNumber")
     .from("completeSets")
     .join("markets", "markets.marketId", "completeSets.marketId")
     .where({
@@ -668,16 +668,14 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
       "markets.numTicks as price",
       "completeSets.numCompleteSets as quantity",
       db.raw("'0' as total"),
-      "completeSets.transactionHash")
+      "completeSets.blockNumber")
     .from("completeSets")
     .join("markets", "markets.marketId", "completeSets.marketId")
     .join("fee_windows", "fee_windows.universe", "markets.universe")
-    .join("transactionHashes", "transactionHashes.transactionHash", "completeSets.transactionHash")
-    .join("blocks", "blocks.blockNumber", "transactionHashes.blockNumber")
+    .join("blocks", "blocks.blockNumber", "completeSets.blockNumber")
     .whereRaw("blocks.timestamp between fee_windows.startTime and fee_windows.endTime")
     .where({
       "completeSets.eventName": "CompleteSetsSold",
-      "transactionHashes.removed": 0,
       "completeSets.account": params.account,
       "markets.universe": params.universe,
     });
@@ -751,8 +749,7 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
     }
     qb.as("data");
   })
-  .join("transactionHashes", "transactionHashes.transactionHash", "data.transactionHash")
-  .join("blocks", "transactionHashes.blockNumber", "blocks.blockNumber")
+  .join("blocks", "data.blockNumber", "blocks.blockNumber")
   .whereBetween("blocks.timestamp", [params.earliestTransactionTime, params.latestTransactionTime]);
 
   const accountTransactionHistory: Array<AccountTransactionHistoryRow<BigNumber>> = await queryModifier<AccountTransactionHistoryRow<BigNumber>>(db, query, "blocks.timestamp", "desc", params);
