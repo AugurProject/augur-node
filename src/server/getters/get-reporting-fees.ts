@@ -330,10 +330,12 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
   }, fees);
   markets.forEach((market: ClaimableMarket) => {
     const nonforkedMarketIndex = nonforkedMarkets.findIndex((nonforkedMarket: NonforkedMarket) => nonforkedMarket.marketId === market.marketId);
-    nonforkedMarkets[nonforkedMarketIndex] = {
-      ...nonforkedMarkets[nonforkedMarketIndex],
-      unclaimedRepTotal: market.unclaimedRepTotal,
-    };
+    if (nonforkedMarkets[nonforkedMarketIndex]) {
+        nonforkedMarkets[nonforkedMarketIndex] = {
+        ...nonforkedMarkets[nonforkedMarketIndex],
+        unclaimedRepTotal: (nonforkedMarkets[nonforkedMarketIndex].unclaimedRepTotal || ZERO).plus(market.unclaimedRepTotal),
+      };
+    }
   });
   return { fees, nonforkedMarkets};
 }
