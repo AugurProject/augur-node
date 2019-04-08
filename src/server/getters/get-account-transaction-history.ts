@@ -128,93 +128,191 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
 }
 
 function queryBuy(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
-  return qb.select(
-    db.raw("? as action", Action.BUY),
-    db.raw("'ETH' as coin"),
-    db.raw("'Buy order' as details"),
-    "markets.marketId",
-    "trades.marketCreatorFees",
-    "markets.marketType",
-    "markets.maxPrice",
-    db.raw("NULL as numPayoutTokens"),
-    db.raw("NULL as numShares"),
-    "trades.reporterFees",
-    "markets.scalarDenomination",
-    db.raw("NULL as fee"),
-    "markets.shortDescription as marketDescription",
-    "outcomes.outcome",
-    db.raw("outcomes.description as outcomeDescription"),
-    db.raw("NULL as payout0"),
-    db.raw("NULL as payout1"),
-    db.raw("NULL as payout2"),
-    db.raw("NULL as payout3"),
-    db.raw("NULL as payout4"),
-    db.raw("NULL as payout5"),
-    db.raw("NULL as payout6"),
-    db.raw("NULL as payout7"),
-    db.raw("NULL as isInvalid"),
-    "trades.price",
-    db.raw("trades.amount as quantity"),
-    db.raw("NULL as total"),
-    "trades.transactionHash",
-    "trades.blockNumber")
-  .from("trades")
-  .join("markets", "markets.marketId", "trades.marketId")
-  .join("outcomes", function () {
-    this
-      .on("outcomes.marketId", "trades.marketId")
-      .on("outcomes.outcome", "trades.outcome");
-  })
-  .where({
-    "trades.orderType": "buy",
-    "trades.creator": params.account,
-    "markets.universe": params.universe,
+  qb.union((qb: Knex.QueryBuilder) => {
+    qb.select(
+      db.raw("? as action", Action.BUY),
+      db.raw("'ETH' as coin"),
+      db.raw("'Buy order' as details"),
+      "markets.marketId",
+      "trades.marketCreatorFees",
+      "markets.marketType",
+      "markets.maxPrice",
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      "trades.reporterFees",
+      "markets.scalarDenomination",
+      db.raw("NULL as fee"),
+      "markets.shortDescription as marketDescription",
+      "outcomes.outcome",
+      db.raw("outcomes.description as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
+      "trades.price",
+      db.raw("trades.amount as quantity"),
+      db.raw("NULL as total"),
+      "trades.transactionHash",
+      "trades.blockNumber")
+    .from("trades")
+    .join("markets", "markets.marketId", "trades.marketId")
+    .join("outcomes", function () {
+      this
+        .on("outcomes.marketId", "trades.marketId")
+        .on("outcomes.outcome", "trades.outcome");
+    })
+    .where({
+      "trades.orderType": "buy",
+      "trades.creator": params.account,
+      "markets.universe": params.universe,
+    });
   });
+
+  qb.union((qb: Knex.QueryBuilder) => {
+    qb.select(
+      db.raw("? as action", Action.BUY),
+      db.raw("'ETH' as coin"),
+      db.raw("'Buy order' as details"),
+      "markets.marketId",
+      "trades.marketCreatorFees",
+      "markets.marketType",
+      "markets.maxPrice",
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      "trades.reporterFees",
+      "markets.scalarDenomination",
+      db.raw("NULL as fee"),
+      "markets.shortDescription as marketDescription",
+      "outcomes.outcome",
+      db.raw("outcomes.description as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
+      "trades.price",
+      db.raw("trades.amount as quantity"),
+      db.raw("NULL as total"),
+      "trades.transactionHash",
+      "trades.blockNumber")
+    .from("trades")
+    .join("markets", "markets.marketId", "trades.marketId")
+    .join("outcomes", function () {
+      this
+        .on("outcomes.marketId", "trades.marketId")
+        .on("outcomes.outcome", "trades.outcome");
+    })
+    .where({
+      "trades.orderType": "sell",
+      "trades.filler": params.account,
+      "markets.universe": params.universe,
+    });
+  });
+
+  return qb;
 }
 
 function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
-  return qb.select(
-    db.raw("? as action", Action.SELL),
-    db.raw("'ETH' as coin"),
-    db.raw("'Sell order' as details"),
-    "markets.marketId",
-    "trades.marketCreatorFees",
-    "markets.marketType",
-    db.raw("NULL as maxPrice"),
-    db.raw("NULL as numPayoutTokens"),
-    db.raw("NULL as numShares"),
-    "trades.reporterFees",
-    "markets.scalarDenomination",
-    db.raw("NULL as fee"),
-    "markets.shortDescription as marketDescription",
-    "outcomes.outcome",
-    db.raw("outcomes.description as outcomeDescription"),
-    db.raw("NULL as payout0"),
-    db.raw("NULL as payout1"),
-    db.raw("NULL as payout2"),
-    db.raw("NULL as payout3"),
-    db.raw("NULL as payout4"),
-    db.raw("NULL as payout5"),
-    db.raw("NULL as payout6"),
-    db.raw("NULL as payout7"),
-    db.raw("NULL as isInvalid"),
-    "trades.price",
-    db.raw("trades.amount as quantity"),
-    db.raw("NULL as total"),
-    "trades.transactionHash",
-    "trades.blockNumber")
-  .from("trades")
-  .join("markets", "markets.marketId", "trades.marketId")
-  .join("outcomes", function () {
-    this
-      .on("outcomes.marketId", "trades.marketId")
-      .on("outcomes.outcome", "trades.outcome");
-  })
-  .where({
-    "trades.orderType": "sell",
-    "trades.creator": params.account,
-    "markets.universe": params.universe,
+  qb.union((qb: Knex.QueryBuilder) => {
+    qb.select(
+      db.raw("? as action", Action.SELL),
+      db.raw("'ETH' as coin"),
+      db.raw("'Sell order' as details"),
+      "markets.marketId",
+      "trades.marketCreatorFees",
+      "markets.marketType",
+      db.raw("NULL as maxPrice"),
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      "trades.reporterFees",
+      "markets.scalarDenomination",
+      db.raw("NULL as fee"),
+      "markets.shortDescription as marketDescription",
+      "outcomes.outcome",
+      db.raw("outcomes.description as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
+      "trades.price",
+      db.raw("trades.amount as quantity"),
+      db.raw("NULL as total"),
+      "trades.transactionHash",
+      "trades.blockNumber")
+    .from("trades")
+    .join("markets", "markets.marketId", "trades.marketId")
+    .join("outcomes", function () {
+      this
+        .on("outcomes.marketId", "trades.marketId")
+        .on("outcomes.outcome", "trades.outcome");
+    })
+    .where({
+      "trades.orderType": "sell",
+      "trades.creator": params.account,
+      "markets.universe": params.universe,
+    });
   });
+
+  qb.union((qb: Knex.QueryBuilder) => {
+    qb.select(
+      db.raw("? as action", Action.SELL),
+      db.raw("'ETH' as coin"),
+      db.raw("'Sell order' as details"),
+      "markets.marketId",
+      "trades.marketCreatorFees",
+      "markets.marketType",
+      db.raw("NULL as maxPrice"),
+      db.raw("NULL as numPayoutTokens"),
+      db.raw("NULL as numShares"),
+      "trades.reporterFees",
+      "markets.scalarDenomination",
+      db.raw("NULL as fee"),
+      "markets.shortDescription as marketDescription",
+      "outcomes.outcome",
+      db.raw("outcomes.description as outcomeDescription"),
+      db.raw("NULL as payout0"),
+      db.raw("NULL as payout1"),
+      db.raw("NULL as payout2"),
+      db.raw("NULL as payout3"),
+      db.raw("NULL as payout4"),
+      db.raw("NULL as payout5"),
+      db.raw("NULL as payout6"),
+      db.raw("NULL as payout7"),
+      db.raw("NULL as isInvalid"),
+      "trades.price",
+      db.raw("trades.amount as quantity"),
+      db.raw("NULL as total"),
+      "trades.transactionHash",
+      "trades.blockNumber")
+    .from("trades")
+    .join("markets", "markets.marketId", "trades.marketId")
+    .join("outcomes", function () {
+      this
+        .on("outcomes.marketId", "trades.marketId")
+        .on("outcomes.outcome", "trades.outcome");
+    })
+    .where({
+      "trades.orderType": "buy",
+      "trades.filler": params.account,
+      "markets.universe": params.universe,
+    });
+  });
+
+  return qb;
 }
 
 function queryCanceled(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
