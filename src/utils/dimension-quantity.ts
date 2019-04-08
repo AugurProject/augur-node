@@ -220,6 +220,7 @@ export function percent(magnitude: number | BigNumber): Percent {
 }
 export class Percent extends Quantity<Percent> {
   public static ZERO: Percent = new Percent(ZERO);
+  public static ONE: Percent = new Percent(ONE);
   public percent: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Percent2()`
   constructor(magnitude: BigNumber) {
     super(Percent, magnitude, ScalarUnitDimension);

@@ -146,6 +146,9 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       totalPercent: ZERO,
       unrealizedRevenue: ZERO,
       frozenFunds: ZERO,
+      lastTradePrice: ZERO,
+      lastTradePrice24hAgo: ZERO,
+      lastTradePrice24hChangePercent: ZERO,
     };
   });
 
