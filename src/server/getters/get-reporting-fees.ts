@@ -175,8 +175,8 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
     crowdsourcers,
     (collection: any, crowdsourcer: UnclaimedCrowdsourcerRow) => {
       const cdFees = collection[crowdsourcer.crowdsourcerId];
-      const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === crowdsourcer.crowdsourcerId);
-      return { ...collection, [crowdsourcer.crowdsourcerId]: (cdFees || ZERO).plus(fees ? fees.ethFees : ZERO) };
+      const fees = _.reduce(_.filter(participantEthFees, (ethFees) => ethFees.participantAddress === crowdsourcer.crowdsourcerId), (summation, fee) => summation.plus(fee.ethFees), ZERO);
+      return { ...collection, [crowdsourcer.crowdsourcerId]: (cdFees || ZERO).plus(fees) };
     },
     fees,
   );
@@ -185,8 +185,8 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
     initialReporters,
     (collection: any, row: UnclaimedInitialReporterRow) => {
       const cdFees = collection[row.initialReporter];
-      const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === row.initialReporter);
-      return { ...collection, [row.initialReporter]: (cdFees || ZERO).plus(fees ? fees.ethFees : ZERO) };
+      const fees = _.reduce(_.filter(participantEthFees, (ethFees) => ethFees.participantAddress === row.initialReporter), (summartion, fee) => summartion.plus(fee.ethFees), ZERO);
+      return { ...collection, [row.initialReporter]: (cdFees || ZERO).plus(fees) };
     },
     fees,
   );
@@ -233,7 +233,7 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
       } else {
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcersAreDisavowed = !!crowdsourcers[i].disavowed;
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcers.push(crowdsourcers[i].crowdsourcerId);
-        keyedNonforkedMarkets[crowdsourcers[i].marketId].unclaimedEthFees = _.reduce([keyedNonforkedMarkets[crowdsourcers[i].marketId], crowdsourcers[i].crowdsourcerId], 
+        keyedNonforkedMarkets[crowdsourcers[i].marketId].unclaimedEthFees = _.reduce([keyedNonforkedMarkets[crowdsourcers[i].marketId].initialReporter, crowdsourcers[i].crowdsourcerId], 
           (aggregation, contractId: string) => aggregation.plus(fees[contractId] || ZERO), ZERO);
       }
     }
