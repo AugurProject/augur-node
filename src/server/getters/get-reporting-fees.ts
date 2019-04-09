@@ -49,6 +49,7 @@ export interface FeeDetails {
     unclaimedForkRepStaked: string;
     lostRep: string;
   };
+  participantEthFees: Array<ParticipantEthFee>;
   feeWindows: Array<Address>;
   forkedMarket: ForkedMarket|null;
   nonforkedMarkets: Array<NonforkedMarket>;
@@ -434,6 +435,7 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
       unclaimedForkEth: unclaimedForkEthFees.toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedForkRepStaked: repStakeResults.fees.unclaimedForkRepStaked.toFixed(0, BigNumber.ROUND_DOWN),
     },
+    participantEthFees: _.filter(participantEthFees, (v) => !v.ethFees.eq(ZERO)),
     feeWindows: redeemableFeeWindows.sort(),
     forkedMarket: result.forkedMarket,
     nonforkedMarkets: result.nonforkedMarkets,
