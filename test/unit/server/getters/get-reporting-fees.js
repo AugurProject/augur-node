@@ -51,6 +51,8 @@ describe("server/getters/get-reporting-fees", () => {
         "unclaimedForkEth": "0",
         "unclaimedForkRepStaked": "331",
         "lostRep": "0",
+        "participationTokenRepStaked": "60",
+        "unclaimedParticipationTokenEthFees": "200",
       },
       feeWindows: [
         "0x1000000000000000000000000000000000000000",
@@ -79,6 +81,8 @@ describe("server/getters/get-reporting-fees", () => {
           "isFinalized": true,
           "isMigrated": true,
           "universe": "0x000000000000000000000000000000000000000b",
+          "unclaimedEthFees": "1000",
+          "unclaimedRepTotal": "331",
         },
       ],
     });
@@ -117,6 +121,8 @@ describe("server/getters/get-reporting-fees", () => {
           "unclaimedForkEth": "0",
           "unclaimedForkRepStaked": "0",
           "lostRep": "0",
+          "participationTokenRepStaked": "0",
+          "unclaimedParticipationTokenEthFees": "0",
         },
         feeWindows: [],
         forkedMarket: undefined,
@@ -157,6 +163,8 @@ describe("server/getters/get-reporting-fees", () => {
           "unclaimedForkEth": "0",
           "unclaimedForkRepStaked": "0",
           "lostRep": "0",
+          "participationTokenRepStaked": "0",
+          "unclaimedParticipationTokenEthFees": "0",
         },
         feeWindows: [],
         forkedMarket: {

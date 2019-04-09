@@ -32,7 +32,7 @@ export interface ForkedMarket {
 
 export interface ClaimableMarket {
   marketId: Address;
-  unclaimedRepTotal: BigNumber;
+  unclaimedRepTotal: string;
 }
 
 export interface NonforkedMarket {
@@ -43,8 +43,8 @@ export interface NonforkedMarket {
   isMigrated: boolean;
   crowdsourcers: Array<Address>;
   initialReporter: Address | null;
-  unclaimedRepTotal: BigNumber | null;
-  unclaimedEthFees: BigNumber | null;
+  unclaimedRepTotal: string | null;
+  unclaimedEthFees: string | null;
 }
 
 export interface FeeDetails {
@@ -206,7 +206,7 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
         crowdsourcers: [],
         initialReporter: initialReporters[i].initialReporter,
         unclaimedRepTotal: null,
-        unclaimedEthFees: fees[initialReporters[i].initialReporter] || null,
+        unclaimedEthFees: fees[initialReporters[i].initialReporter].toFixed(0, BigNumber.ROUND_DOWN) || null,
       };
     }
   }
@@ -225,13 +225,13 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
           crowdsourcers: [crowdsourcers[i].crowdsourcerId],
           initialReporter: null,
           unclaimedRepTotal: null,
-          unclaimedEthFees: fees[crowdsourcers[i].crowdsourcerId],
+          unclaimedEthFees: fees[crowdsourcers[i].crowdsourcerId].toFixed(0, BigNumber.ROUND_DOWN),
         };
       } else {
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcersAreDisavowed = !!crowdsourcers[i].disavowed;
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcers.push(crowdsourcers[i].crowdsourcerId);
         keyedNonforkedMarkets[crowdsourcers[i].marketId].unclaimedEthFees = _.reduce([keyedNonforkedMarkets[crowdsourcers[i].marketId].initialReporter, crowdsourcers[i].crowdsourcerId], 
-          (aggregation, contractId: string) => aggregation.plus(fees[contractId] || ZERO), ZERO);
+          (aggregation, contractId: string) => aggregation.plus(fees[contractId] || ZERO), ZERO).toFixed(0, BigNumber.ROUND_DOWN);
       }
     }
   }
@@ -342,7 +342,7 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
       const cUnclaimedRepStaked = feeWindowCompletionStake.forking ? ZERO : !getsRep ? ZERO : feeWindowCompletionStake.amountStaked || ZERO;
       const market: ClaimableMarket = {
         marketId: feeWindowCompletionStake.marketId,
-        unclaimedRepTotal: cUnclaimedRepEarned.plus(cUnclaimedRepStaked),
+        unclaimedRepTotal: cUnclaimedRepEarned.plus(cUnclaimedRepStaked).toFixed(0, BigNumber.ROUND_DOWN),
       };
       markets.push(market);
       return {
@@ -366,7 +366,7 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
       const marketUnclaimedRepStaked = initialReporterStake.forking ? ZERO : initialReporterStake.winning === 0 ? ZERO : initialReporterStake.amountStaked || ZERO;
       const market: ClaimableMarket = {
         marketId: initialReporterStake.marketId,
-        unclaimedRepTotal: marketUnclaimedRepStaked.plus(marketUnclaimedRepEarned),
+        unclaimedRepTotal: marketUnclaimedRepStaked.plus(marketUnclaimedRepEarned).toFixed(0, BigNumber.ROUND_DOWN),
       };
       markets.push(market);
       return {
@@ -383,7 +383,7 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
     if (nonforkedMarkets[nonforkedMarketIndex]) {
       nonforkedMarkets[nonforkedMarketIndex] = {
         ...nonforkedMarkets[nonforkedMarketIndex],
-        unclaimedRepTotal: (nonforkedMarkets[nonforkedMarketIndex].unclaimedRepTotal || ZERO).plus(market.unclaimedRepTotal),
+        unclaimedRepTotal: new BigNumber(nonforkedMarkets[nonforkedMarketIndex].unclaimedRepTotal || ZERO).plus(market.unclaimedRepTotal).toFixed(0, BigNumber.ROUND_DOWN),
       };
     }
   });
