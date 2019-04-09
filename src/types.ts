@@ -44,6 +44,27 @@ export enum OrderState {
   CANCELED = "CANCELED",
 }
 
+export enum Action {
+  ALL = "ALL",
+  BUY = "BUY",
+  SELL = "SELL",
+  CANCEL = "CANCEL",
+  CLAIM_MARKET_CREATOR_FEES = "CLAIM_MARKET_CREATOR_FEES",
+  CLAIM_PARTICIPATION_TOKENS = "CLAIM_PARTICIPATION_TOKENS",
+  CLAIM_TRADING_PROCEEDS = "CLAIM_TRADING_PROCEEDS",
+  CLAIM_WINNING_CROWDSOURCERS = "CLAIM_WINNING_CROWDSOURCERS",
+  DISPUTE = "DISPUTE",
+  INITIAL_REPORT = "INITIAL_REPORT",
+  MARKET_CREATION = "MARKET_CREATION",
+  COMPLETE_SETS = "COMPLETE_SETS",
+}
+
+export enum Coin {
+  ALL = "ALL",
+  ETH = "ETH",
+  REP = "REP",
+}
+
 export interface ConnectOptions extends NetworkConfiguration {
   propagationDelayWaitMillis?: number;
   maxRetries?: number;
@@ -722,4 +743,53 @@ export interface PendingOrphanedOrderData {
   marketId: Address;
   outcome: number;
   orderType: string;
+}
+
+export interface AccountTransactionHistoryRow<BigNumberType> {
+  action: Action;
+  coin: string;
+  details: string;
+  fee: BigNumberType;
+  marketId: string;
+  marketDescription: string;
+  marketType: string;
+  outcome: number;
+  outcomeDescription: string;
+  payout0: BigNumberType;
+  payout1: BigNumberType;
+  payout2: BigNumberType;
+  payout3: BigNumberType;
+  payout4: BigNumberType;
+  payout5: BigNumberType;
+  payout6: BigNumberType;
+  payout7: BigNumberType;
+  isInvalid: boolean;
+  price: BigNumberType;
+  quantity: BigNumberType;
+  scalarDenomination: string;
+  timestamp: number;
+  total: BigNumberType;
+  transactionHash: string;
+  marketCreatorFees: BigNumberType;
+  maxPrice: BigNumberType;
+  numCreatorShares: BigNumberType;
+  numCreatorTokens: BigNumberType;
+  numPayoutTokens: BigNumberType;
+  numShares: BigNumberType;
+  reporterFees: BigNumberType;
+}
+
+export interface UIAccountTransactionHistoryRow<BigNumberType> {
+  action: Action;
+  coin: string;
+  details: string;
+  fee: BigNumberType;
+  marketDescription: string;
+  outcome: number;
+  outcomeDescription: string;
+  price: BigNumberType;
+  quantity: BigNumberType;
+  timestamp: number;
+  total: BigNumberType;
+  transactionHash: string;
 }

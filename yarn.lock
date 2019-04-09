@@ -3635,9 +3635,10 @@ ethrpc@6.1.4:
     request "2.85.0"
     websocket "1.0.26"
 
-ethrpc@^6.1.2:
-  version "6.1.2"
-  resolved "https://registry.yarnpkg.com/ethrpc/-/ethrpc-6.1.2.tgz#9d38985d58bc9694afc4900802f2c4c15be62197"
+ethrpc@6.1.4:
+  version "6.1.4"
+  resolved "https://registry.yarnpkg.com/ethrpc/-/ethrpc-6.1.4.tgz#98a635f501147d550215ee6db9019c26dc2ef0b5"
+  integrity sha512-TFz6irbVQvtM5ReeOQuvuq6lQkDpQplwPRrUvBxXy0eA7AVKmSv9KlDIzwHPwGNpkw/04fgAwyA/ohJxkSGlwA==
   dependencies:
     async "2.6.0"
     bignumber.js "6.0.0"
