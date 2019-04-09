@@ -58,6 +58,7 @@ export interface FeeDetails {
     unclaimedParticipationTokenEthFees: string;
     participationTokenRepStaked: string;
   };
+  participantEthFees: Array<ParticipantEthFee>;
   feeWindows: Array<Address>;
   forkedMarket: ForkedMarket | null;
   nonforkedMarkets: Array<NonforkedMarket>;
@@ -189,6 +190,8 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
     },
     fees,
   );
+
+  console.log("fees", JSON.stringify(fees));
 
   for (i = 0; i < initialReporters.length; i++) {
     if (initialReporters[i].forking) {
@@ -524,6 +527,7 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
       unclaimedForkEth: unclaimedForkEthFees.toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedForkRepStaked: repStakeResults.fees.unclaimedForkRepStaked.toFixed(0, BigNumber.ROUND_DOWN),
     },
+    participantEthFees,
     feeWindows: redeemableFeeWindows.sort(),
     forkedMarket: result.forkedMarket,
     nonforkedMarkets: repStakeResults.nonforkedMarkets,
