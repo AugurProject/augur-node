@@ -170,8 +170,30 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
   }
   const keyedNonforkedMarkets: { [marketId: string]: NonforkedMarket } = {};
   let i: number;
+  let fees: { [crowdsourceid: string]: BigNumber; } = { };
+  fees = _.reduce(
+    crowdsourcers,
+    (collection: any, crowdsourcer: UnclaimedCrowdsourcerRow) => {
+      const cdFees = collection[crowdsourcer.crowdsourcerId];
+      const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === crowdsourcer.crowdsourcerId);
+      return { ...collection, [crowdsourcer.crowdsourcerId]: (cdFees || ZERO).plus(fees ? fees.ethFees : ZERO) };
+    },
+    fees,
+  );
+
+  fees = _.reduce(
+    initialReporters,
+    (collection: any, row: UnclaimedInitialReporterRow) => {
+      const cdFees = collection[row.initialReporter];
+      const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === row.initialReporter);
+      return { ...collection, [row.initialReporter]: (cdFees || ZERO).plus(fees ? fees.ethFees : ZERO) };
+    },
+    fees,
+  );
+
+  console.log("fees", JSON.stringify(fees));
+
   for (i = 0; i < initialReporters.length; i++) {
-    const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === initialReporters[i].initialReporter);
     if (initialReporters[i].forking) {
       forkedMarket.initialReporter = {
         initialReporterId: initialReporters[i].initialReporter,
@@ -187,24 +209,10 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
         crowdsourcers: [],
         initialReporter: initialReporters[i].initialReporter,
         unclaimedRepTotal: null,
-        unclaimedEthFees: fees ? fees.ethFees : null,
+        unclaimedEthFees: fees[initialReporters[i].initialReporter] || null,
       };
     }
   }
-
-  let fees: { [crowdsourceid: string]: BigNumber; } = { };
-  fees = _.reduce(
-    crowdsourcers,
-    (collection: any, crowdsourcer: UnclaimedCrowdsourcerRow) => {
-      console.log("crowdsourcer.crowdsourcerId", crowdsourcer.crowdsourcerId);
-      const cdFees = collection[crowdsourcer.crowdsourcerId];
-      console.log("croudsourcer fees", cdFees);
-      const fees = _.find(participantEthFees, (ethFees) => ethFees.participantAddress === crowdsourcer.crowdsourcerId);
-      console.log("fees", fees);
-      return { ...collection, [crowdsourcer.crowdsourcerId]: (cdFees || ZERO).plus(fees ? fees.ethFees : ZERO) };
-    },
-    fees,
-  );
 
   for (i = 0; i < crowdsourcers.length; i++) {
     if (crowdsourcers[i].forking) {
@@ -225,6 +233,8 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
       } else {
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcersAreDisavowed = !!crowdsourcers[i].disavowed;
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcers.push(crowdsourcers[i].crowdsourcerId);
+        keyedNonforkedMarkets[crowdsourcers[i].marketId].unclaimedEthFees = _.reduce([keyedNonforkedMarkets[crowdsourcers[i].marketId], crowdsourcers[i].crowdsourcerId], 
+          (aggregation, contractId: string) => aggregation.plus(fees[contractId] || ZERO), ZERO);
       }
     }
   }
