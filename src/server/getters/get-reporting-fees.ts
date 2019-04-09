@@ -55,6 +55,8 @@ export interface FeeDetails {
     unclaimedForkEth: string;
     unclaimedForkRepStaked: string;
     lostRep: string;
+    unclaimedParticipationTokenEthFees: string;
+    participationTokenRepStaked: string;
   };
   participantEthFees: Array<ParticipantEthFee>;
   feeWindows: Array<Address>;
@@ -506,6 +508,8 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
   const unclaimedRepStaked = repStakeResults.fees.unclaimedRepStaked.plus(participationTokenRepStaked);
   return {
     total: {
+      unclaimedParticipationTokenEthFees: unclaimedParticipationTokenEthFees.toFixed(0, BigNumber.ROUND_DOWN),
+      participationTokenRepStaked: participationTokenRepStaked.toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedEth: unclaimedParticipantEthFees.plus(unclaimedParticipationTokenEthFees).toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedRepStaked: unclaimedRepStaked.toFixed(0, BigNumber.ROUND_DOWN),
       unclaimedRepEarned: repStakeResults.fees.unclaimedRepEarned.toFixed(0, BigNumber.ROUND_DOWN),
