@@ -30,6 +30,11 @@ export interface ForkedMarket {
   initialReporter: InitialReporterState|null;
 }
 
+export interface ClaimableMarket {
+  marketId: Address;
+  unclaimedRepTotal: BigNumber;
+}
+
 export interface NonforkedMarket {
   marketId: Address;
   universe: Address;
@@ -38,6 +43,7 @@ export interface NonforkedMarket {
   isMigrated: boolean;
   crowdsourcers: Array<Address>;
   initialReporter: Address|null;
+  unclaimedRepTotal: BigNumber|null;
 }
 
 export interface FeeDetails {
@@ -176,6 +182,7 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
         isFinalized: initialReporters[i].reportingState === ReportingState.FINALIZED,
         crowdsourcers: [],
         initialReporter: initialReporters[i].initialReporter,
+        unclaimedRepTotal: null,
       };
     }
   }
@@ -192,6 +199,7 @@ function formatMarketInfo(initialReporters: Array<UnclaimedInitialReporterRow>, 
           isFinalized: crowdsourcers[i].reportingState === ReportingState.FINALIZED,
           crowdsourcers: [crowdsourcers[i].crowdsourcerId],
           initialReporter: null,
+          unclaimedRepTotal: null,
         };
       } else {
         keyedNonforkedMarkets[crowdsourcers[i].marketId].crowdsourcersAreDisavowed = !!crowdsourcers[i].disavowed;
@@ -239,7 +247,8 @@ async function getMarketsReportingParticipants(db: Knex, reporter: Address, univ
   return formatMarketInfo(initialReporters, crowdsourcers, forkedMarket);
 }
 
-async function getStakedRepResults(db: Knex, reporter: Address, universe: Address): Promise<{ fees: RepStakeResults }> {
+async function getStakedRepResults(db: Knex, reporter: Address, universe: Address, nonforkedMarkets: Array<NonforkedMarket>): Promise<{ fees: RepStakeResults, nonforkedMarkets: Array<NonforkedMarket> }> {
+  const markets: Array<ClaimableMarket> = [];
   const crowdsourcerQuery = db.select([
     "fee_windows.feeWindow",
     "fee_windows.state",
@@ -285,26 +294,51 @@ async function getStakedRepResults(db: Knex, reporter: Address, universe: Addres
     const getsRep = feeWindowCompletionStake.winning || disavowed || !feeWindowCompletionStake.completed;
     const earnsRep = feeWindowCompletionStake.completed && (feeWindowCompletionStake.winning > 0);
     const lostRep = feeWindowCompletionStake.completed && (feeWindowCompletionStake.winning === 0);
+    const cUnclaimedRepEarned = feeWindowCompletionStake.forking ? ZERO : (!earnsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO)).div(2);
+    const cUnclaimedRepStaked = feeWindowCompletionStake.forking ? ZERO : (!getsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO));
+
+    const market: ClaimableMarket = {
+      marketId: feeWindowCompletionStake.marketId,
+      unclaimedRepTotal: cUnclaimedRepEarned.plus(cUnclaimedRepStaked),
+    };
+    markets.push(market);
     return {
       unclaimedRepStaked: acc.unclaimedRepStaked.plus(feeWindowCompletionStake.forking ? ZERO : (!getsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO))),
-      unclaimedRepEarned: acc.unclaimedRepEarned.plus(feeWindowCompletionStake.forking ? ZERO : (!earnsRep ? ZERO : (feeWindowCompletionStake.amountStaked || ZERO)).div(2)),
+      unclaimedRepEarned: acc.unclaimedRepEarned.plus(cUnclaimedRepEarned),
       lostRep: acc.lostRep.plus(lostRep ? (feeWindowCompletionStake.amountStaked || ZERO) : ZERO),
       unclaimedForkRepStaked: acc.unclaimedForkRepStaked.plus(feeWindowCompletionStake.forking ? (feeWindowCompletionStake.amountStaked || ZERO) : ZERO),
     };
   }, { unclaimedRepStaked: ZERO, unclaimedRepEarned: ZERO, lostRep: ZERO, unclaimedForkRepStaked: ZERO });
   fees = _.reduce(initialReporters, (acc: RepStakeResults, initialReporterStake: InitialReporterStakeRow) => {
     let unclaimedRepEarned = acc.unclaimedRepEarned;
+    let marketUnclaimedRepEarned = ZERO;
     if (marketDisputed[initialReporterStake.marketId] && !initialReporterStake.forking && initialReporterStake.winning) {
-      unclaimedRepEarned = unclaimedRepEarned.plus((initialReporterStake.amountStaked || ZERO).div(2));
+      marketUnclaimedRepEarned = (initialReporterStake.amountStaked || ZERO).div(2);
+      unclaimedRepEarned = unclaimedRepEarned.plus(marketUnclaimedRepEarned);
     }
+    const marketUnclaimedRepStaked = (initialReporterStake.forking ? ZERO : (initialReporterStake.winning === 0 ? ZERO : (initialReporterStake.amountStaked || ZERO)));
+    const market: ClaimableMarket = {
+        marketId: initialReporterStake.marketId,
+        unclaimedRepTotal: marketUnclaimedRepStaked.plus(marketUnclaimedRepEarned),
+    };
+    markets.push(market);
     return {
-      unclaimedRepStaked: acc.unclaimedRepStaked.plus(initialReporterStake.forking ? ZERO : (initialReporterStake.winning === 0 ? ZERO : (initialReporterStake.amountStaked || ZERO))),
+      unclaimedRepStaked: acc.unclaimedRepStaked.plus(marketUnclaimedRepStaked),
       unclaimedRepEarned,
       lostRep: acc.lostRep.plus(initialReporterStake.winning === 0 ? (initialReporterStake.amountStaked || ZERO) : ZERO),
       unclaimedForkRepStaked: acc.unclaimedForkRepStaked.plus(initialReporterStake.forking ? (initialReporterStake.amountStaked || ZERO) : ZERO),
     };
   }, fees);
-  return { fees };
+  markets.forEach((market: ClaimableMarket) => {
+    const nonforkedMarketIndex = nonforkedMarkets.findIndex((nonforkedMarket: NonforkedMarket) => nonforkedMarket.marketId === market.marketId);
+    if (nonforkedMarkets[nonforkedMarketIndex]) {
+        nonforkedMarkets[nonforkedMarketIndex] = {
+        ...nonforkedMarkets[nonforkedMarketIndex],
+        unclaimedRepTotal: (nonforkedMarkets[nonforkedMarketIndex].unclaimedRepTotal || ZERO).plus(market.unclaimedRepTotal),
+      };
+    }
+  });
+  return { fees, nonforkedMarkets};
 }
 
 async function getParticipationTokenEthFees(db: Knex, augur: Augur, reporter: Address, universe: Address): Promise<Array<ParticipationTokenEthFee>> {
@@ -418,8 +452,8 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
   const currentUniverse = await getUniverse(db, params.universe);
   const participantEthFees: Array<ParticipantEthFee> = await getParticipantEthFees(db, augur, params.reporter, params.universe);
   const participationTokenEthFees: Array<ParticipationTokenEthFee> = await getParticipationTokenEthFees(db, augur, params.reporter, params.universe);
-  const repStakeResults = await getStakedRepResults(db, params.reporter, params.universe);
   const result: FormattedMarketInfo = await getMarketsReportingParticipants(db, params.reporter, currentUniverse);
+  const repStakeResults = await getStakedRepResults(db, params.reporter, params.universe, result.nonforkedMarkets);
   const unclaimedParticipantEthFees = _.reduce(participantEthFees, (acc, cur) => acc.plus(cur.fork ? 0 : cur.ethFees), ZERO);
   const unclaimedForkEthFees = _.reduce(participantEthFees, (acc, cur) => acc.plus(cur.fork ? cur.ethFees : 0), ZERO);
   const unclaimedParticipationTokenEthFees = _.reduce(participationTokenEthFees, (acc, cur) => acc.plus(cur.ethFees), ZERO);
@@ -438,6 +472,6 @@ export async function getReportingFees(db: Knex, augur: Augur, params: t.TypeOf<
     participantEthFees: _.filter(participantEthFees, (v) => !v.ethFees.eq(ZERO)),
     feeWindows: redeemableFeeWindows.sort(),
     forkedMarket: result.forkedMarket,
-    nonforkedMarkets: result.nonforkedMarkets,
+    nonforkedMarkets: repStakeResults.nonforkedMarkets,
   };
 }
