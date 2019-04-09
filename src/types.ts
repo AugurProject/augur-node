@@ -750,6 +750,7 @@ export interface AccountTransactionHistoryRow<BigNumberType> {
   coin: string;
   details: string;
   fee: BigNumberType;
+  marketId: string;
   marketDescription: string;
   marketType: string;
   outcome: number;
@@ -765,6 +766,7 @@ export interface AccountTransactionHistoryRow<BigNumberType> {
   isInvalid: boolean;
   price: BigNumberType;
   quantity: BigNumberType;
+  scalarDenomination: string;
   timestamp: number;
   total: BigNumberType;
   transactionHash: string;
