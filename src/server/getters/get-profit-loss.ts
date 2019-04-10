@@ -8,7 +8,7 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
-import { Percent, Price, Shares, Tokens } from "../../utils/dimension-quantity";
+import { Percent, Price, Shares, Tokens, safePercent } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getTradePrice, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent, getUnrealizedRevenue } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
@@ -92,6 +92,8 @@ export interface ProfitLossResult extends
   lastTradePrice: BigNumber; // denominated in tokens. Last (most recent) price at which this outcome was traded by anybody. See TradePrice
   lastTradePrice24hAgo: BigNumber; // denominated in tokens. As of 24 hours ago, last (most recent) price at which this outcome was traded by anybody. See TradePrice
   lastTradePrice24hChangePercent: BigNumber; // percent change in lastTradePrice from 24 hours ago (NB this is calculated using LastTradePriceMinusMinPrice, not LastTradePrice)
+  unrealizedRevenue24hAgo: BigNumber; // denominated in tokens. See UnrealizedRevenue, except this is is calculated using lastTradePrice from 24 hours ago, as if the user held this position constant for the past 24 hours
+  unrealizedRevenue24hChangePercent: BigNumber; // percent change in unrealizedRevenue from 24 hours ago
 }
 
 export interface ShortPosition {
@@ -323,12 +325,22 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       marketMinPrice,
       tradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo || Price.ZERO,
     });
-    const lastTradePrice24hChangePercent: Percent =
-    lastTradePriceMinusMinPrice === undefined ||
-      lastTradePriceMinusMinPrice24hAgo === undefined ||
-      lastTradePriceMinusMinPrice24hAgo.isZero() ?
-        Percent.ZERO :
-        lastTradePriceMinusMinPrice.dividedBy(lastTradePriceMinusMinPrice24hAgo).expect(Percent).minus(Percent.ONE);
+    const lastTradePrice24hChangePercent: Percent = safePercent({
+      numerator: lastTradePriceMinusMinPrice,
+      denominator: lastTradePriceMinusMinPrice24hAgo,
+      subtractOne: true,
+    });
+    const { unrealizedRevenue: unrealizedRevenue24hAgo } = getUnrealizedRevenue({
+      marketMinPrice,
+      marketMaxPrice,
+      netPosition,
+      lastTradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo,
+    });
+    const unrealizedRevenue24hChangePercent: Percent = safePercent({
+      numerator: unrealizedRevenue,
+      denominator: unrealizedRevenue24hAgo,
+      subtractOne: true,
+    });
 
     return {
       marketId: outcomePl.marketId,
@@ -350,6 +362,8 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       lastTradePrice: lastTradePrice.magnitude,
       lastTradePrice24hAgo: lastTradePrice24hAgo.magnitude,
       lastTradePrice24hChangePercent: lastTradePrice24hChangePercent.magnitude,
+      unrealizedRevenue24hAgo: unrealizedRevenue24hAgo.magnitude,
+      unrealizedRevenue24hChangePercent: unrealizedRevenue24hChangePercent.magnitude,
     };
   });
   return _.sortBy(unsortedResults, "outcome")!;
@@ -380,9 +394,9 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
 
 interface ProfitLossData {
   profits: Dictionary<Dictionary<Array<ProfitLossTimeseries>>>;
-  outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>; // lastTradePriceMinusMinPriceByOutcomeByMarketId
+  outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>; // lastTradePriceMinusMinPriceByOutcomeByMarketId, see TradePriceMinusMinPrice
   buckets: Array<Timestamped>;
-  lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>; // lastTradePriceMinusMinPrice by outcome by marketId as of 24 hours ago
+  lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>; // lastTradePriceMinusMinPrice by outcome by marketId as of 24 hours ago, see TradePriceMinusMinPrice
 }
 
 async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Promise<ProfitLossData> {
@@ -500,6 +514,8 @@ export async function getProfitLoss(db: Knex, augur: Augur, params: GetProfitLos
       lastTradePrice: ZERO,
       lastTradePrice24hAgo: ZERO,
       lastTradePrice24hChangePercent: ZERO,
+      unrealizedRevenue24hAgo: ZERO,
+      unrealizedRevenue24hChangePercent: ZERO,
     }));
   }
 
@@ -558,6 +574,8 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
       lastTradePrice: startProfit.lastTradePrice.negated(),
       lastTradePrice24hAgo: startProfit.lastTradePrice24hAgo.negated(),
       lastTradePrice24hChangePercent: startProfit.lastTradePrice24hChangePercent,
+      unrealizedRevenue24hAgo: startProfit.unrealizedRevenue24hAgo.negated(),
+      unrealizedRevenue24hChangePercent: startProfit.unrealizedRevenue24hChangePercent,
     };
 
     result[days] = sumProfitLossResults(endProfit, negativeStartProfit);

@@ -7,7 +7,7 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { BN_WEI_PER_ETHER, ZERO } from "../../constants";
 import { Address, MarketsRow, OutcomeParam, ReportingState, SortLimitParams } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
-import { Tokens } from "../../utils/dimension-quantity";
+import { Percent, safePercent, Tokens } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalProfitPercent, getUnrealizedProfitPercent } from "../../utils/financial-math";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
@@ -32,7 +32,7 @@ export interface TradingPosition extends ProfitLossResult, FrozenFunds {
 
 export interface MarketTradingPosition extends Pick<ProfitLossResult,
   "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
-  "unrealizedPercent" | "totalPercent" | "unrealizedRevenue"
+  "unrealizedPercent" | "totalPercent" | "unrealizedRevenue" | "unrealizedRevenue24hAgo" | "unrealizedRevenue24hChangePercent"
   >, FrozenFunds { }
 
 export interface GetUserTradingPositionsResponse {
@@ -149,6 +149,8 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       lastTradePrice: ZERO,
       lastTradePrice24hAgo: ZERO,
       lastTradePrice24hChangePercent: ZERO,
+      unrealizedRevenue24hAgo: ZERO,
+      unrealizedRevenue24hChangePercent: ZERO,
     };
   });
 
@@ -199,7 +201,7 @@ function aggregateTradingPositionsByMarket(tps: Array<TradingPosition>): { [mark
 function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosition>): MarketTradingPosition {
   // precondition: tpsForOneMarketId non-empty and all tpsForOneMarketId have same marketId
   const first = tpsForOneMarketId[0];
-  const partialMarketTradingPosition: Pick<MarketTradingPosition, Exclude<keyof MarketTradingPosition, "realizedPercent" | "unrealizedPercent" | "totalPercent">> = {
+  const partialMarketTradingPosition: Pick<MarketTradingPosition, Exclude<keyof MarketTradingPosition, "realizedPercent" | "unrealizedPercent" | "totalPercent" | "unrealizedRevenue24hChangePercent">> = {
     timestamp: first.timestamp,
     marketId: first.marketId,
     realized: sum(tpsForOneMarketId, (tp) => tp.realized),
@@ -210,6 +212,7 @@ function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosi
     totalCost: sum(tpsForOneMarketId, (tp) => tp.totalCost),
     unrealizedRevenue: sum(tpsForOneMarketId, (tp) => tp.unrealizedRevenue),
     frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
+    unrealizedRevenue24hAgo: sum(tpsForOneMarketId, (tp) => tp.unrealizedRevenue24hAgo),
   };
   const { realizedProfitPercent } = getRealizedProfitPercent({
     realizedCost: new Tokens(partialMarketTradingPosition.realizedCost),
@@ -223,10 +226,16 @@ function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosi
     totalCost: new Tokens(partialMarketTradingPosition.totalCost),
     totalProfit: new Tokens(partialMarketTradingPosition.total),
   });
+  const unrealizedRevenue24hChangePercent: Percent = safePercent({
+    numerator: new Tokens(partialMarketTradingPosition.unrealizedRevenue),
+    denominator: new Tokens(partialMarketTradingPosition.unrealizedRevenue24hAgo),
+    subtractOne: true,
+  });
   return {
     realizedPercent: realizedProfitPercent.magnitude,
     unrealizedPercent: unrealizedProfitPercent.magnitude,
     totalPercent: totalProfitPercent.magnitude,
+    unrealizedRevenue24hChangePercent: unrealizedRevenue24hChangePercent.magnitude,
     ...partialMarketTradingPosition,
   };
 
