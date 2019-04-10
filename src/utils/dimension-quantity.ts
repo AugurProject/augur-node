@@ -287,7 +287,7 @@ export class Price extends Quantity<Price> {
   }
 }
 
-// safePercent calculates the percent of the passed numerator and denominator,
+// safePercent calculates a percent using the passed numerator and denominator,
 // returning zero for convenience if the calculation can't be done.
 export function safePercent<A extends Quantity<A>, B extends Quantity<B>>(params: {
   numerator: A | undefined | null,
