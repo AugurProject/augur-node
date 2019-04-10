@@ -30,6 +30,12 @@ function isEqual(a: DimensionVector, b: DimensionVector): boolean {
   return true;
 }
 
+function assertEqualDimensions<A extends Quantity<A>, B extends Quantity<B>>(a: A, b: B) {
+  if (!isEqual(a.dimension, b.dimension)) {
+    throw new Error(`expected dimensions to be equal, a=${a}, b=${b}`);
+  }
+}
+
 abstract class Quantity<T extends Quantity<T>> {
   // TODO can we implement a fair bit of BigNumber interface so that this is mostly a drop-in replacement?
   // TODO an idea is to carry a history of dimension changes through operations so that when a dynamic dimension/type check fails, can give an explanation of where it came from
@@ -279,6 +285,29 @@ export class Price extends Quantity<Price> {
   constructor(magnitude: BigNumber) {
     super(Price, magnitude, PriceUnitDimension);
   }
+}
+
+// safePercent calculates the percent of the passed numerator and denominator,
+// returning zero for convenience if the calculation can't be done.
+export function safePercent<A extends Quantity<A>, B extends Quantity<B>>(params: {
+  numerator: A | undefined | null,
+  denominator: B | undefined | null,
+  subtractOne: boolean, // percent will have one subtracted if and only if subtractOne
+}): Percent {
+  // we might consider percent to be undefined if it can't be calculated
+  // (for any reason), but instead we return zero for convenience.
+  if (params.numerator === undefined ||
+    params.numerator === null ||
+    params.denominator === undefined ||
+    params.denominator === null) {
+    return Percent.ZERO;
+  }
+  if (params.denominator.isZero()) {
+    assertEqualDimensions(params.numerator, params.denominator); // don't skip dimension check just because denominator happens to be zero
+    return Percent.ZERO;
+  }
+  const percent = params.numerator.dividedBy(params.denominator).expect(Percent);
+  return params.subtractOne ? percent.minus(Percent.ONE) : percent;
 }
 
 // ****************************************************************
