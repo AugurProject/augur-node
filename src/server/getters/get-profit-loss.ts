@@ -394,7 +394,7 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
 
 interface ProfitLossData {
   profits: Dictionary<Dictionary<Array<ProfitLossTimeseries>>>;
-  outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>; // lastTradePriceMinusMinPriceByOutcomeByMarketId, see TradePriceMinusMinPrice
+  outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>; // historical lastTradePriceMinusMinPrices by outcome by marketId, see TradePriceMinusMinPrice
   buckets: Array<Timestamped>;
   lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>; // lastTradePriceMinusMinPrice by outcome by marketId as of 24 hours ago, see TradePriceMinusMinPrice
 }
