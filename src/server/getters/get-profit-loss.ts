@@ -424,34 +424,19 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
     return result;
   }, {} as Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>);
 
-  const lastTradePriceMinusMinPrice24hAgo = await queryOutcomeValueTimeseries(db, now, {
-    ...params,
-    startTime: null, // we need the lastTradePriceMinusMinPrice as of 24h ago, which might be a price arbitrarily old if an outcome hasn't been traded recently
-    endTime: (params.endTime || now) - 86400, // endTime is a unix timestamp in seconds; 86400 is one day in seconds, ie. endTime should be one day prior to passed params.endTime
-  });
-  const lastTradePriceMinusMinPrice24hAgoByMarketId = _.groupBy(lastTradePriceMinusMinPrice24hAgo, (r) => r.marketId);
-  const lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>> = _.reduce(lastTradePriceMinusMinPrice24hAgoByMarketId, (result, allPricesOneMarket, marketId) => {
-    const allPricesOneMarketByOutcome = _.groupBy(allPricesOneMarket, (r) => r.outcome);
-    const lastPrice24hAgoByOutcome = _.mapValues(allPricesOneMarketByOutcome, (allPricesForOneOutcome) => {
-      let latestPrice = allPricesForOneOutcome[0];
-      for (const price of allPricesForOneOutcome) {
-        if (price.timestamp > latestPrice.timestamp) {
-          latestPrice = price;
-        }
-      }
-      return latestPrice;
-    });
-    result[marketId] = lastPrice24hAgoByOutcome;
-    return result;
-  }, {} as Dictionary<Dictionary<OutcomeValueTimeseries>>);
-
   // The timestamps at which we need to return results
   const startTime = params.startTime || profitsOverTime[0].timestamp;
   const maxResultTime = Math.max(_.last(profitsOverTime)!.timestamp, _.last(outcomeValuesOverTime)!.timestamp);
   const endTime = Math.min(maxResultTime, now);
   const interval = params.periodInterval || null;
   const buckets = bucketRangeByInterval(startTime, endTime, interval);
-  return { profits, outcomeValues, buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId };
+
+  return {
+    profits,
+    outcomeValues,
+    buckets,
+    lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: await getLastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId(db, now, params),
+  };
 }
 
 export interface AllOutcomesProfitLoss {
@@ -582,4 +567,28 @@ export async function getProfitLossSummary(db: Knex, augur: Augur, params: GetPr
   }
 
   return result;
+}
+
+async function getLastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Dictionary<Dictionary<OutcomeValueTimeseries>>> {
+  const lastTradePriceMinusMinPrice24hAgo = await queryOutcomeValueTimeseries(db, now, {
+    ...params,
+    startTime: null, // we need the lastTradePriceMinusMinPrice as of 24h ago, which might be a price arbitrarily old if an outcome hasn't been traded recently
+    endTime: (params.endTime || now) - 86400, // endTime is a unix timestamp in seconds; 86400 is one day in seconds, ie. endTime should be one day prior to passed params.endTime
+  });
+  const lastTradePriceMinusMinPrice24hAgoByMarketId = _.groupBy(lastTradePriceMinusMinPrice24hAgo, (r) => r.marketId);
+  const lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>> = _.reduce(lastTradePriceMinusMinPrice24hAgoByMarketId, (result, allPricesOneMarket, marketId) => {
+    const allPricesOneMarketByOutcome = _.groupBy(allPricesOneMarket, (r) => r.outcome);
+    const lastPrice24hAgoByOutcome = _.mapValues(allPricesOneMarketByOutcome, (allPricesForOneOutcome) => {
+      let latestPrice = allPricesForOneOutcome[0];
+      for (const price of allPricesForOneOutcome) {
+        if (price.timestamp > latestPrice.timestamp) {
+          latestPrice = price;
+        }
+      }
+      return latestPrice;
+    });
+    result[marketId] = lastPrice24hAgoByOutcome;
+    return result;
+  }, {} as Dictionary<Dictionary<OutcomeValueTimeseries>>);
+  return lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId;
 }
