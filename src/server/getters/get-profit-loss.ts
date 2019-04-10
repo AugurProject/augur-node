@@ -8,7 +8,7 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
 import { Address } from "../../types";
-import { Percent, Price, Shares, Tokens, safePercent } from "../../utils/dimension-quantity";
+import { Percent, Price, safePercent, Shares, Tokens } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getTradePrice, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent, getUnrealizedRevenue } from "../../utils/financial-math";
 
 const DEFAULT_NUMBER_OF_BUCKETS = 30;
