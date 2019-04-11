@@ -245,7 +245,7 @@ interface SharePrice {
 // trade (made by anyone) on that market outcome. LastTradePriceMinusMinPrice--
 // also known as the "last price"-- is used to calculate UnrealizedRevenue.
 interface LastTradePriceMinusMinPrice {
-  lastTradePriceMinusMinPrice: Price | undefined; // can be undefined in practice because of the last price cache used in getProfitResultsForTimestamp()
+  lastTradePriceMinusMinPrice: Price;
 }
 
 // MarketMinPrice is a market's minimum TradePrice. In
@@ -423,11 +423,6 @@ export function getUnrealizedCost(params: MarketMinPrice & MarketMaxPrice & NetP
 }
 
 export function getUnrealizedRevenue(params: MarketMinPrice & MarketMaxPrice & NetPosition & LastTradePriceMinusMinPrice): UnrealizedRevenue {
-  if (params.lastTradePriceMinusMinPrice === undefined) {
-    // lastPrice is undefined (ie. unavailable for some reason); we might consider
-    // unrealizedRevenue to be undefined, but instead we return zero for convenience.
-    return { unrealizedRevenue: Tokens.ZERO };
-  }
   const { sharePrice } = getSharePriceForPosition({
     ...params,
     // user has an open position; we are computing potential revenue user would get

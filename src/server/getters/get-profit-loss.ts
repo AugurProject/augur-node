@@ -248,11 +248,6 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     const netPosition = new Shares(outcomePl.position);
     const frozenFunds = new Tokens(outcomePl.frozenFunds);
 
-    const lastTradePriceMinusMinPrice24hAgo: Price | undefined = lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId] !== undefined ? (
-      lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId][outcome] !== undefined ?
-        new Price(lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId][outcome].value) : undefined
-    ) : undefined;
-
     // Ie. averageTradePriceForOpenPosition is assigned to
     // ProfitLossResult.averagePrice, and ProfitLossResult.averagePrice
     // is a TradePrice and not TradePriceMinusMinPrice.
@@ -261,7 +256,11 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       tradePriceMinusMinPrice: averageTradePriceMinusMinPriceForOpenPosition,
     }).tradePrice;
 
-    const lastTradePriceMinusMinPrice: Price | undefined = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(marketMinPrice) : undefined;
+    const lastTradePriceMinusMinPrice24hAgo: Price = lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId] !== undefined ? (
+      lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId][outcome] !== undefined ?
+        new Price(lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId][outcome].value) : Price.ZERO
+    ) : Price.ZERO;
+    const lastTradePriceMinusMinPrice: Price = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(marketMinPrice) : Price.ZERO;
 
     const { unrealizedCost } = getUnrealizedCost({
       marketMinPrice,
@@ -319,11 +318,11 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     });
     const { tradePrice: lastTradePrice } = getTradePrice({
       marketMinPrice,
-      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice || Price.ZERO, // WARNING lastTradePrice will be marketMinPrice, not zero, if lastTradePriceMinusMinPrice is undefined
+      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice,
     });
     const { tradePrice: lastTradePrice24hAgo } = getTradePrice({
       marketMinPrice,
-      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo || Price.ZERO,  // WARNING lastTradePrice24hAgo will be marketMinPrice, not zero, if lastTradePriceMinusMinPrice24hAgo is undefined
+      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo,
     });
     const lastTradePrice24hChangePercent: Percent = safePercent({
       numerator: lastTradePriceMinusMinPrice,
