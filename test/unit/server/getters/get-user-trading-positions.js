@@ -840,8 +840,8 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     expect(tradingPositions[0].lastTradePrice).toEqual("150"); // from order seed
     expect(tradingPositions[0].lastTradePrice24hAgo).toEqual("50"); // no historical outcome_value_timeseries for this outcome, and we expect "50" because that's market.minPrice
     expect(parseFloat(tradingPositions[0].lastTradePrice24hChangePercent)).toEqual(0); // this is "0" and not "150/50 - 1" because there's no historical outcome_value_timeseries which makes the denominator `lastTradePriceMinusMinPrice24hAgo == 0`
-    expect(tradingPositions[0].unrealizedRevenue24hAgo).toEqual("0");
-    expect(parseFloat(tradingPositions[0].unrealizedRevenue24hChangePercent)).toEqual(0);
+    expect(tradingPositions[0].unrealizedRevenue24hAgo).toEqual("600"); // ie. lastTradePrice24hAgo == marketMinPrice because there's no historical outcome_value_timeseries for this outcome, and NetPosition is short -3, and MarketMaxPrice is 250, so we get SharePrice = 250-50 = 200 revenue per share * abs(-3) = 600
+    expect(parseFloat(tradingPositions[0].unrealizedRevenue24hChangePercent)).toEqual(-0.5);
 
     const market = tradingPositionsPerMarket[marketId];
     expect(market.marketId).toEqual(marketId);
@@ -856,8 +856,8 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     expect(market.total).toEqual("623");
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.54649123);
     expect(market.frozenFunds).toEqual("135");
-    expect(market.unrealizedRevenue24hAgo).toEqual("0"); // because there's no historical outcome_value_timeseries
-    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toEqual(0);
+    expect(market.unrealizedRevenue24hAgo).toEqual("600"); // ie. lastTradePrice24hAgo == marketMinPrice because there's no historical outcome_value_timeseries for this outcome, and NetPosition is short -3, and MarketMaxPrice is 250, so we get SharePrice = 250-50 = 200 revenue per share * abs(-3) = 600
+    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toEqual(-0.5);
 
     expect(tradingPositionsTotal).toBeUndefined();
     expect(frozenFundsTotal).toBeUndefined();
@@ -1065,8 +1065,8 @@ describe("server/getters/get-user-trading-positions#tradingPositionsTotal", () =
     expect(tradingPositionsTotal.total).toEqual("632.32");
     expect(parseFloat(tradingPositionsTotal.totalPercent)).toBeCloseTo(0.5472547254725473);
     expect(tradingPositionsTotal.frozenFunds).toEqual("138.5085");
-    expect(tradingPositionsTotal.unrealizedRevenue24hAgo).toEqual("1.8589");
-    expect(parseFloat(tradingPositionsTotal.unrealizedRevenue24hChangePercent)).toBeCloseTo(163.909354);
+    expect(tradingPositionsTotal.unrealizedRevenue24hAgo).toEqual("601.8589");
+    expect(parseFloat(tradingPositionsTotal.unrealizedRevenue24hChangePercent)).toBeCloseTo(-0.4906613493627825);
 
     expect(frozenFundsTotal.frozenFunds).toEqual(bn(138.5085).plus(validityBondSumInEth).toString());
   });
