@@ -319,11 +319,11 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
     });
     const { tradePrice: lastTradePrice } = getTradePrice({
       marketMinPrice,
-      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice || Price.ZERO,
+      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice || Price.ZERO, // WARNING lastTradePrice will be marketMinPrice, not zero, if lastTradePriceMinusMinPrice is undefined
     });
     const { tradePrice: lastTradePrice24hAgo } = getTradePrice({
       marketMinPrice,
-      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo || Price.ZERO,
+      tradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo || Price.ZERO,  // WARNING lastTradePrice24hAgo will be marketMinPrice, not zero, if lastTradePriceMinusMinPrice24hAgo is undefined
     });
     const lastTradePrice24hChangePercent: Percent = safePercent({
       numerator: lastTradePriceMinusMinPrice,
