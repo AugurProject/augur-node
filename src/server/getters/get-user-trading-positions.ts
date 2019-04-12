@@ -214,7 +214,7 @@ function aggregateMarketTradingPositions(tps: Array<TradingPosition>): { [market
     return {
       timestamp: tpsForOneMarketId[0].timestamp,
       marketId: tpsForOneMarketId[0].marketId,
-      ...getAggregatedTradingPosition(tps),
+      ...getAggregatedTradingPosition(tpsForOneMarketId),
     };
   });
 }
