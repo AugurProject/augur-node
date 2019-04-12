@@ -19,6 +19,7 @@ type GetAccountTransactionHistoryParamsType = t.TypeOf<typeof GetAccountTransact
 
 async function transformQueryResults(db: Knex, queryResults: Array<AccountTransactionHistoryRow<BigNumber>>) {
   return await Promise.all(queryResults.map(async (queryResult: AccountTransactionHistoryRow<BigNumber>) => {
+    const divisor = new BigNumber(10**18);
     if (queryResult.action === "BUY") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = queryResult.quantity.times((queryResult.maxPrice).minus(queryResult.price));
@@ -26,7 +27,6 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = queryResult.quantity.times(queryResult.price);
     } else if (queryResult.action === "DISPUTE" || queryResult.action === "INITIAL_REPORT") {
-      const divisor = new BigNumber(100000000000000000);
       queryResult.quantity = queryResult.quantity.dividedBy(divisor);
     } else if (
       queryResult.action === Action.CLAIM_MARKET_CREATOR_FEES || 
@@ -34,7 +34,6 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
       queryResult.action === Action.CLAIM_TRADING_PROCEEDS || 
       queryResult.action === Action.CLAIM_WINNING_CROWDSOURCERS
     ) {
-      const divisor = new BigNumber(100000000000000000);
       if (queryResult.action === Action.CLAIM_TRADING_PROCEEDS) {
         const payoutKey = `payout${queryResult.outcome}` as keyof AccountTransactionHistoryRow<BigNumber>;
         const payoutAmount = queryResult[payoutKey] as BigNumber;
@@ -440,7 +439,7 @@ function queryClaimParticipationTokens(db: Knex, qb: Knex.QueryBuilder, params: 
 }
 
 function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
-  return qb.select(
+  const blah = qb.select(
     db.raw("? as action", Action.CLAIM_TRADING_PROCEEDS),
     db.raw("'ETH' as coin"),
     db.raw("'Claimed trading proceeds' as details"),
@@ -483,6 +482,8 @@ function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetA
     "trading_proceeds.account": params.account,
     "markets.universe": params.universe,
   });
+  console.log(blah);
+  return qb;
 }
 
 function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
