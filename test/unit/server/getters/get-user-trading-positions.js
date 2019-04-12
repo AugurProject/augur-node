@@ -1053,6 +1053,9 @@ describe("server/getters/get-user-trading-positions#tradingPositionsTotal", () =
     });
 
     expect(Object.keys(tradingPositionsPerMarket).length).toEqual(3);
+    expect(tradingPositionsPerMarket["0x0000000000000000000000000000000000000211"].total).toEqual("6.32");
+    expect(tradingPositionsPerMarket["0x0000000000000000000000000000000000000442"].total).toEqual("3");
+    expect(tradingPositionsPerMarket["0x000000000000000000000000000000000000021c"].total).toEqual("623");
 
     expect(tradingPositionsTotal.unrealizedCost).toEqual("138.5085");
     expect(tradingPositionsTotal.unrealizedRevenue).toEqual("306.55");
