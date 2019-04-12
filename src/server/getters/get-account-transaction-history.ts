@@ -19,7 +19,7 @@ type GetAccountTransactionHistoryParamsType = t.TypeOf<typeof GetAccountTransact
 
 async function transformQueryResults(db: Knex, queryResults: Array<AccountTransactionHistoryRow<BigNumber>>) {
   return await Promise.all(queryResults.map(async (queryResult: AccountTransactionHistoryRow<BigNumber>) => {
-    const divisor = new BigNumber(10**18);
+    const divisor = new BigNumber(10 ** 18);
     if (queryResult.action === "BUY") {
       queryResult.fee = queryResult.reporterFees.plus(queryResult.marketCreatorFees);
       queryResult.total = queryResult.quantity.times((queryResult.maxPrice).minus(queryResult.price));
