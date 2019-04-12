@@ -439,7 +439,7 @@ function queryClaimParticipationTokens(db: Knex, qb: Knex.QueryBuilder, params: 
 }
 
 function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
-  const blah = qb.select(
+  return qb.select(
     db.raw("? as action", Action.CLAIM_TRADING_PROCEEDS),
     db.raw("'ETH' as coin"),
     db.raw("'Claimed trading proceeds' as details"),
@@ -482,8 +482,6 @@ function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetA
     "trading_proceeds.account": params.account,
     "markets.universe": params.universe,
   });
-  console.log(blah);
-  return qb;
 }
 
 function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactionHistoryParamsType) {
