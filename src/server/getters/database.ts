@@ -253,7 +253,7 @@ export function queryTradingHistory(
   db: Knex | Knex.Transaction,
   universe: Address | null | undefined,
   account: Address | null | undefined,
-  marketId: Address | null | undefined,
+  marketId: Address | null | undefined | Array<Address>,
   outcome: number | null | undefined,
   orderType: string | null | undefined,
   earliestCreationTime: number | null | undefined,
@@ -291,7 +291,11 @@ export function queryTradingHistory(
 
   if (account != null) query.where((builder) => builder.where("trades.creator", account).orWhere("trades.filler", account));
   if (universe != null) query.where("universe", universe);
-  if (marketId != null) query.where("trades.marketId", marketId);
+  if (typeof marketId === "string") {
+    query.where("trades.marketId", marketId);
+  } else if (Array.isArray(marketId) && marketId.length > 0) {
+    query.whereIn("trades.marketId", marketId); // ie. marketId is list of marketIds
+  }
   if (outcome != null) query.where("trades.outcome", outcome);
   if (orderType != null) query.where("trades.orderType", orderType);
   if (earliestCreationTime != null) query.where("timestamp", ">=", earliestCreationTime);
