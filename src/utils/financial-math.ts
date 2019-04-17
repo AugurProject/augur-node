@@ -164,12 +164,47 @@ interface TotalProfitPercent {
   totalProfitPercent: Percent;
 }
 
-// TradePositionDelta is the increase or decrease to a user's
-// NetPosition as the result of processing a trade. For example if a
-// user's NetPosition=5 and TradePositionDelta=-2, then this trade is
-// partially closing their long position with a trade quantity of 2.
+// TradePositionDelta is the increase or decrease to a user's NetPosition
+// as the result of processing a trade. For example if a user's
+// NetPosition=5 and TradePositionDelta=-2, then this trade is partially
+// closing their long position with a trade quantity of 2. A positive
+// (negative) tradePositionDelta corresponds to a buy (sell) trade.
 interface TradePositionDelta {
   tradePositionDelta: Shares;
+}
+
+// TradeCost is the cost basis for one trade, ie. the amount of tokens a
+// user paid to execute that trade on a market outcome, excluding fees (see
+// TradeCostIncludingFees). TradeCost is a cashflow amount the user remitted
+// based on SharePrice not TradePrice. For example if you execute a sell
+// trade for one share in a binary market at a trade price of 0.2, then your
+// TradeCost is `MarketMaxPrice=1.0 - TradePrice=0.2 --> SharePrice=0.8 * 1
+// share --> TradeCost=0.8``. NB also that in categorical markets the user
+// may pay shares of other outcomes in lieu of tokens, which doesn't change
+// the calculation for TradeCost, but it does mean that (in a categorical
+// market) TradeCost may be greater than the actual tokens a user remitted.
+interface TradeCost {
+  tradeCost: Tokens;
+}
+
+// TradeCostIncludingFees is TradeCost plus TotalFees for that trade.
+interface TradeCostIncludingFees {
+  tradeCostIncludingFees: Tokens;
+}
+
+// TradeBuyOrSell represents the type of a trade being either a "buy" trade
+// or a "sell" trade, from the perspective of this user. Each trade has
+// a counterparty that sees this trade as the opposite type, ie. if you
+// and I do a trade, and my trade is a "buy", then your trade is a "sell".
+interface TradeBuyOrSell {
+  tradeBuyOrSell: "buy" | "sell";
+}
+
+// TradeQuantity is the number of shares bought or sold in one trade.
+// TradeQuantity is context-free: it doesn't know if this trade was a
+// buy/sell trade, or if this trade opened/closed/reversed a user's position.
+interface TradeQuantity {
+  tradeQuantity: Shares;
 }
 
 // TradeQuantityClosed is portion of a user's NetPosition which was
@@ -260,6 +295,26 @@ interface MarketMinPrice {
 // general to convert between TradePrice and SharePrice.
 interface MarketMaxPrice {
   marketMaxPrice: Price;
+}
+
+// ReporterFees are fees paid by a user to Augur Reporters based on the
+// universe-wide variable reporter fee rate. ReporterFees is within some context,
+// eg. reporter fees for one trade or all reporter fees ever paid by a user.
+interface ReporterFees {
+  reporterFees: Tokens;
+}
+
+// MarketCreatorFees are fees paid by a user to the creator of a
+// market based on the market creator fee rate set by that creator.
+// MarketCreatorFees is within some context, eg. market creator fees
+// for one trade or all market creator fees ever paid by a user.
+interface MarketCreatorFees {
+  marketCreatorFees: Tokens;
+}
+
+// TotalFees is ReporterFees plus MarketCreatorFees.
+interface TotalFees {
+  totalFees: Tokens;
 }
 
 export function getPositionType(params: NetPosition): PositionType {
@@ -409,6 +464,33 @@ export function getRealizedProfitPercent(params: RealizedCost & RealizedProfit):
   };
 }
 
+export function getTradePositionDelta(params: TradeBuyOrSell & TradeQuantity): TradePositionDelta {
+  return {
+    tradePositionDelta: params.tradeBuyOrSell === "buy" ? params.tradeQuantity
+      : params.tradeQuantity.negated(),
+  };
+}
+
+export function getTradeCost(params: MarketMinPrice & MarketMaxPrice & TradePrice & (TradePositionDelta | (TradeBuyOrSell & TradeQuantity))): TradeCost {
+  // Compute TradeCost by constructing a position comprised of only this trade
+  const { tradePositionDelta } = "tradePositionDelta" in params ? params : getTradePositionDelta(params);
+  const { unrealizedCost } = getUnrealizedCost({
+    ...params,
+    netPosition: tradePositionDelta,
+    averageTradePriceMinusMinPriceForOpenPosition: getTradePriceMinusMinPrice(params).tradePriceMinusMinPrice,
+  });
+  return {
+    tradeCost: unrealizedCost,
+  };
+}
+
+export function getTradeCostIncludingFees(params: MarketMinPrice & MarketMaxPrice & TradePrice & TradePositionDelta & ReporterFees & MarketCreatorFees): TradeCostIncludingFees {
+  return {
+    tradeCostIncludingFees: getTradeCost(params).tradeCost
+      .plus(getTotalFees(params).totalFees),
+  };
+}
+
 export function getUnrealizedCost(params: MarketMinPrice & MarketMaxPrice & NetPosition & AverageTradePriceMinusMinPriceForOpenPosition): UnrealizedCost {
   const { sharePrice } = getSharePriceForPosition({
     ...params,
@@ -488,4 +570,10 @@ export function getTotalProfitPercent(params:
   }
   const { totalProfit } = "totalProfit" in params ? params : getTotalProfit(params);
   return { totalProfitPercent: totalProfit.dividedBy(totalCost).expect(Percent) };
+}
+
+export function getTotalFees(params: ReporterFees & MarketCreatorFees): TotalFees {
+  return {
+    totalFees: params.reporterFees.plus(params.marketCreatorFees),
+  };
 }
