@@ -24,7 +24,7 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
     const divisor = new BigNumber(10 ** 18);
     if (queryResult.action === "BUY" || queryResult.action === "SELL") {
       const { tradeCost } = getTradeCost({
-        marketMinPrice: new Price(queryResult.maxPrice), // TODO WARNING ERROR - this should be queryResult.minPrice
+        marketMinPrice: new Price(queryResult.minPrice),
         marketMaxPrice: new Price(queryResult.maxPrice),
         tradeBuyOrSell: queryResult.action === "BUY" ? "buy" : "sell",
         tradeQuantity: new Shares(queryResult.quantity),

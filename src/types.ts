@@ -771,6 +771,7 @@ export interface AccountTransactionHistoryRow<BigNumberType> {
   total: BigNumberType;
   transactionHash: string;
   marketCreatorFees: BigNumberType;
+  minPrice: BigNumberType;
   maxPrice: BigNumberType;
   numCreatorShares: BigNumberType;
   numCreatorTokens: BigNumberType;
