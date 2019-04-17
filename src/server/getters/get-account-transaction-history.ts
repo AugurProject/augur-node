@@ -2,6 +2,7 @@ import * as t from "io-ts";
 import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
 import { Action, Coin, SortLimitParams, AccountTransactionHistoryRow } from "../../types";
+import { getUnrealizedCost } from "../../utils/financial-math";
 import { queryModifier } from "./database";
 
 export const GetAccountTransactionHistoryParams = t.intersection([
@@ -108,6 +109,7 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
     delete queryResult.marketId;
     delete queryResult.marketCreatorFees;
     delete queryResult.marketType;
+    delete queryResult.minPrice;
     delete queryResult.maxPrice;
     delete queryResult.numPayoutTokens;
     delete queryResult.numShares;
@@ -135,6 +137,7 @@ function queryBuy(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransaction
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
+      "markets.minPrice",
       "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
@@ -180,6 +183,7 @@ function queryBuy(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransaction
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
+      "markets.minPrice",
       "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
@@ -229,6 +233,7 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
+      db.raw("NULL as minPrice"),
       db.raw("NULL as maxPrice"),
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
@@ -274,6 +279,7 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
+      db.raw("NULL as minPrice"),
       db.raw("NULL as maxPrice"),
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
@@ -322,6 +328,7 @@ function queryCanceled(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransa
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -367,6 +374,7 @@ function queryClaimMarketCreatorFees(db: Knex, qb: Knex.QueryBuilder, params: Ge
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -407,6 +415,7 @@ function queryClaimParticipationTokens(db: Knex, qb: Knex.QueryBuilder, params: 
     db.raw("NULL as marketId"),
     db.raw("NULL as marketCreatorFees"),
     db.raw("NULL as marketType"),
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -446,6 +455,7 @@ function queryClaimTradingProceeds(db: Knex, qb: Knex.QueryBuilder, params: GetA
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     "trading_proceeds.numPayoutTokens",
     "trading_proceeds.numShares",
@@ -495,6 +505,7 @@ function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params:
         "markets.marketId",
         db.raw("NULL as marketCreatorFees"),
         "markets.marketType",
+        db.raw("NULL as minPrice"),
         db.raw("NULL as maxPrice"),
         db.raw("NULL as numPayoutTokens"),
         db.raw("NULL as numShares"),
@@ -543,6 +554,7 @@ function queryClaimWinningCrowdsourcers(db: Knex, qb: Knex.QueryBuilder, params:
         "markets.marketId",
         db.raw("NULL as marketCreatorFees"),
         "markets.marketType",
+        db.raw("NULL as minPrice"),
         db.raw("NULL as maxPrice"),
         db.raw("NULL as numPayoutTokens"),
         db.raw("NULL as numShares"),
@@ -593,6 +605,7 @@ function queryDispute(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransac
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -635,6 +648,7 @@ function queryInitialReport(db: Knex, qb: Knex.QueryBuilder, params: GetAccountT
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -675,6 +689,7 @@ function queryMarketCreation(db: Knex, qb: Knex.QueryBuilder, params: GetAccount
     "markets.marketId",
     db.raw("NULL as marketCreatorFees"),
     "markets.marketType",
+    db.raw("NULL as minPrice"),
     db.raw("NULL as maxPrice"),
     db.raw("NULL as numPayoutTokens"),
     db.raw("NULL as numShares"),
@@ -715,6 +730,7 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
       "markets.marketId",
       db.raw("NULL as marketCreatorFees"),
       "markets.marketType",
+      db.raw("NULL as minPrice"),
       db.raw("NULL as maxPrice"),
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
@@ -756,6 +772,7 @@ function queryCompleteSets(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTr
       "markets.marketId",
       db.raw("markets.marketCreatorFeeRate as marketCreatorFees"),
       "markets.marketType",
+      db.raw("NULL as minPrice"),
       db.raw("NULL as maxPrice"),
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
