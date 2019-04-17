@@ -133,6 +133,9 @@ abstract class Quantity<T extends Quantity<T>> {
   public abs(): T {
     return new this.derivedConstructor(this.magnitude.abs());
   }
+  public negated(): T {
+    return new this.derivedConstructor(this.magnitude.negated());
+  }
   // TODO generalized min(array)
   public min<B extends Quantity<B>>(other: B): T {
     if (!isEqual(this.dimension, other.dimension)) {
