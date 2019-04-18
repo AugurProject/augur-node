@@ -22,11 +22,11 @@ type GetAccountTransactionHistoryParamsType = t.TypeOf<typeof GetAccountTransact
 async function transformQueryResults(db: Knex, queryResults: Array<AccountTransactionHistoryRow<BigNumber>>) {
   return await Promise.all(queryResults.map(async (queryResult: AccountTransactionHistoryRow<BigNumber>) => {
     const divisor = new BigNumber(10 ** 18);
-    if (queryResult.action === "BUY" || queryResult.action === "SELL") {
+    if (queryResult.action === Action.BUY || queryResult.action === Action.SELL) {
       const { tradeCost } = getTradeCost({
         marketMinPrice: new Price(queryResult.minPrice),
         marketMaxPrice: new Price(queryResult.maxPrice),
-        tradeBuyOrSell: queryResult.action === "BUY" ? "buy" : "sell",
+        tradeBuyOrSell: queryResult.action === Action.BUY ? "buy" : "sell",
         tradeQuantity: new Shares(queryResult.quantity),
         tradePrice: new Price(queryResult.price),
       });
@@ -36,7 +36,7 @@ async function transformQueryResults(db: Knex, queryResults: Array<AccountTransa
       });
       queryResult.fee = totalFees.magnitude;
       queryResult.total = tradeCost.magnitude;
-    } else if (queryResult.action === "DISPUTE" || queryResult.action === "INITIAL_REPORT") {
+    } else if (queryResult.action === Action.DISPUTE || queryResult.action === Action.INITIAL_REPORT) {
       queryResult.quantity = queryResult.quantity.dividedBy(divisor);
     } else if (
       queryResult.action === Action.CLAIM_MARKET_CREATOR_FEES ||
@@ -242,8 +242,8 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
-      db.raw("NULL as minPrice"),
-      db.raw("NULL as maxPrice"),
+      "markets.minPrice",
+      "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
       "trades.reporterFees",
@@ -288,8 +288,8 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
-      db.raw("NULL as minPrice"),
-      db.raw("NULL as maxPrice"),
+      "markets.minPrice",
+      "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
       "trades.reporterFees",
