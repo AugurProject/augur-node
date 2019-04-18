@@ -242,8 +242,8 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
-      db.raw("NULL as minPrice"),
-      db.raw("NULL as maxPrice"),
+      "markets.minPrice",
+      "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
       "trades.reporterFees",
@@ -288,8 +288,8 @@ function querySell(db: Knex, qb: Knex.QueryBuilder, params: GetAccountTransactio
       "markets.marketId",
       "trades.marketCreatorFees",
       "markets.marketType",
-      db.raw("NULL as minPrice"),
-      db.raw("NULL as maxPrice"),
+      "markets.minPrice",
+      "markets.maxPrice",
       db.raw("NULL as numPayoutTokens"),
       db.raw("NULL as numShares"),
       "trades.reporterFees",
@@ -825,32 +825,32 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
   params.universe = params.universe.toLowerCase();
 
   const query = db.select("data.*", "blocks.timestamp").from((qb: Knex.QueryBuilder) => {
-    if ((params.action === Action.BUY || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.BUY || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryBuy(db, qb, params);
       });
     }
-    if ((params.action === Action.SELL || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.SELL || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         querySell(db, qb, params);
       });
     }
-    if ((params.action === Action.CANCEL || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.CANCEL || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryCanceled(db, qb, params);
       });
     }
-    if ((params.action === Action.CLAIM_MARKET_CREATOR_FEES || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.CLAIM_MARKET_CREATOR_FEES || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryClaimMarketCreatorFees(db, qb, params);
       });
     }
-    if ((params.action === Action.CLAIM_PARTICIPATION_TOKENS || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.CLAIM_PARTICIPATION_TOKENS || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryClaimParticipationTokens(db, qb, params);
       });
     }
-    if ((params.action === Action.CLAIM_TRADING_PROCEEDS || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.CLAIM_TRADING_PROCEEDS || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryClaimTradingProceeds(db, qb, params);
       });
@@ -860,22 +860,22 @@ export async function getAccountTransactionHistory(db: Knex, augur: {}, params: 
         queryClaimWinningCrowdsourcers(db, qb, params);
       });
     }
-    if ((params.action === Action.MARKET_CREATION || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.MARKET_CREATION || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryMarketCreation(db, qb, params);
       });
     }
-    if ((params.action === Action.DISPUTE || params.action === Action.ALL) && (params.coin === Coin.REP || params.coin === Coin.ALL)) {
+    if ((params.action === Action.DISPUTE || params.action === Action.ALL) && (params.coin === "REP" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryDispute(db, qb, params);
       });
     }
-    if ((params.action === Action.INITIAL_REPORT || params.action === Action.ALL) && (params.coin === Coin.REP || params.coin === Coin.ALL)) {
+    if ((params.action === Action.INITIAL_REPORT || params.action === Action.ALL) && (params.coin === "REP" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryInitialReport(db, qb, params);
       });
     }
-    if ((params.action === Action.COMPLETE_SETS || params.action === Action.ALL) && (params.coin === Coin.ETH || params.coin === Coin.ALL)) {
+    if ((params.action === Action.COMPLETE_SETS || params.action === Action.ALL) && (params.coin === "ETH" || params.coin === "ALL")) {
       qb.union((qb: Knex.QueryBuilder) => {
         queryCompleteSets(db, qb, params);
       });
