@@ -5,7 +5,7 @@ import { ProfitLossTimeseries } from "../../../server/getters/get-profit-loss";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
-import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeRealizedProfitDelta } from "../../../utils/financial-math";
+import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeRealizedProfitDelta, getTradeQuantityOpened } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
@@ -87,6 +87,10 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   const realizedProfit = prevData ? new Tokens(prevData.profit) : Tokens.ZERO;
   const frozenFunds = prevData ? prevData.frozenFunds : ZERO;
 
+  const { tradeQuantityOpened } = getTradeQuantityOpened({
+    netPosition,
+    tradePositionDelta,
+  });
   const { nextNetPosition } = getNextNetPosition({
     netPosition,
     tradePositionDelta,
@@ -134,6 +138,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     outcome,
     price: nextAverageTradePriceMinusMinPriceForOpenPosition.magnitude.toString(),
     position: nextNetPosition.magnitude.toString(),
+    quantityOpened: tradeQuantityOpened.magnitude.toString(),
     profit: nextRealizedProfit.magnitude.toString(),
     transactionHash,
     timestamp,

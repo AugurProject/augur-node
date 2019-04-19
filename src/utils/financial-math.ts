@@ -258,7 +258,7 @@ interface TradePrice {
 // For technical/historical reasons we often pass around and store
 // TradePriceMinusMinPrice instead of TradePrice. Eg. in the DB
 // wcl_profit_loss_timeseries.price is a TradePriceMinusMinPrice.
-interface TradePriceMinusMinPrice {
+export interface TradePriceMinusMinPrice {
   tradePriceMinusMinPrice: Price;
 }
 

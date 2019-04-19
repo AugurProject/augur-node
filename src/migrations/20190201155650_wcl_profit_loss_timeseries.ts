@@ -29,6 +29,7 @@ exports.up = async (knex: Knex): Promise<any> => {
     table.specificType("outcome", "integer NOT NULL CONSTRAINT nonnegativeOutcome CHECK (\"outcome\" >= 0)");
     table.specificType("price", "varchar(255) NOT NULL CONSTRAINT nonnegativeAmount CHECK (ltrim(\"price\", '-') = \"price\")");
     table.string("position", 42).notNullable();
+    table.string("quantityOpened", 42).notNullable();
     table.string("profit", 255).defaultTo("0");
     table.string("frozenFunds", 255).defaultTo("0");
     table.string("realizedCost", 255).defaultTo("0");
