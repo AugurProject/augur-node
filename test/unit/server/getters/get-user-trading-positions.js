@@ -64,6 +64,7 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -89,6 +90,11 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
     expect(tradingPositions[0].totalCost).toEqual("3.5");
     expect(tradingPositions[0].total).toEqual("0.7");
     expect(tradingPositions[0].totalPercent).toEqual("0.2");
+    expect(tradingPositions[0].lastTradePrice).toEqual("0.58"); // from order seed
+    expect(tradingPositions[0].lastTradePrice24hAgo).toEqual("0.9137"); // from most recent outcome_value_timeseries seed
+    expect(parseFloat(tradingPositions[0].lastTradePrice24hChangePercent)).toBeCloseTo(-0.3652183);
+    expect(tradingPositions[0].unrealizedRevenue24hAgo).toEqual("0.6041");
+    expect(parseFloat(tradingPositions[0].unrealizedRevenue24hChangePercent)).toBeCloseTo(3.8667439);
 
     const market = tradingPositionsPerMarket[marketId];
     expect(market.marketId).toEqual(marketId);
@@ -103,8 +109,11 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
     expect(market.total).toEqual("0.7");
     expect(market.totalPercent).toEqual("0.2");
     expect(market.frozenFunds).toEqual("2.45");
+    expect(market.unrealizedRevenue24hAgo).toEqual("0.6041");
+    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toBeCloseTo(3.8667439);
 
-    expect(frozenFundsTotal.frozenFunds).toEqual(bn(2.45).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 });
 
@@ -182,6 +191,7 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -207,6 +217,11 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
     expect(tradingPositions[0].totalCost).toEqual("8.44");
     expect(tradingPositions[0].total).toEqual("6.32");
     expect(parseFloat(tradingPositions[0].totalPercent)).toBeCloseTo(0.748815);
+    expect(tradingPositions[0].lastTradePrice).toEqual("0.15"); // from order seed
+    expect(tradingPositions[0].lastTradePrice24hAgo).toEqual("0.9137"); // from most recent outcome_value_timeseries seed
+    expect(parseFloat(tradingPositions[0].lastTradePrice24hChangePercent)).toBeCloseTo(-0.835832);
+    expect(tradingPositions[0].unrealizedRevenue24hAgo).toEqual("0.2589");
+    expect(parseFloat(tradingPositions[0].unrealizedRevenue24hChangePercent)).toBeCloseTo(8.84936);
 
     const market = tradingPositionsPerMarket[marketId];
     expect(market.marketId).toEqual(marketId);
@@ -221,13 +236,17 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
     expect(market.total).toEqual("6.32");
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.748815);
     expect(market.frozenFunds).toEqual("1.1085");
+    expect(market.unrealizedRevenue24hAgo).toEqual("0.2589");
+    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toBeCloseTo(8.84936);
 
-    expect(frozenFundsTotal.frozenFunds).toEqual(bn(1.1085).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 
   it("get the positions for an account which has no trades", async () => {
     const {
       frozenFundsTotal,
+      tradingPositionsTotal,
       tradingPositions,
     } = await getUserTradingPositions({
       account: "0x0000000000000000000000000000000000nobody",
@@ -241,7 +260,8 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
     });
 
     expect(tradingPositions).toEqual([]);
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual("0");
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 });
 
@@ -312,6 +332,7 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -384,7 +405,8 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.139534);
     expect(market.frozenFunds).toEqual("1.75");
 
-    expect(frozenFundsTotal.frozenFunds.toString()).toEqual(bn(1.75).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 });
 
@@ -455,6 +477,7 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -527,7 +550,8 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.167364);
     expect(market.frozenFunds).toEqual("1.35");
 
-    expect(frozenFundsTotal.frozenFunds).toEqual(bn(1.35).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 });
 
@@ -616,6 +640,7 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -645,6 +670,11 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(positionA.totalCost).toEqual("1.5");
     expect(positionA.total).toEqual("-0.5");
     expect(parseFloat(positionA.totalPercent)).toBeCloseTo(-0.33333);
+    expect(positionA.lastTradePrice).toEqual("0.1"); // from order seed
+    expect(positionA.lastTradePrice24hAgo).toEqual("0.4872"); // from most recent outcome_value_timeseries seed
+    expect(parseFloat(positionA.lastTradePrice24hChangePercent)).toBeCloseTo(-0.794745);
+    expect(positionA.unrealizedRevenue24hAgo).toEqual("0");
+    expect(positionA.unrealizedRevenue24hChangePercent).toEqual("0");
 
     expect(positionB.netPosition).toEqual("12");
     expect(positionB.averagePrice).toEqual("0.1");
@@ -659,6 +689,11 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(positionB.totalCost).toEqual("2.5");
     expect(positionB.total).toEqual("2.5");
     expect(parseFloat(positionB.totalPercent)).toEqual(1);
+    expect(positionB.lastTradePrice).toEqual("0.2"); // from order seed
+    expect(positionB.lastTradePrice24hAgo).toEqual("0"); // from most recent outcome_value_timeseries seed
+    expect(parseFloat(positionB.lastTradePrice24hChangePercent)).toEqual(0);
+    expect(positionB.unrealizedRevenue24hAgo).toEqual("0");
+    expect(parseFloat(positionB.unrealizedRevenue24hChangePercent)).toEqual(0);
 
     expect(positionC.netPosition).toEqual("2");
     expect(positionC.averagePrice).toEqual("0.6");
@@ -673,6 +708,11 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(positionC.totalCost).toEqual("3");
     expect(positionC.total).toEqual("1");
     expect(parseFloat(positionC.totalPercent)).toBeCloseTo(0.33333);
+    expect(positionC.lastTradePrice).toEqual("0.8"); // from order seed
+    expect(positionC.lastTradePrice24hAgo).toEqual("0.8"); // from most recent outcome_value_timeseries seed
+    expect(parseFloat(positionC.lastTradePrice24hChangePercent)).toEqual(0);
+    expect(positionC.unrealizedRevenue24hAgo).toEqual("1.6");
+    expect(parseFloat(positionC.unrealizedRevenue24hChangePercent)).toEqual(0);
 
     const market = tradingPositionsPerMarket[marketId];
     expect(market.marketId).toEqual(marketId);
@@ -687,8 +727,11 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
     expect(market.total).toEqual("3");
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.428571);
     expect(market.frozenFunds).toEqual("2.4");
+    expect(market.unrealizedRevenue24hAgo).toEqual("1.6");
+    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toEqual(1.5);
 
-    expect(frozenFundsTotal.frozenFunds).toEqual(bn(2.4).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
   });
 });
 
@@ -766,6 +809,7 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     const {
       frozenFundsTotal,
       tradingPositions,
+      tradingPositionsTotal,
       tradingPositionsPerMarket,
     } = await getUserTradingPositions({
       universe,
@@ -793,6 +837,11 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     expect(tradingPositions[0].totalCost).toEqual("1140");
     expect(tradingPositions[0].total).toEqual("623");
     expect(parseFloat(tradingPositions[0].totalPercent)).toBeCloseTo(0.54649123);
+    expect(tradingPositions[0].lastTradePrice).toEqual("150"); // from order seed
+    expect(tradingPositions[0].lastTradePrice24hAgo).toEqual("50"); // no historical outcome_value_timeseries for this outcome, and we expect "50" because that's market.minPrice
+    expect(parseFloat(tradingPositions[0].lastTradePrice24hChangePercent)).toEqual(0); // this is "0" and not "150/50 - 1" because there's no historical outcome_value_timeseries which makes the denominator `lastTradePriceMinusMinPrice24hAgo == 0`
+    expect(tradingPositions[0].unrealizedRevenue24hAgo).toEqual("600"); // ie. lastTradePrice24hAgo == marketMinPrice because there's no historical outcome_value_timeseries for this outcome, and NetPosition is short -3, and MarketMaxPrice is 250, so we get SharePrice = 250-50 = 200 revenue per share * abs(-3) = 600
+    expect(parseFloat(tradingPositions[0].unrealizedRevenue24hChangePercent)).toEqual(-0.5);
 
     const market = tradingPositionsPerMarket[marketId];
     expect(market.marketId).toEqual(marketId);
@@ -807,8 +856,222 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
     expect(market.total).toEqual("623");
     expect(parseFloat(market.totalPercent)).toBeCloseTo(0.54649123);
     expect(market.frozenFunds).toEqual("135");
+    expect(market.unrealizedRevenue24hAgo).toEqual("600"); // ie. lastTradePrice24hAgo == marketMinPrice because there's no historical outcome_value_timeseries for this outcome, and NetPosition is short -3, and MarketMaxPrice is 250, so we get SharePrice = 250-50 = 200 revenue per share * abs(-3) = 600
+    expect(parseFloat(market.unrealizedRevenue24hChangePercent)).toEqual(-0.5);
 
-    expect(frozenFundsTotal.frozenFunds).toEqual(bn(135).plus(validityBondSumInEth).toString());
+    expect(tradingPositionsTotal).toBeUndefined();
+    expect(frozenFundsTotal).toBeUndefined();
+  });
+});
+
+describe("server/getters/get-user-trading-positions#tradingPositionsTotal", () => {
+  let db;
+  var augur = new Augur();
+  var universe = "0x000000000000000000000000000000000000000b";
+  var logFactory = makeLogFactory(universe);
+  var yesShareToken = "0x0124000000000000000000000000000000000000";
+  var aShareToken = "0x0124A00000000000000000000000000000000000";
+  var bShareToken = "0x0124B00000000000000000000000000000000000";
+  var cShareToken = "0x0124C00000000000000000000000000000000000";
+  var longShareToken = "0x0124100000000000000000000000000000000000";
+  var account = "0x0000000000000000000000000000000000b0b001";
+
+  // These logs are concatenation of logs from other test cases, so that user has positions in multiple markets
+  var logs = [
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000001b0b",
+      amountFilled: new BigNumber(10).pow(15), // 10 shares
+      numFillerTokens: ethToWei(bn(3.5)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000002b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(3),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000003b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
+      numFillerTokens: ethToWei(bn(4.94)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000004b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(10),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: yesShareToken,
+      filler: account,
+      orderId: "0x8000000000000000000000000000000000000000000000000000000000005b0b",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(7),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: aShareToken,
+      filler: account,
+      orderId: "SELL_A_0.15",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
+      numFillerTokens: ethToWei(bn(1.5)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: bShareToken,
+      filler: account,
+      orderId: "SELL_B_0.1",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(25),
+      numFillerTokens: ethToWei(bn(2.5)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: cShareToken,
+      filler: account,
+      orderId: "SELL_C_0.6",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(5),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(5),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: bShareToken,
+      filler: account,
+      orderId: "BUY_B_0.2",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(13),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(13),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: cShareToken,
+      filler: account,
+      orderId: "BUY_C_0.8",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
+      numFillerTokens: ethToWei(bn(0.6)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: aShareToken,
+      filler: account,
+      orderId: "BUY_A_0.1",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(10),
+      numFillerTokens: ethToWei(bn(1.8)),
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(8),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: longShareToken,
+      filler: account,
+      orderId: "SHORT_200",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(2),
+      numFillerTokens: ethToWei(bn(300)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: longShareToken,
+      filler: account,
+      orderId: "SHORT_180",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(3),
+      numFillerTokens: ethToWei(bn(390)),
+      numFillerShares: ZERO,
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: longShareToken,
+      filler: account,
+      orderId: "LONG_202",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(4),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(4),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: longShareToken,
+      filler: account,
+      orderId: "LONG_205",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(11),
+      numFillerTokens: ethToWei(bn(450)),
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(1),
+    }),
+    logFactory.OrderFilled({
+      universe,
+      shareToken: longShareToken,
+      filler: account,
+      orderId: "SHORT_150",
+      amountFilled: new BigNumber(10).pow(14).multipliedBy(7),
+      numFillerTokens: ZERO,
+      numFillerShares: new BigNumber(10).pow(14).multipliedBy(7),
+    }),
+  ];
+
+  beforeEach(async () => {
+    processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
+    db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
+  });
+
+  afterEach(async () => {
+    await db.destroy();
+  });
+
+  const getUserTradingPositions = async (params) => {
+    return JSON.parse(JSON.stringify(await dispatchJsonRpcRequest(db, { method: "getUserTradingPositions", params }, augur)));
+  };
+
+  it("get user's full position", async () => {
+    const {
+      tradingPositionsPerMarket,
+      tradingPositionsTotal,
+      frozenFundsTotal,
+    } = await getUserTradingPositions({
+      universe,
+      account,
+      outcome: null,
+      sortBy: null,
+      isSortDescending: null,
+      limit: null,
+      offset: null,
+    });
+
+    expect(Object.keys(tradingPositionsPerMarket).length).toEqual(3);
+    expect(tradingPositionsPerMarket["0x0000000000000000000000000000000000000211"].total).toEqual("6.32");
+    expect(tradingPositionsPerMarket["0x0000000000000000000000000000000000000442"].total).toEqual("3");
+    expect(tradingPositionsPerMarket["0x000000000000000000000000000000000000021c"].total).toEqual("623");
+
+    expect(tradingPositionsTotal.unrealizedCost).toEqual("138.5085");
+    expect(tradingPositionsTotal.unrealizedRevenue).toEqual("306.55");
+    expect(tradingPositionsTotal.unrealized).toEqual("168.0415");
+    expect(parseFloat(tradingPositionsTotal.unrealizedPercent)).toBeCloseTo(1.2132215712393104);
+    expect(tradingPositionsTotal.realizedCost).toEqual("1016.9315");
+    expect(tradingPositionsTotal.realized).toEqual("464.2785");
+    expect(parseFloat(tradingPositionsTotal.realizedPercent)).toBeCloseTo(0.4565484499201765);
+    expect(tradingPositionsTotal.totalCost).toEqual("1155.44");
+    expect(tradingPositionsTotal.total).toEqual("632.32");
+    expect(parseFloat(tradingPositionsTotal.totalPercent)).toBeCloseTo(0.5472547254725473);
+    expect(tradingPositionsTotal.frozenFunds).toEqual("138.5085");
+    expect(tradingPositionsTotal.unrealizedRevenue24hAgo).toEqual("601.8589");
+    expect(parseFloat(tradingPositionsTotal.unrealizedRevenue24hChangePercent)).toBeCloseTo(-0.4906613493627825);
+
+    expect(frozenFundsTotal.frozenFunds).toEqual(bn(138.5085).plus(validityBondSumInEth).toString());
   });
 });
 
@@ -818,7 +1081,6 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
   var universe = "0x000000000000000000000000000000000000000b";
   var logFactory = makeLogFactory(universe);
   var account = "0x0000000000000000000000000000000000b0b001";
-  var marketId = "0x000000000000000000000000000000000000021c";
 
   beforeEach(async () => {
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
@@ -839,7 +1101,6 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
     } = await getUserTradingPositions({
       universe,
       account,
-      marketId,
       outcome: null,
       sortBy: null,
       isSortDescending: null,
@@ -860,7 +1121,6 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
     } = await getUserTradingPositions({
       universe,
       account,
-      marketId,
       outcome: null,
       sortBy: null,
       isSortDescending: null,

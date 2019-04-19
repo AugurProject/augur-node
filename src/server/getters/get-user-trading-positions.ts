@@ -7,7 +7,7 @@ import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-
 import { BN_WEI_PER_ETHER, ZERO } from "../../constants";
 import { Address, MarketsRow, OutcomeParam, ReportingState, SortLimitParams } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
-import { Tokens } from "../../utils/dimension-quantity";
+import { Percent, safePercent, Tokens } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalProfitPercent, getUnrealizedProfitPercent } from "../../utils/financial-math";
 import { getAllOutcomesProfitLoss, ProfitLossResult } from "./get-profit-loss";
 
@@ -26,21 +26,31 @@ export const UserTradingPositionsParams = t.intersection([
   }),
 ]);
 
+// TradingPosition represents a user's current or historical
+// trading activity in one market outcome. See NetPosition.
 export interface TradingPosition extends ProfitLossResult, FrozenFunds {
   position: string;
 }
 
-export interface MarketTradingPosition extends Pick<ProfitLossResult,
-  "timestamp" | "marketId" | "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
-  "unrealizedPercent" | "totalPercent" | "unrealizedRevenue"
+// AggregatedTradingPosition is an aggregation of TradingPosition for some
+// scope, eg. an aggregation of all TradingPosition in a user's portfolio.
+export interface AggregatedTradingPosition extends Pick<ProfitLossResult,
+  "realized" | "unrealized" | "total" | "unrealizedCost" | "realizedCost" | "totalCost" | "realizedPercent" |
+  "unrealizedPercent" | "totalPercent" | "unrealizedRevenue" | "unrealizedRevenue24hAgo" | "unrealizedRevenue24hChangePercent"
   >, FrozenFunds { }
 
+// MarketTradingPosition is a market-level aggregation of
+// TradingPositions, ie. an aggregation of all outcomes in one market.
+export interface MarketTradingPosition extends AggregatedTradingPosition, Pick<ProfitLossResult, "timestamp" | "marketId"> { }
+
+// GetUserTradingPositionsResponse is the response type for getUserTradingPositions()
 export interface GetUserTradingPositionsResponse {
   tradingPositions: Array<TradingPosition>; // per-outcome TradingPosition, where unrealized profit is relative to an outcome's last price (as traded by anyone)
-  tradingPositionsPerMarket: { // per-market rollup of trading positions
+  tradingPositionsPerMarket: { // per-market aggregation of trading positions
     [marketId: string]: MarketTradingPosition,
   };
-  frozenFundsTotal: FrozenFunds; // User's total frozen funds. See docs on FrozenFunds. This total includes market validity bonds in addition to sum of frozen funds for all market outcomes in which user has a position.
+  tradingPositionsTotal: AggregatedTradingPosition | undefined; // portfolio-level aggregation of all user's trading positions. Undefined if and only if getUserTradingPositions() was filtered by marketId
+  frozenFundsTotal: FrozenFunds | undefined; // user's total frozen funds. Undefined if and only if getUserTradingPositions() was filtered by marketId. WARNING - frozenFundsTotal is greater than tradingPositionsTotal.frozenFunds (in general) because frozenFundsTotal also includes sum of market validity bonds for active markets this user created
 }
 
 interface RawPosition {
@@ -146,6 +156,11 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
       totalPercent: ZERO,
       unrealizedRevenue: ZERO,
       frozenFunds: ZERO,
+      lastTradePrice: ZERO,
+      lastTradePrice24hAgo: ZERO,
+      lastTradePrice24hChangePercent: ZERO,
+      unrealizedRevenue24hAgo: ZERO,
+      unrealizedRevenue24hChangePercent: ZERO,
     };
   });
 
@@ -155,18 +170,23 @@ export async function getUserTradingPositions(db: Knex, augur: Augur, params: t.
     positions = _.filter(positions, { outcome: params.outcome });
   }
 
-  const frozenFundsTotal: FrozenFunds = {
-    frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO),
+  // frozenFundsTotal is undefined iff request included a marketId,
+  // because the data to compute totals is unavailable when filtering
+  // by a marketId. By our business definition, a user's total frozen
+  // funds includes their market validity bonds. (Validity bonds are
+  // paid in ETH and are escrowed until the markets resolve valid.)
+  const frozenFundsTotal: FrozenFunds | undefined = params.marketId ? undefined : {
+    frozenFunds: positions.reduce<BigNumber>((sum: BigNumber, p: TradingPosition) => sum.plus(p.frozenFunds), ZERO).plus(await getSumOfMarketValidityBondsPromise),
   };
 
-  // By our business definition, a user's total frozen funds
-  // includes their market validity bonds. (Validity bonds are
-  // paid in ETH and are escrowed until the markets resolve valid.)
-  frozenFundsTotal.frozenFunds = frozenFundsTotal.frozenFunds.plus(await getSumOfMarketValidityBondsPromise);
+  // tradingPositionsTotal is undefined iff request included a marketId, because
+  // the data to compute totals is unavailable when filtering by a marketId.
+  const tradingPositionsTotal: AggregatedTradingPosition | undefined = params.marketId ? undefined : getAggregatedTradingPosition(positions);
 
   return {
     tradingPositions: positions,
-    tradingPositionsPerMarket: aggregateTradingPositionsByMarket(positions),
+    tradingPositionsPerMarket: aggregateMarketTradingPositions(positions),
+    tradingPositionsTotal,
     frozenFundsTotal,
   };
 }
@@ -188,43 +208,52 @@ async function getEthEscrowedInValidityBonds(db: Knex, marketCreator: Address): 
   return totalValidityBonds;
 }
 
-function aggregateTradingPositionsByMarket(tps: Array<TradingPosition>): { [marketId: string]: MarketTradingPosition } {
+function aggregateMarketTradingPositions(tps: Array<TradingPosition>): { [marketId: string]: MarketTradingPosition } {
   const tpsByMarketId = _.groupBy(tps, (tp) => tp.marketId);
-  return _.mapValues(tpsByMarketId, aggregateOneMarketTradingPositions);
+  return _.mapValues(tpsByMarketId, (tpsForOneMarketId: Array<TradingPosition>) => {
+    return {
+      timestamp: tpsForOneMarketId[0].timestamp,
+      marketId: tpsForOneMarketId[0].marketId,
+      ...getAggregatedTradingPosition(tpsForOneMarketId),
+    };
+  });
 }
 
-function aggregateOneMarketTradingPositions(tpsForOneMarketId: Array<TradingPosition>): MarketTradingPosition {
-  // precondition: tpsForOneMarketId non-empty and all tpsForOneMarketId have same marketId
-  const first = tpsForOneMarketId[0];
-  const partialMarketTradingPosition: Pick<MarketTradingPosition, Exclude<keyof MarketTradingPosition, "realizedPercent" | "unrealizedPercent" | "totalPercent">> = {
-    timestamp: first.timestamp,
-    marketId: first.marketId,
-    realized: sum(tpsForOneMarketId, (tp) => tp.realized),
-    unrealized: sum(tpsForOneMarketId, (tp) => tp.unrealized),
-    total: sum(tpsForOneMarketId, (tp) => tp.total),
-    unrealizedCost: sum(tpsForOneMarketId, (tp) => tp.unrealizedCost),
-    realizedCost: sum(tpsForOneMarketId, (tp) => tp.realizedCost),
-    totalCost: sum(tpsForOneMarketId, (tp) => tp.totalCost),
-    unrealizedRevenue: sum(tpsForOneMarketId, (tp) => tp.unrealizedRevenue),
-    frozenFunds: sum(tpsForOneMarketId, (tp) => tp.frozenFunds),
+function getAggregatedTradingPosition(tps: Array<TradingPosition>): AggregatedTradingPosition {
+  const partialAggregatedTradingPosition: Pick<AggregatedTradingPosition, Exclude<keyof AggregatedTradingPosition, "realizedPercent" | "unrealizedPercent" | "totalPercent" | "unrealizedRevenue24hChangePercent">> = {
+    realized: sum(tps, (tp) => tp.realized),
+    unrealized: sum(tps, (tp) => tp.unrealized),
+    total: sum(tps, (tp) => tp.total),
+    unrealizedCost: sum(tps, (tp) => tp.unrealizedCost),
+    realizedCost: sum(tps, (tp) => tp.realizedCost),
+    totalCost: sum(tps, (tp) => tp.totalCost),
+    unrealizedRevenue: sum(tps, (tp) => tp.unrealizedRevenue),
+    frozenFunds: sum(tps, (tp) => tp.frozenFunds),
+    unrealizedRevenue24hAgo: sum(tps, (tp) => tp.unrealizedRevenue24hAgo),
   };
   const { realizedProfitPercent } = getRealizedProfitPercent({
-    realizedCost: new Tokens(partialMarketTradingPosition.realizedCost),
-    realizedProfit: new Tokens(partialMarketTradingPosition.realized),
+    realizedCost: new Tokens(partialAggregatedTradingPosition.realizedCost),
+    realizedProfit: new Tokens(partialAggregatedTradingPosition.realized),
   });
   const { unrealizedProfitPercent } = getUnrealizedProfitPercent({
-    unrealizedCost: new Tokens(partialMarketTradingPosition.unrealizedCost),
-    unrealizedProfit: new Tokens(partialMarketTradingPosition.unrealized),
+    unrealizedCost: new Tokens(partialAggregatedTradingPosition.unrealizedCost),
+    unrealizedProfit: new Tokens(partialAggregatedTradingPosition.unrealized),
   });
   const { totalProfitPercent } = getTotalProfitPercent({
-    totalCost: new Tokens(partialMarketTradingPosition.totalCost),
-    totalProfit: new Tokens(partialMarketTradingPosition.total),
+    totalCost: new Tokens(partialAggregatedTradingPosition.totalCost),
+    totalProfit: new Tokens(partialAggregatedTradingPosition.total),
+  });
+  const unrealizedRevenue24hChangePercent: Percent = safePercent({
+    numerator: new Tokens(partialAggregatedTradingPosition.unrealizedRevenue),
+    denominator: new Tokens(partialAggregatedTradingPosition.unrealizedRevenue24hAgo),
+    subtractOne: true,
   });
   return {
     realizedPercent: realizedProfitPercent.magnitude,
     unrealizedPercent: unrealizedProfitPercent.magnitude,
     totalPercent: totalProfitPercent.magnitude,
-    ...partialMarketTradingPosition,
+    unrealizedRevenue24hChangePercent: unrealizedRevenue24hChangePercent.magnitude,
+    ...partialAggregatedTradingPosition,
   };
 
   function sum(tps: Array<TradingPosition>, field: (tp: TradingPosition) => BigNumber): BigNumber {

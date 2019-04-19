@@ -9,7 +9,8 @@ import { queryTradingHistoryParams } from "./database";
 export const TradingHistoryParamsSpecific = t.type({
   universe: t.union([t.string, t.null, t.undefined]),
   account: t.union([t.string, t.null, t.undefined]),
-  marketId: t.union([t.string, t.null, t.undefined]),
+  marketId: t.union([t.string, t.null, t.undefined,
+    t.array(t.string)]), // eg. marketId: ["0x123", "0x456"] will restrict trading history to only those two markets; filtering by list of marketIds was added later and we did it this way to maintain backwards compatibility
   outcome: t.union([OutcomeParam, t.number, t.null, t.undefined]),
   orderType: t.union([t.string, t.null, t.undefined]),
   ignoreSelfTrades: t.union([t.boolean, t.null, t.undefined]),
