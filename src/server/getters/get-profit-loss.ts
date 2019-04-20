@@ -7,7 +7,7 @@ import { Dictionary, NumericDictionary } from "lodash";
 import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
-import { Address } from "../../types";
+import { Address, TradesRow, MarketsRow } from "../../types";
 import { Percent, Price, safePercent, Shares, Tokens } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getTradePrice, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent, getUnrealizedRevenue } from "../../utils/financial-math";
 
@@ -22,6 +22,7 @@ export function getDefaultPLTimeseries(): ProfitLossTimeseries {
     transactionHash: "",
     price: ZERO,
     position: ZERO,
+    quantityOpened: ZERO,
     numOutcomes: 2,
     profit: ZERO,
     realizedCost: ZERO,
@@ -52,6 +53,7 @@ export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
   transactionHash: string;
   price: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
   position: BigNumber; // denominated in shares. Known as "net position", this is the number of shares the user currently owns for this outcome; if it's a positive number, the user is "long" and earns money if the share price goes up; if it's a negative number the user is "short" and earns money if the share price goes down. Eg. "-15" means an open position of short 15 shares.
+  quantityOpened: BigNumber; // denominated in shares. See TradeQuantityOpened
   numOutcomes: number;
   profit: BigNumber; // denominated in tokens. Realized profit of shares that were bought and sold
   realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
@@ -92,7 +94,7 @@ export interface ProfitLossResult extends
   lastTradePrice: BigNumber; // denominated in tokens. Last (most recent) price at which this outcome was traded by anybody. See TradePrice
   lastTradePrice24hAgo: BigNumber; // denominated in tokens. As of 24 hours ago, last (most recent) price at which this outcome was traded by anybody. See TradePrice
   lastTradePrice24hChangePercent: BigNumber; // percent change in lastTradePrice from 24 hours ago (NB this is calculated using LastTradePriceMinusMinPrice, not LastTradePrice)
-  unrealizedRevenue24hAgo: BigNumber; // denominated in tokens. See UnrealizedRevenue, except this is is calculated using lastTradePrice from 24 hours ago, as if the user held this position constant for the past 24 hours
+  unrealizedRevenue24hAgo: BigNumber; // denominated in tokens. See UnrealizedRevenue, except this is is calculated using lastTradePrice from 24 hours ago, as if the user held this position constant for the past 24 hours. But, if the user (further) opened their current position within the past 24 hours, then the price at which the position was opened is used instead of the actual lastTradePrice from 24 hours ago
   unrealizedRevenue24hChangePercent: BigNumber; // percent change in unrealizedRevenue from 24 hours ago
 }
 
@@ -237,7 +239,12 @@ function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Arra
   });
 }
 
-function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries>, outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries> | null, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>): Array<ProfitLossResult> {
+function getProfitResultsForTimestamp(
+  plsAtTimestamp: Array<ProfitLossTimeseries>,
+  outcomeValuesAtTimestamp: Array<OutcomeValueTimeseries> | null, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>,
+  // See below for doc on oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24h
+  oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: Dictionary<Dictionary<Price>>,
+): Array<ProfitLossResult> {
   const unsortedResults: Array<ProfitLossResult> = plsAtTimestamp.map((outcomePl) => {
     const realizedCost = new Tokens(outcomePl.realizedCost);
     const realizedProfit = new Tokens(outcomePl.profit);
@@ -261,6 +268,17 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
         new Price(lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId[outcomePl.marketId][outcome].value) : Price.ZERO
     ) : Price.ZERO;
     const lastTradePriceMinusMinPrice: Price = outcomeValuesAtTimestamp ? new Price(outcomeValuesAtTimestamp[outcome].value).minus(marketMinPrice) : Price.ZERO;
+
+    // oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24h is the oldest
+    // TradePriceMinusMinPrice a user paid to (further) open their position within
+    // the last 24 hours. For example, this will be undefined if the user's position
+    // was opened 2 days ago and not modified since; if the user opened the position
+    // at a price of 0.3 twelve hours ago, and then further opened the position
+    // at a price of 0.7 six hours ago, then this will be 0.3 because it's the
+    // oldest price _within the last 24h ignoring position closes and reversals_.
+    const oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24h: Price | undefined = oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId[outcomePl.marketId] !== undefined ?
+      oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId[outcomePl.marketId][outcome]
+      : undefined;
 
     const { unrealizedCost } = getUnrealizedCost({
       marketMinPrice,
@@ -333,7 +351,7 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
       marketMinPrice,
       marketMaxPrice,
       netPosition,
-      lastTradePriceMinusMinPrice: lastTradePriceMinusMinPrice24hAgo,
+      lastTradePriceMinusMinPrice: oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24h || lastTradePriceMinusMinPrice24hAgo, // if user opened position within last 24h we want to use their open price as the "reference price" for unrealizedRevenue24hAgo because otherwise they will make a trade and then instantly see a 24-hour "loss" or "gain" because it'll compare the price they paid just now to the (irrelevant) price 24 hours ago
     });
     const unrealizedRevenue24hChangePercent: Percent = safePercent({
       numerator: unrealizedRevenue,
@@ -368,12 +386,18 @@ function getProfitResultsForTimestamp(plsAtTimestamp: Array<ProfitLossTimeseries
   return _.sortBy(unsortedResults, "outcome")!;
 }
 
-function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>, marketOutcomeValues: Array<Array<OutcomeValueTimeseries>>, buckets: Array<Timestamped>, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>): Array<Array<ProfitLossResult>> {
+function getProfitResultsForMarket(
+  marketPls: Array<Array<ProfitLossTimeseries>>, marketOutcomeValues: Array<Array<OutcomeValueTimeseries>>,
+  buckets: Array<Timestamped>,
+  lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>,
+  // See doc on oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24h
+  oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: Dictionary<Dictionary<Price>>,
+): Array<Array<ProfitLossResult>> {
   return _.map(marketPls, (outcomePLsAtTimestamp, timestampIndex) => {
     const nonZeroPositionOutcomePls = _.filter(outcomePLsAtTimestamp, (outcome) => !outcome.position.eq(ZERO));
 
     if (nonZeroPositionOutcomePls.length < 1) {
-      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId);
+      return getProfitResultsForTimestamp(outcomePLsAtTimestamp, null, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId, oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId);
     }
 
     const numOutcomes = nonZeroPositionOutcomePls[0].numOutcomes;
@@ -387,7 +411,7 @@ function getProfitResultsForMarket(marketPls: Array<Array<ProfitLossTimeseries>>
       return result;
     }, [] as Array<OutcomeValueTimeseries>);
 
-    return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId);
+    return getProfitResultsForTimestamp(outcomePLsAtTimestamp, sortedOutcomeValues, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId, oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId);
   });
 }
 
@@ -396,6 +420,7 @@ interface ProfitLossData {
   outcomeValues: Dictionary<Dictionary<Array<OutcomeValueTimeseries>>>; // historical lastTradePriceMinusMinPrices by outcome by marketId, see TradePriceMinusMinPrice
   buckets: Array<Timestamped>;
   lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: Dictionary<Dictionary<OutcomeValueTimeseries>>; // lastTradePriceMinusMinPrice by outcome by marketId as of 24 hours ago, see TradePriceMinusMinPrice
+  oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: Dictionary<Dictionary<Price>>; // oldest TradePriceMinusMinPrice a user paid to (further) open their position within the last 24 hours, by outcome by marketId. For example, this will be undefined if the user's position was opened 2 days ago and not modified since; if the user opened the position at a price of 0.3 twelve hours ago, and then further opened the position at a price of 0.7 six hours ago, then this will be 0.3 because it's the oldest price _within the last 24h ignoring position closes and reversals_.
 }
 
 async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Promise<ProfitLossData> {
@@ -412,7 +437,7 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
   // Type there are no trades in this window then we'll return empty data
   if (_.isEmpty(profits)) {
     const buckets = bucketRangeByInterval(params.startTime || 0, params.endTime || now, params.periodInterval);
-    return { profits: {}, outcomeValues: {}, buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: {} };
+    return { profits: {}, outcomeValues: {}, buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: {}, oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: {} };
   }
 
   // The value of an outcome over time, for computing unrealized profit and loss at a time
@@ -435,6 +460,7 @@ async function getProfitLossData(db: Knex, params: GetProfitLossParamsType): Pro
     outcomeValues,
     buckets,
     lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId: await getLastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId(db, now, params),
+    oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: await getOldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId(db, now, params),
   };
 }
 
@@ -445,7 +471,7 @@ export interface AllOutcomesProfitLoss {
 }
 
 export async function getAllOutcomesProfitLoss(db: Knex, params: GetProfitLossParamsType): Promise<AllOutcomesProfitLoss> {
-  const { profits, outcomeValues, buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId } = await getProfitLossData(db, params);
+  const { profits, outcomeValues, buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId, oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId } = await getProfitLossData(db, params);
 
   const bucketedProfits = _.mapValues(profits, (pls, marketId) => {
     return bucketAtTimestamps<ProfitLossTimeseries>(pls, buckets, Object.assign(getDefaultPLTimeseries(), { marketId }));
@@ -456,7 +482,7 @@ export async function getAllOutcomesProfitLoss(db: Knex, params: GetProfitLossPa
   });
 
   const profit = _.mapValues(bucketedProfits, (pls, marketId) => {
-    return getProfitResultsForMarket(pls, bucketedOutcomeValues[marketId], buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId);
+    return getProfitResultsForMarket(pls, bucketedOutcomeValues[marketId], buckets, lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId, oldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId);
   });
 
   const marketOutcomes = _.fromPairs(_.values(_.mapValues(profits, (pls) => {
@@ -590,4 +616,44 @@ async function getLastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId(db: Knex,
     return result;
   }, {} as Dictionary<Dictionary<OutcomeValueTimeseries>>);
   return lastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId;
+}
+
+async function getOldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Dictionary<Dictionary<Price>>> {
+  const newerThan = (params.endTime || now) - 86400; // newerThan is a unix timestamp in seconds; 86400 is one day in seconds, ie. filter by trades that opened a user's position in the last day
+  const trades: Array<
+  Pick<TradesRow<BigNumber>, "marketId" | "outcome" | "price"> &
+  Pick<MarketsRow<BigNumber>, "minPrice">
+  > = await db.raw(`
+    SELECT trades.marketId, trades.outcome, price, a.minPrice
+    FROM trades
+    INNER JOIN (
+        SELECT wcl_profit_loss_timeseries.marketId, wcl_profit_loss_timeseries.outcome, timestamp, wcl_profit_loss_timeseries.transactionHash, wcl_profit_loss_timeseries.logIndex, markets.minPrice
+        FROM wcl_profit_loss_timeseries
+        INNER JOIN markets ON wcl_profit_loss_timeseries.marketId = markets.marketId
+        WHERE account = :account
+            AND universe = :universe
+            AND CAST(quantityOpened as REAL) > 0
+            AND timestamp >= :newerThan
+        GROUP by wcl_profit_loss_timeseries.marketId, outcome
+        HAVING min(timestamp)
+    ) a ON trades.marketId = a.marketId AND trades.outcome = a.outcome AND trades.transactionHash = a.transactionHash AND trades.logIndex = a.logIndex
+    GROUP BY trades.marketId, trades.outcome
+    HAVING min(CAST(price as REAL))
+    `, {
+      account: params.account,
+      universe: params.universe,
+      newerThan,
+    });
+  const tradesByMarketId = _.groupBy(trades, "marketId");
+  return _.reduce(tradesByMarketId, (result, allTradesOneMarket, marketId) => {
+    const allTradesOneMarketByOutcome = _.groupBy(allTradesOneMarket, (r) => r.outcome);
+    const priceByOutcome = _.mapValues(allTradesOneMarketByOutcome, (allTradesForOneOutcome) => {
+      if (allTradesForOneOutcome.length !== 1) {
+        throw new Error(`getOldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId: expected allTradesForOneOutcome to have lenght 1 because we select exactly one trade row per matching (marketId, outcome), allTradesForOneOutcome.length=${allTradesForOneOutcome.length}, params=${params}`);
+      }
+      return new Price(allTradesForOneOutcome[0].price.minus(allTradesForOneOutcome[0].minPrice));
+    });
+    result[marketId] = priceByOutcome;
+    return result;
+  }, {} as Dictionary<Dictionary<Price>>);
 }
