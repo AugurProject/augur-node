@@ -81,7 +81,7 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
     await updateOrder(db, augur, marketId, orderId, amount, price, numCreatorShares, numCreatorTokens);
 
     if (!finalized) {
-      await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, price);
+      await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, log.blockNumber, log.logIndex, price);
     }
 
     await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
