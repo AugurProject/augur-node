@@ -20,11 +20,13 @@ interface PayoutAndMarket<BigNumberType> extends PayoutNumerators<BigNumberType>
   numTicks: BigNumber;
 }
 
-export async function updateOutcomeValueFromOrders(db: Knex, marketId: Address, outcome: number, transactionHash: string, value: BigNumber): Promise<void> {
+export async function updateOutcomeValueFromOrders(db: Knex, marketId: Address, outcome: number, transactionHash: string, blockNumber: number, logIndex: number, value: BigNumber): Promise<void> {
   await db
     .insert({
       marketId,
       transactionHash,
+      blockNumber,
+      logIndex,
       outcome,
       value: value.toString(),
       timestamp: getCurrentTime(),
@@ -32,7 +34,7 @@ export async function updateOutcomeValueFromOrders(db: Knex, marketId: Address, 
     .into("outcome_value_timeseries");
 }
 
-export async function updateOutcomeValuesFromFinalization(db: Knex, augur: Augur, marketId: Address, transactionHash: string): Promise<void> {
+export async function updateOutcomeValuesFromFinalization(db: Knex, augur: Augur, marketId: Address, transactionHash: string, blockNumber: number, logIndex: number): Promise<void> {
   const payouts: PayoutAndMarket<BigNumber> = await db
     .first(["payouts.payout0", "payouts.payout1", "payouts.payout2", "payouts.payout3", "payouts.payout4", "payouts.payout5", "payouts.payout6", "payouts.payout7", "markets.minPrice", "markets.maxPrice", "markets.numTicks"])
     .from("payouts")
@@ -54,6 +56,8 @@ export async function updateOutcomeValuesFromFinalization(db: Knex, augur: Augur
       insertValues.push({
         marketId,
         transactionHash,
+        blockNumber,
+        logIndex,
         outcome: i,
         value: value.toString(),
         timestamp,

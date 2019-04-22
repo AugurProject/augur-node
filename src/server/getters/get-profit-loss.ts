@@ -39,6 +39,8 @@ export function getDefaultOVTimeseries(): OutcomeValueTimeseries {
     outcome: 0,
     value: ZERO,
     transactionHash: "",
+    blockNumber: 0,
+    logIndex: 0,
   };
 }
 
@@ -66,6 +68,8 @@ export interface OutcomeValueTimeseries extends Timestamped {
   outcome: number;
   value: BigNumber;
   transactionHash: string;
+  blockNumber: number;
+  logIndex: number;
 }
 
 // ProfitLossResult is the profit or loss result, at a particular point in
@@ -211,7 +215,9 @@ async function queryOutcomeValueTimeseries(db: Knex, now: number, params: GetPro
   const query = db("outcome_value_timeseries")
     .select("outcome_value_timeseries.*", "markets.universe")
     .join("markets", "outcome_value_timeseries.marketId", "markets.marketId")
-    .orderBy("timestamp");
+    .orderBy("timestamp", "asc")
+    .orderBy("blockNumber", "asc")
+    .orderBy("logIndex", "asc");
 
   if (params.marketId !== null) query.where("outcome_value_timeseries.marketId", params.marketId);
   if (params.startTime) query.where("timestamp", ">=", params.startTime);

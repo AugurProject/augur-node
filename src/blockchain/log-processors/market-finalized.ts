@@ -17,7 +17,7 @@ export async function processMarketFinalizedLog(augur: Augur, log: FormattedEven
     await db("markets").where({ marketId: log.market }).update({ finalizationBlockNumber: log.blockNumber });
     await flagMarketsNeedingMigration(db, log.market, log.universe);
     await refreshMarketMailboxEthBalance(db, augur, log.market);
-    await updateOutcomeValuesFromFinalization(db, augur, log.market, log.transactionHash);
+    await updateOutcomeValuesFromFinalization(db, augur, log.market, log.transactionHash, log.blockNumber, log.logIndex);
     await updateCategoryAggregationsOnMarketFinalized({ db, marketId: log.market });
   };
 }
