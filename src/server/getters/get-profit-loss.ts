@@ -211,20 +211,39 @@ async function queryProfitLossTimeseries(db: Knex, now: number, params: GetProfi
   return await query;
 }
 
+// Postcondition: Array<OutcomeValueTimeseries> has unique
+// (market, outcome, timestamp) and is sorted by timestamp ascending.
 async function queryOutcomeValueTimeseries(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Array<OutcomeValueTimeseries>> {
-  const query = db("outcome_value_timeseries")
-    .select("outcome_value_timeseries.*", "markets.universe")
-    .join("markets", "outcome_value_timeseries.marketId", "markets.marketId")
-    .orderBy("timestamp", "asc")
-    .orderBy("blockNumber", "asc")
-    .orderBy("logIndex", "asc");
-
-  if (params.marketId !== null) query.where("outcome_value_timeseries.marketId", params.marketId);
-  if (params.startTime) query.where("timestamp", ">=", params.startTime);
-
-  query.where("timestamp", "<=", params.endTime || now);
-
-  return await query;
+  // For a given bucket of (market, outcome, timestamp) we want to select the
+  // first row when sorting that bucket by (blockNumber asc, logIndex asc).
+  // This gives us the "latest data point for each timestamp" while ensuring
+  // timestamps are unique per (market, outcome), which is what downstream expects.
+  return db.raw(`
+    SELECT outcome_value_timeseries.*, markets.universe
+    FROM outcome_value_timeseries
+    INNER JOIN markets
+    ON outcome_value_timeseries.marketId = markets.marketId
+    WHERE outcome_value_timeseries.blockNumber = (
+      SELECT MAX(ovt2.blockNumber)
+      FROM outcome_value_timeseries ovt2
+      WHERE ovt2.timestamp = outcome_value_timeseries.timestamp
+        AND ovt2.marketId = outcome_value_timeseries.marketId
+        AND ovt2.outcome = outcome_value_timeseries.outcome
+    ) AND outcome_value_timeseries.logIndex = (
+      SELECT MAX(ovt2.logIndex)
+      FROM outcome_value_timeseries ovt2
+      WHERE ovt2.timestamp = outcome_value_timeseries.timestamp
+        AND ovt2.marketId = outcome_value_timeseries.marketId
+        AND ovt2.outcome = outcome_value_timeseries.outcome
+    ) AND timestamp <= :endTime
+      ${params.marketId !== null ? "AND outcome_value_timeseries.marketId = :marketId" : ""}
+      ${params.startTime ? "AND timestamp >= :startTime" : ""}
+    ORDER BY timestamp asc
+    `, {
+      marketId: params.marketId,
+      startTime: params.startTime,
+      endTime: params.endTime || now,
+    });
 }
 
 function bucketAtTimestamps<T extends Timestamped>(timestampeds: Dictionary<Array<T>>, timestamps: Array<Timestamped>, defaultValue: T): Array<Array<T>> {
