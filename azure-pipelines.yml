@@ -1,19 +1,72 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+variables:
+  NODE_JS_VERSION: 10.15.0
 
 trigger:
-- master
+  branches:
+    include:
+      - master
+      - azure/*
+  tags:
+    include:
+      - v*
 
-pool:
-  vmImage: 'Ubuntu-16.04'
+jobs:
+  - job: test_augur_node
+    pool:
+      vmImage: 'Ubuntu-16.04'
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_JS_VERSION)
+      - bash: |
+          yarn
+          npm run build:ts
+          npm run lint
+          npm run test
+        displayName: 'lint, test, and build'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  - job: deploy_augur_node
+    dependsOn:
+      - test_augur_node
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_JS_VERSION)
+      - task: Docker@1
+        displayName: docker login
+        inputs:
+          command: login
+          containerRegistryType: Container Registry
+          dockerRegistryEndpoint: dockerhub-augurproject
+      - bash: |
+          set -euxo pipefail
+          npm run docker:release -- dev
+        displayName: docker release dev
+        env:
+          AWS_ACCESS_KEY_ID: $(AWS_KEY_ID)
+          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_KEY)
+        condition: |
+          and
+          (
+              succeeded(),
+              eq(variables['Build.SourceBranch'], 'refs/heads/master')
+          )
+      - bash: |
+          set -euxo pipefail
+          npm run docker:release -- tag
+        displayName: docker release tag
+        env:
+          AWS_ACCESS_KEY_ID: $(AWS_KEY_ID)
+          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_KEY)
+        condition: |
+          and
+          (
+              succeeded(),
+              startsWith(variables['build.sourceBranch'], 'refs/tags/v')
+          )
+      - task: Docker@1
+        displayName: docker logout
+        inputs:
+          command: logout
+          containerRegistryType: Container Registry
+          dockerRegistryEndpoint: dockerhub-augurproject
