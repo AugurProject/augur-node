@@ -53,7 +53,7 @@ jobs:
           )
       - bash: |
           set -euxo pipefail
-          npm run docker:release -- tag
+          npm run docker:release -- release
         displayName: docker release tag
         env:
           AWS_ACCESS_KEY_ID: $(AWS_KEY_ID)
