@@ -20,9 +20,7 @@ jobs:
           versionSpec: $(NODE_JS_VERSION)
       - bash: |
           yarn
-          npm run build:ts
-          npm run lint
-          npm run test
+          npm run build
         displayName: 'lint, test, and build'
 
   - job: deploy_augur_node
