@@ -46,7 +46,7 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
       .first(["position"])
       .from("wcl_profit_loss_timeseries")
       .where({ account, marketId, outcome })
-      .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
+      .orderByRaw(`"blockNumber" DESC, "logIndex" DESC, "rowid" DESC`);
     const lastPosition = lastData ? lastData.position : ZERO;
     if (!lastPosition.eq(ZERO)) {
       const price = lastPosition.lt(ZERO) ? totalPayout.minus(outcomeValues[outcome]) : outcomeValues[outcome];
@@ -79,7 +79,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     .first(["price", "position", "profit", "frozenFunds", "realizedCost"])
     .from("wcl_profit_loss_timeseries")
     .where({ account, marketId, outcome })
-    .orderByRaw(`"blockNumber" DESC, "logIndex" DESC`);
+    .orderByRaw(`"blockNumber" DESC, "logIndex" DESC, "rowid" DESC`);
 
   const netPosition: Shares = prevData ? new Shares(prevData.position) : Shares.ZERO;
   const averageTradePriceMinusMinPriceForOpenPosition = prevData ? new Price(prevData.price) : Price.ZERO;
