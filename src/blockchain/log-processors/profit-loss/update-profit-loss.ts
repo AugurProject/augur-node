@@ -1,11 +1,11 @@
 import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import { ZERO } from "../../../constants";
-import { ProfitLossTimeseries } from "../../../server/getters/get-profit-loss";
+import { ProfitLossTimeseries, ProfitLossTimeseriesRow } from "../../../server/getters/get-profit-loss";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
-import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeRealizedProfitDelta, getTradeQuantityOpened } from "../../../utils/financial-math";
+import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeQuantityOpened, getTradeRealizedProfitDelta } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
@@ -132,7 +132,7 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
     event: makeFrozenFundsEvent(account, tradeRealizedProfitDelta.magnitude, marketsRow, tradeData),
   });
 
-  const nextProfitLossTimeseries = { // this is of type ProfitLossTimeseries<BigNumberType = string>
+  const nextProfitLossTimeseries: ProfitLossTimeseriesRow<string> = {
     account,
     marketId,
     outcome,
@@ -168,7 +168,9 @@ function makeFrozenFundsEvent(account: Address, realizedProfitDelta: BigNumber, 
   if (tradeData === undefined) {
     // tradeData undefined corresponds to a ClaimProceeds event, ie.
     // updateProfitLoss() called in context of user claiming proceeds.
-    return "ClaimProceeds";
+    return {
+      claimProceedsEvent: true,
+    };
   }
 
   // tradeData defined corresponds to a Trade event, ie. updateProfitLoss()
@@ -196,6 +198,8 @@ function makeFrozenFundsEvent(account: Address, realizedProfitDelta: BigNumber, 
     price, numCreatorTokens, numCreatorShares, numFillerTokens, numFillerShares,
   } = tradeData;
   return {
+    tradeEvent: true,
+    isSelfFilled: tradeData.creator === tradeData.filler,
     creatorOrFiller: userIsCreatorOrFiller,
     longOrShort: userIsLongOrShort,
     realizedProfitDelta,
