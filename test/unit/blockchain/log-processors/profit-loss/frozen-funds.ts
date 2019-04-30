@@ -13,13 +13,15 @@ interface TestCase extends FrozenFundsParams {
   expectedFrozenFunds: FrozenFunds;
 }
 
-const testClaims: Array<TestCase> = [
+const testSimpleEvents: Array<TestCase> = [
   {
     name: "ClaimProceeds keeps frozen funds to zero",
     frozenFundsBeforeEvent: {
       frozenFunds: ZERO,
     },
-    event: "ClaimProceeds",
+    event: {
+      claimProceedsEvent: true,
+    },
     expectedFrozenFunds: {
       frozenFunds: ZERO,
     },
@@ -29,9 +31,37 @@ const testClaims: Array<TestCase> = [
     frozenFundsBeforeEvent: {
       frozenFunds: bn(29),
     },
-    event: "ClaimProceeds",
+    event: {
+      claimProceedsEvent: true,
+    },
     expectedFrozenFunds: {
       frozenFunds: ZERO,
+    },
+  },
+  {
+    name: "OrderCreated adds originalTokensEscrowed to frozen funds",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(17),
+    },
+    event: {
+      orderCreatedEvent: true,
+      originalTokensEscrowed: bn(42),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(59),
+    },
+  },
+  {
+    name: "OrderCanceled substracts tokensEscrowed to frozen funds",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(0.1387),
+    },
+    event: {
+      orderCanceledEvent: true,
+      tokensEscrowed: bn(37.387),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn(0.1387 - 37.387),
     },
   },
 ];
@@ -43,6 +73,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.65),
@@ -51,6 +82,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -65,6 +97,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(3.5),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.58),
@@ -73,6 +106,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0.21),
     },
@@ -87,6 +121,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(2.45),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.62),
@@ -95,6 +130,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -108,6 +144,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(7.39),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.5),
@@ -116,6 +153,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(1.515 - 0.21),
     },
@@ -130,6 +168,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(3.695),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.15),
@@ -138,6 +177,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(4.8785 - 1.515),
     },
@@ -151,6 +191,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.4),
@@ -159,6 +200,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -172,6 +214,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.2),
@@ -180,6 +223,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -193,6 +237,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.3),
@@ -201,6 +246,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -215,6 +261,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(0.4),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.7),
@@ -223,6 +270,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0.3),
     },
@@ -236,6 +284,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.4),
@@ -244,6 +293,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -257,6 +307,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.35),
@@ -265,6 +316,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -278,14 +330,16 @@ const testTrades: Array<TestCase> = [
       frozenFunds: ZERO,
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.3),
       numCreatorTokens: bn(3.5),
       numCreatorShares: bn(5),
-      numFillerTokens: bn(3),
+      numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -299,6 +353,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(2),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.1),
@@ -307,6 +362,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(1.6),
     },
@@ -320,6 +376,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(0),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.15),
@@ -328,6 +385,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -341,6 +399,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(0),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.1),
@@ -349,6 +408,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -362,6 +422,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(0),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.6),
@@ -370,6 +431,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -383,6 +445,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(2.5),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.2),
@@ -391,6 +454,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(1.3),
     },
@@ -405,6 +469,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(-2),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.8),
@@ -413,6 +478,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0.6),
     },
@@ -426,6 +492,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(1.5),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(0),
       maxPrice: bn(1),
       price: bn(0.1),
@@ -434,6 +501,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(-0.5),
     },
@@ -447,6 +515,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(0),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(50),
       maxPrice: bn(250),
       price: bn(200),
@@ -455,6 +524,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -468,6 +538,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(300),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(50),
       maxPrice: bn(250),
       price: bn(180),
@@ -476,6 +547,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(0),
     },
@@ -490,6 +562,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(690),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(50),
       maxPrice: bn(250),
       price: bn(202),
@@ -498,6 +571,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(56),
     },
@@ -511,6 +585,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(138),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(50),
       maxPrice: bn(250),
       price: bn(205),
@@ -519,6 +594,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "short",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(73 - 56),
     },
@@ -534,6 +610,7 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(450),
     },
     event: {
+      tradeEvent: true,
       minPrice: bn(50),
       maxPrice: bn(250),
       price: bn(150),
@@ -542,6 +619,7 @@ const testTrades: Array<TestCase> = [
       numFillerTokens: bn(0),
       numFillerShares: bn(0),
       longOrShort: "long",
+      isSelfFilled: false,
       creatorOrFiller: "creator",
       realizedProfitDelta: bn(458 - 73),
     },
@@ -549,10 +627,47 @@ const testTrades: Array<TestCase> = [
       frozenFunds: bn(135),
     },
   },
+  {
+    name: "self-filled #1",
+    frozenFundsBeforeEvent: {
+      frozenFunds: bn(17.34),
+    },
+    event: {
+      tradeEvent: true,
+      minPrice: bn(-50),
+      maxPrice: bn(150),
+      price: bn(100),
+      numCreatorTokens: bn(983.5),
+      numCreatorShares: bn(7),
+      // total value of creator contribution = 983.5 + 350 = 1333.5
+      numFillerTokens: bn(1108.5),
+      numFillerShares: bn(1.5),
+      // total value of filler contribution = 1108.5 + 225 = 1333.5
+      longOrShort: "long",
+      isSelfFilled: true,
+      creatorOrFiller: "creator",
+      realizedProfitDelta: bn(34),
+    },
+    expectedFrozenFunds: {
+      frozenFunds: bn((() => {
+        const startFF = bn(17.34);
+        const mySharesSent = bn(7);
+        const priceReceivedForMySharesSent = bn(50);
+        const myTokensReceived = mySharesSent.times(priceReceivedForMySharesSent);
+        const theirSharesSent = bn(1.5);
+        const theirPriceReceivedForTheirSharesSent = bn(150);
+        const theirTokensReceived = theirSharesSent.times(theirPriceReceivedForTheirSharesSent);
+        const portionOfMyTokensSentUsedToCreateCompleteSets = bn(983.5).minus(theirTokensReceived);
+        const myTokensSent = bn(983.5);
+        const realizedProfitDelta = bn(34);
+        return startFF.plus(myTokensSent).minus(myTokensReceived).plus(realizedProfitDelta).minus(portionOfMyTokensSentUsedToCreateCompleteSets).toNumber();
+      })()),
+    },
+  },
 ];
 
 const testData: Array<TestCase> = [
-  ...testClaims,
+  ...testSimpleEvents,
   ...testTrades,
 
   // Autogenerate test cases to ensure algorithm correctly handles
@@ -572,13 +687,29 @@ const testData: Array<TestCase> = [
     tmp = trade.numCreatorTokens;
     trade.numCreatorTokens = trade.numFillerTokens;
     trade.numFillerTokens = tmp;
+
+    // The self-filled trades declared in testTrades have `myTokensSent` added to
+    // FF which is then subtracted below. We need to reverse the subtraction if
+    // this auto-generated test case is filler. The root cause here is that the
+    // auto-generated test cases only work if frozenFunds algorithm is symmetric
+    // for filler/creator, but as of recent update is no longer symmetric, but still
+    // worth having the auto-generated test cases because they hit more code paths.
+    if (trade.isSelfFilled && trade.creatorOrFiller === "filler") {
+      tc2.expectedFrozenFunds.frozenFunds = tc2.expectedFrozenFunds.frozenFunds.plus(trade.numCreatorTokens);
+    }
     return tc2;
   }),
 ];
 
-testData.forEach((tc) => {
+testData.forEach((tc: TestCase) => {
   test(tc.name, () => {
+    let expectedFF = tc.expectedFrozenFunds.frozenFunds;
+    if ("tradeEvent" in tc.event) {
+      // creator tokens aren't added to FF because they were
+      // previously added to FF when order created log was processed.
+      expectedFF = expectedFF.minus(tc.event.numCreatorTokens);
+    }
     expect(getFrozenFundsAfterEventForOneOutcome(tc)
-      .frozenFunds).toEqual(tc.expectedFrozenFunds.frozenFunds);
+      .frozenFunds).toEqual(expectedFF);
   });
 });

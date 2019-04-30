@@ -1,11 +1,11 @@
 import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import { ZERO } from "../../../constants";
-import { ProfitLossTimeseries } from "../../../server/getters/get-profit-loss";
+import { ProfitLossTimeseries, ProfitLossTimeseriesRow } from "../../../server/getters/get-profit-loss";
 import { Address, MarketsRow, PayoutNumerators, TradesRow } from "../../../types";
 import { numTicksToTickSize } from "../../../utils/convert-fixed-point-to-decimal";
 import { Price, Shares, Tokens } from "../../../utils/dimension-quantity";
-import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeRealizedProfitDelta, getTradeQuantityOpened } from "../../../utils/financial-math";
+import { getNextAverageTradePriceMinusMinPriceForOpenPosition, getNextNetPosition, getNextRealizedCost, getNextRealizedProfit, getTradePriceMinusMinPrice, getTradeQuantityOpened, getTradeRealizedProfitDelta } from "../../../utils/financial-math";
 import { getCurrentTime } from "../../process-block";
 import { FrozenFundsEvent, getFrozenFundsAfterEventForOneOutcome } from "./frozen-funds";
 
@@ -51,14 +51,15 @@ export async function updateProfitLossClaimProceeds(db: Knex, marketId: Address,
     if (!lastPosition.eq(ZERO)) {
       const price = lastPosition.lt(ZERO) ? totalPayout.minus(outcomeValues[outcome]) : outcomeValues[outcome];
       const tradeData = undefined; // the next updateProfitLoss() is associated with claiming proceeds, not a trade, so tradeData is undefined
-      await updateProfitLoss(db, marketId, lastPosition.negated(), account, outcome, price, transactionHash, blockNumber, logIndex, tradeData);
+      const selfFilled = undefined; // the next updateProfitLoss() is associated with claiming proceeds, not a trade, so selfFilled is undefined
+      await updateProfitLoss(db, marketId, lastPosition.negated(), account, selfFilled, outcome, price, transactionHash, blockNumber, logIndex, tradeData);
     }
   }
 }
 
 // If this updateProfitLoss is due to a trade, the passed tradeData
 // must be defined (and be data from this associated trade.)
-export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, outcome: number, tradePriceBN: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData: undefined | Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
+export async function updateProfitLoss(db: Knex, marketId: Address, positionDelta: BigNumber, account: Address, selfFilled: undefined | "creator" | "filler", outcome: number, tradePriceBN: BigNumber, transactionHash: string, blockNumber: number, logIndex: number, tradeData: undefined | Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): Promise<void> {
   if (positionDelta.eq(ZERO)) return;
 
   const tradePositionDelta = new Shares(positionDelta);
@@ -129,10 +130,10 @@ export async function updateProfitLoss(db: Knex, marketId: Address, positionDelt
   });
   const nextFrozenFunds = getFrozenFundsAfterEventForOneOutcome({
     frozenFundsBeforeEvent: { frozenFunds },
-    event: makeFrozenFundsEvent(account, tradeRealizedProfitDelta.magnitude, marketsRow, tradeData),
+    event: makeFrozenFundsEvent(account, selfFilled, tradeRealizedProfitDelta.magnitude, marketsRow, tradeData),
   });
 
-  const nextProfitLossTimeseries = { // this is of type ProfitLossTimeseries<BigNumberType = string>
+  const nextProfitLossTimeseries: ProfitLossTimeseriesRow<string> = {
     account,
     marketId,
     outcome,
@@ -164,38 +165,53 @@ export async function updateProfitLossRemoveRow(db: Knex, transactionHash: strin
 // loss requires updating. We'll use tradeData to build a FrozenFundsEvent of type
 // Trade, which requires realizedProfit, and that's why the FrozenFundsEvent is
 // constructed here after the realizedProfit is computed by updateProfitLoss().
-function makeFrozenFundsEvent(account: Address, realizedProfitDelta: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
+function makeFrozenFundsEvent(account: Address, selfFilled: undefined | "creator" | "filler", realizedProfitDelta: BigNumber, marketsRow: Pick<MarketsRow<BigNumber>, "minPrice" | "maxPrice">, tradeData?: Pick<TradesRow<BigNumber>, "orderType" | "creator" | "filler" | "price" | "numCreatorTokens" | "numCreatorShares" | "numFillerTokens" | "numFillerShares">): FrozenFundsEvent {
   if (tradeData === undefined) {
     // tradeData undefined corresponds to a ClaimProceeds event, ie.
     // updateProfitLoss() called in context of user claiming proceeds.
-    return "ClaimProceeds";
+    return {
+      claimProceedsEvent: true,
+    };
   }
 
-  // tradeData defined corresponds to a Trade event, ie. updateProfitLoss()
+  // tradeData is defined which corresponds to a Trade event, ie. updateProfitLoss()
   // called in context of a user having executed a trade.
-  let userIsLongOrShort: "long" | "short" | undefined;
-  let userIsCreatorOrFiller: "creator" | "filler" | undefined;
-  if (account === tradeData.creator) {
-    userIsCreatorOrFiller = "creator";
-    if (tradeData.orderType === "buy") {
-      userIsLongOrShort = "long";
-    } else {
-      userIsLongOrShort = "short";
-    }
-  } else if (account === tradeData.filler) {
-    userIsCreatorOrFiller = "filler";
-    if (tradeData.orderType === "buy") {
-      userIsLongOrShort = "short";
-    } else {
-      userIsLongOrShort = "long";
-    }
-  } else {
+
+  // If this trade is self-filled (ie. creator == filler), then we still need each
+  // side of the trade to be processed independently (at least) for P&L and frozen
+  // funds. Moreover, frozen funds has special logic if user is creator, so we need
+  // to ensure that a self-filled trade is processed once as "user == filler" and
+  // once as "user == creator": this is what `selfFilled` is for; if `selfFilled` is
+  // defined, this trade is self-filled and we should override user == creator/filler
+  // using the contents of `selfFilled`, see bottom of processOrderFilledLog.
+  const userIsCreatorOrFiller: "creator" | "filler" = (() => {
+    if (selfFilled !== undefined) return selfFilled; // this trade is self-filled; override userIsCreatorOrFiller to value of selfFilled, see bottom of processOrderFilledLog
+    else if (account === tradeData.creator) return "creator";
+    else if (account === tradeData.filler) return "filler";
     throw new Error(`makeFrozenFundsEvent: expected passed trade data to have creator or filler equal to passed account, account=${account} tradeCreator=${tradeData.creator} tradeFiller=${tradeData.filler}`);
-  }
+  })();
+
+  const userIsLongOrShort: "long" | "short" = (() => {
+    if (userIsCreatorOrFiller === "creator") {
+      if (tradeData.orderType === "buy") {
+        return "long";
+      } else {
+        return "short";
+      }
+    }
+    if (tradeData.orderType === "buy") {
+      return "short";
+    } else {
+      return "long";
+    }
+  })();
+
   const {
     price, numCreatorTokens, numCreatorShares, numFillerTokens, numFillerShares,
   } = tradeData;
   return {
+    tradeEvent: true,
+    isSelfFilled: tradeData.creator === tradeData.filler,
     creatorOrFiller: userIsCreatorOrFiller,
     longOrShort: userIsLongOrShort,
     realizedProfitDelta,

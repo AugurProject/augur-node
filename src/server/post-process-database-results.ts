@@ -124,6 +124,7 @@ const whitelist: TableWhitelist = {
     profit: true,
     frozenFunds: true,
     realizedCost: true,
+    quantityOpened: true,
   },
 };
 
