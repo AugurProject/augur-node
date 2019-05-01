@@ -84,8 +84,13 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
       await updateOutcomeValueFromOrders(db, marketId, outcome, log.transactionHash, log.blockNumber, log.logIndex, price);
     }
 
-    await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
-    await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
+    // Downstream has special logic for self-filled trades, for which one
+    // side of the trade needs to be the "creator" and one the "filler".
+    const selfFilled1 = orderCreator === filler ? "creator" : undefined;
+    const selfFilled2 = orderCreator === filler ? "filler" : undefined;
+
+    await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, selfFilled1, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
+    await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, selfFilled2, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
   };
 }
 
