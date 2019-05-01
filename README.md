@@ -1,6 +1,6 @@
 # Augur Node
 
-[![Build Status](https://travis-ci.com/AugurProject/augur-node.svg)](https://travis-ci.com/AugurProject/augur-node)
+[![Build Status](https://dev.azure.com/augurproject/augur/_apis/build/status/AugurProject.augur-node?branchName=master)](https://dev.azure.com/augurproject/augur/_build/latest?definitionId=5&branchName=master)
 [![Coverage Status](https://coveralls.io/repos/AugurProject/augur-node/badge.svg?branch=master&service=github)](https://coveralls.io/github/AugurProject/augur-node?branch=master)
 [![npm version](https://badge.fury.io/js/augur-node.svg)](http://badge.fury.io/js/augur-node)<br/>
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
