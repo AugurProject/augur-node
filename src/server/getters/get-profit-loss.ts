@@ -4,10 +4,10 @@ import * as t from "io-ts";
 import * as Knex from "knex";
 import * as _ from "lodash";
 import { Dictionary, NumericDictionary } from "lodash";
-import { FrozenFunds } from "../../blockchain/log-processors/profit-loss/frozen-funds";
+import { FrozenFunds, FrozenFundsBase } from "../../blockchain/log-processors/profit-loss/frozen-funds";
 import { getCurrentTime } from "../../blockchain/process-block";
 import { ZERO } from "../../constants";
-import { Address, TradesRow, MarketsRow } from "../../types";
+import { Address, MarketsRow, TradesRow } from "../../types";
 import { Percent, Price, safePercent, Shares, Tokens } from "../../utils/dimension-quantity";
 import { getRealizedProfitPercent, getTotalCost, getTotalProfit, getTotalProfitPercent, getTradePrice, getUnrealizedCost, getUnrealizedProfit, getUnrealizedProfitPercent, getUnrealizedRevenue } from "../../utils/financial-math";
 
@@ -48,20 +48,32 @@ export interface Timestamped {
   timestamp: number;
 }
 
-export interface ProfitLossTimeseries extends Timestamped, FrozenFunds {
+// ProfitLossTimeseriesRow is the schema of DB table wcl_profit_loss_timeseries.
+export interface ProfitLossTimeseriesRow<BigNumberType> extends Timestamped, FrozenFundsBase<BigNumberType> {
   account: Address;
   marketId: Address;
   outcome: number;
+  blockNumber: number;
+  logIndex: number;
   transactionHash: string;
-  price: BigNumber; // denominated in tokens/share. average price user paid for shares in the current open position
-  position: BigNumber; // denominated in shares. Known as "net position", this is the number of shares the user currently owns for this outcome; if it's a positive number, the user is "long" and earns money if the share price goes up; if it's a negative number the user is "short" and earns money if the share price goes down. Eg. "-15" means an open position of short 15 shares.
-  quantityOpened: BigNumber; // denominated in shares. See TradeQuantityOpened
-  numOutcomes: number;
-  profit: BigNumber; // denominated in tokens. Realized profit of shares that were bought and sold
-  realizedCost: BigNumber; // denominated in tokens. Cumulative cost of shares included in realized profit
-  minPrice: BigNumber; // market minPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
-  maxPrice: BigNumber; // market maxPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
+  price: BigNumberType; // denominated in tokens/share. average price user paid for shares in the current open position
+  position: BigNumberType; // denominated in shares. Known as "net position", this is the number of shares the user currently owns for this outcome; if it's a positive number, the user is "long" and earns money if the share price goes up; if it's a negative number the user is "short" and earns money if the share price goes down. Eg. "-15" means an open position of short 15 shares.
+  quantityOpened: BigNumberType; // denominated in shares. See TradeQuantityOpened
+  profit: BigNumberType; // denominated in tokens. Realized profit of shares that were bought and sold
+  realizedCost: BigNumberType; // denominated in tokens. Cumulative cost of shares included in realized profit
 }
+
+// ProfitLossTimeseriesRowWithMarketInfo is like ProfitLossTimeseriesRow
+// but with additional market info that is commonly queried in tandem.
+export interface ProfitLossTimeseriesRowWithMarketInfo<BigNumberType> extends
+  Pick<ProfitLossTimeseriesRow<BigNumberType>,
+  Exclude<keyof ProfitLossTimeseriesRow<BigNumberType>, "blockNumber" | "logIndex">> {
+  numOutcomes: number;
+  minPrice: BigNumberType; // market minPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
+  maxPrice: BigNumberType; // market maxPrice in tokens. Helps convert between TradePriceMinusMinPrice, TradePrice, and SharePrice
+}
+
+export type ProfitLossTimeseries = ProfitLossTimeseriesRowWithMarketInfo<BigNumber>;
 
 export interface OutcomeValueTimeseries extends Timestamped {
   marketId: Address;
@@ -627,8 +639,8 @@ async function getLastTradePriceMinusMinPrice24hAgoByOutcomeByMarketId(db: Knex,
 async function getOldestTradePriceMinusMinPriceUserPaidForOpenPositionInLast24hByOutcomeByMarketId(db: Knex, now: number, params: GetProfitLossParamsType): Promise<Dictionary<Dictionary<Price>>> {
   const newerThan = (params.endTime || now) - 86400; // newerThan is a unix timestamp in seconds; 86400 is one day in seconds, ie. filter by trades that opened a user's position in the last day
   const trades: Array<
-  Pick<TradesRow<BigNumber>, "marketId" | "outcome" | "price"> &
-  Pick<MarketsRow<BigNumber>, "minPrice">
+    Pick<TradesRow<BigNumber>, "marketId" | "outcome" | "price"> &
+    Pick<MarketsRow<BigNumber>, "minPrice">
   > = await db.raw(`
     SELECT trades.marketId, trades.outcome, price, a.minPrice
     FROM trades

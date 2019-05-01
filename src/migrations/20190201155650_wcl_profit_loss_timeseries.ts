@@ -70,8 +70,8 @@ exports.up = async (knex: Knex): Promise<any> => {
     if (row.claim) {
       await updateProfitLossClaimProceeds(knex, row.marketId, row.filler, row.transactionHash, row.blockNumber, row.logIndex);
     } else {
-      await updateProfitLoss(knex, row.marketId, row.orderType === "buy" ? row.amount : row.amount.negated(), row.creator, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex, row);
-      await updateProfitLoss(knex, row.marketId, row.orderType === "sell" ? row.amount : row.amount.negated(), row.filler, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex, row);
+      await updateProfitLoss(knex, row.marketId, row.orderType === "buy" ? row.amount : row.amount.negated(), row.creator, undefined, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex, row);
+      await updateProfitLoss(knex, row.marketId, row.orderType === "sell" ? row.amount : row.amount.negated(), row.filler, undefined, row.outcome, row.price, row.transactionHash, row.blockNumber, row.logIndex, row);
     }
   }
 
