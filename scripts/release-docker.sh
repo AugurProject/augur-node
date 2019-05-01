@@ -9,10 +9,8 @@ version=$(date -u +%Y-%m-%d-%H%M)
 
 aws_preconfigure () {
     # we need aws cli tools to deploy
-    if [[ ${TRAVIS} = true ]]; then
-        sudo apt-get install libssl-dev
-        sudo pip install awscli
-    fi
+    sudo apt-get install libssl-dev
+    sudo pip install awscli
 }
 
 aws_deploy () {
