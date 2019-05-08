@@ -479,4 +479,24 @@ describe("server/getters/get-markets", () => {
       expect(marketsWithMaxFee).not.toContain("0x0000000000000000000000000000000000000001"); // .04 combined fee
     },
   });
+  runTest({
+    description: "set a maximum end time #1",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxEndTime: 1506573471,
+    },
+    assertions: (marketsWithMaxFee) => {
+      expect(marketsWithMaxFee).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum end time #2",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxEndTime: 1506573470, // this is the exact end time of 0x1000000000000000000000000000000000000001
+    },
+    assertions: (marketsWithMaxFee) => {
+      expect(marketsWithMaxFee).not.toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
 });
