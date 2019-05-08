@@ -13,6 +13,7 @@ export const GetMarketsParamsSpecific = t.type({
   feeWindow: t.union([t.string, t.null, t.undefined]),
   designatedReporter: t.union([t.string, t.null, t.undefined]),
   maxFee: t.union([t.number, t.null, t.undefined]),
+  maxEndTime: t.union([t.number, t.null, t.undefined]), // unix epoch time in seconds
   hasOrders: t.union([t.boolean, t.null, t.undefined]),
 });
 
@@ -52,6 +53,10 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
 
   if (params.maxFee) {
     query.whereRaw("(CAST(markets.reportingFeeRate as numeric) + CAST(markets.marketCreatorFeeRate as numeric)) < ?", [params.maxFee]);
+  }
+
+  if (params.maxEndTime) {
+    query.whereRaw("markets.endTime < ?", [params.maxEndTime]);
   }
 
   const marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);
