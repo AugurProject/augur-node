@@ -323,7 +323,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             designatedReporter: "0x0000000000000000000000000000000000000b0b",
             designatedReportStake: "10",
             resolutionSource: "http://www.trusted-third-party.com",
-            numTicks: 10000,
+            numTicks: "10000",
             forking: 0,
             needsMigration: 0,
             needsDisavowal: 0,

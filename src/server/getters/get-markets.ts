@@ -14,6 +14,7 @@ export const GetMarketsParamsSpecific = t.type({
   designatedReporter: t.union([t.string, t.null, t.undefined]),
   maxFee: t.union([t.number, t.null, t.undefined]),
   maxEndTime: t.union([t.number, t.null, t.undefined]), // unix epoch time in seconds
+  maxSpreadPercent: t.union([t.number, t.null, t.undefined]), // maximum markets.spreadPercent to include in results, ranges from 0 to 1, eg. 5% is maxSpreadPercent=0.05
   hasOrders: t.union([t.boolean, t.null, t.undefined]),
 });
 
@@ -53,6 +54,10 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
 
   if (params.maxFee) {
     query.whereRaw("(CAST(markets.reportingFeeRate as numeric) + CAST(markets.marketCreatorFeeRate as numeric)) < ?", [params.maxFee]);
+  }
+
+  if (params.maxSpreadPercent) {
+    query.whereRaw("CAST(markets.spreadPercent as REAL) < ?", [params.maxSpreadPercent]);
   }
 
   if (params.maxEndTime) {
