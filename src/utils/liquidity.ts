@@ -149,18 +149,21 @@ function getOutcomeSpread(params: GetOutcomeSpreadParams): OutcomeSpread {
     }
   }
 
-  const spreadPercent: Percent = askValue.minus(bidValue).dividedBy(
-    params.marketMaxPrice.minus(params.marketMinPrice).multipliedBy(numShares))
-    .expect(Percent);
+  const spreadPercent: Percent = (() => {
+    const tmpSpreadPercent = askValue.minus(bidValue).dividedBy(
+      params.marketMaxPrice.minus(params.marketMinPrice).multipliedBy(numShares))
+      .expect(Percent);
 
-  if (spreadPercent.lt(Percent.ZERO)) {
-    console.log("spreadPercent less than zero", spreadPercent.magnitude.toNumber(), "askValue", askValue.magnitude.toNumber(), "bidValue", bidValue.magnitude.toNumber(), "marketId");
-  }
+    // TODO rm
+    if (tmpSpreadPercent.lt(Percent.ZERO)) {
+      console.log("tmpSpreadPercent less than zero", tmpSpreadPercent.magnitude.toNumber(), "askValue", askValue.magnitude.toNumber(), "bidValue", bidValue.magnitude.toNumber(), "marketId");
+      // got 285 logs in blocks { fromBlock: 6065353, toBlock: 6066072 }
+      // (node:91641) UnhandledPromiseRejectionWarning: Error: SQLITE_CONSTRAINT: CHECK constraint failed: nonnegativeSpreadPercent
+      // (node:91641) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 26)
+    }
 
-  // TODO set spreadPercent to zero if negative as a defensive postcondition:
-  // got 285 logs in blocks { fromBlock: 6065353, toBlock: 6066072 }
-  // (node:91641) UnhandledPromiseRejectionWarning: Error: SQLITE_CONSTRAINT: CHECK constraint failed: nonnegativeSpreadPercent
-  // (node:91641) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 26)
+    return tmpSpreadPercent.lt(Percent.ZERO) ? Percent.ZERO : tmpSpreadPercent;
+  })();
 
   return {
     spreadPercent,
