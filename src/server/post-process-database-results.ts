@@ -34,6 +34,7 @@ const whitelist: TableWhitelist = {
     volume: true,
     shareVolume: true,
     sharesOutstanding: true,
+    spreadPercent: true,
     designatedReportStake: true,
     openInterest: true,
   },
@@ -79,6 +80,7 @@ const whitelist: TableWhitelist = {
     price: true,
     volume: true,
     shareVolume: true,
+    spreadPercent: true,
   },
   payouts: {
     payout0: true,

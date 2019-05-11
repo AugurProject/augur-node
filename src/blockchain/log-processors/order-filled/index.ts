@@ -10,6 +10,7 @@ import { fixedPointToDecimal, numTicksToTickSize } from "../../../utils/convert-
 import { BN_WEI_PER_ETHER, SubscriptionEventNames } from "../../../constants";
 import { updateOutcomeValueFromOrders, removeOutcomeValue } from "../profit-loss/update-outcome-value";
 import { updateProfitLoss, updateProfitLossRemoveRow } from "../profit-loss/update-profit-loss";
+import { updateSpreadPercentForMarketAndOutcomes } from "../../../utils/liquidity";
 
 interface TokensRowWithNumTicksAndCategory extends TokensRow {
   category: string;
@@ -86,6 +87,8 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
 
     await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
     await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
+
+    await updateSpreadPercentForMarketAndOutcomes(db, marketId);
   };
 }
 
@@ -137,5 +140,6 @@ export async function processOrderFilledLogRemoval(augur: Augur, log: FormattedE
     }));
     await removeOutcomeValue(db, log.transactionHash);
     await updateProfitLossRemoveRow(db, log.transactionHash);
+    await updateSpreadPercentForMarketAndOutcomes(db, marketId);
   };
 }
