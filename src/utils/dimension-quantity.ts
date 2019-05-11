@@ -82,6 +82,7 @@ abstract class Quantity<T extends Quantity<T>> {
   public dividedBy(other: Scalar): T extends (Percent) ? Scalar : T;
   public dividedBy<B extends Quantity<B>>(other: B): T extends (Scalar | Percent) ? B : UnverifiedQuantity;
   public dividedBy<B extends Quantity<B>>(other: B): B | T | UnverifiedQuantity {
+    if (other.magnitude.isZero()) throw new Error(`dividedBy failed: divide by zero, this=numerator=${this}, other=denominator=${other}`);
     const newMagnitude = this.magnitude.dividedBy(other.magnitude);
     // TODO doc lack of symmtery between Scalar/Percent is why we need these special cases. Scalar is stronger than Percent because Scalar*Percent=Scalar
     // UPDATE - TODO maybe this should be opposite: Scalar*Percent=Percent
@@ -124,11 +125,23 @@ abstract class Quantity<T extends Quantity<T>> {
     }
     return this.magnitude.lt(other.magnitude);
   }
+  public lte<B extends Quantity<B>>(other: B): boolean {
+    if (!isEqual(this.dimension, other.dimension)) {
+      throw new Error(`lte failed: expected dimensions to be equal, this=${this}, other=${other}`);
+    }
+    return this.magnitude.lte(other.magnitude);
+  }
   public gt<B extends Quantity<B>>(other: B): boolean {
     if (!isEqual(this.dimension, other.dimension)) {
       throw new Error(`gt failed: expected dimensions to be equal, this=${this}, other=${other}`);
     }
     return this.magnitude.gt(other.magnitude);
+  }
+  public gte<B extends Quantity<B>>(other: B): boolean {
+    if (!isEqual(this.dimension, other.dimension)) {
+      throw new Error(`gte failed: expected dimensions to be equal, this=${this}, other=${other}`);
+    }
+    return this.magnitude.gte(other.magnitude);
   }
   public abs(): T {
     return new this.derivedConstructor(this.magnitude.abs());
@@ -142,6 +155,12 @@ abstract class Quantity<T extends Quantity<T>> {
       throw new Error(`min failed: expected dimensions to be equal, this=${this}, other=${other}`);
     }
     return new this.derivedConstructor(BigNumber.min(this.magnitude, other.magnitude));
+  }
+  public max<B extends Quantity<B>>(other: B): T {
+    if (!isEqual(this.dimension, other.dimension)) {
+      throw new Error(`max failed: expected dimensions to be equal, this=${this}, other=${other}`);
+    }
+    return new this.derivedConstructor(BigNumber.max(this.magnitude, other.magnitude));
   }
 
   // TODO there is a general pattern among some functions eg. plus/minus/min: ensure dimensions equal and then return derivedConstructor(some new magnitude); can probably simplify this code and it'd be worth it once more functions are added
@@ -266,6 +285,7 @@ const SharesUnitDimension: DimensionVector = Object.freeze({
 });
 export class Shares extends Quantity<Shares> {
   public static ZERO: Shares = new Shares(ZERO);
+  public static ONE: Shares = new Shares(ONE);
   public shares: true; // this unique field makes this unit disjoint with other units so that you can't `a: Shares = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Shares, magnitude, SharesUnitDimension);

@@ -1,15 +1,16 @@
 import Augur from "augur.js";
-import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { Bytes32, FormattedEventLog, OrderState } from "../../types";
-import { augurEmitter } from "../../events";
+import * as Knex from "knex";
 import { SubscriptionEventNames } from "../../constants";
+import { augurEmitter } from "../../events";
+import { Bytes32, FormattedEventLog, OrderState } from "../../types";
+import { updateSpreadPercentForMarketAndOutcomes } from "../../utils/liquidity";
 
 interface MarketIDAndOutcomeAndPrice {
   marketId: Bytes32;
   outcome: number;
   price: BigNumber;
-  orderType: string|number;
+  orderType: string | number;
   orderCreator: string;
   sharesEscrowed: BigNumber;
 }
@@ -22,9 +23,11 @@ export async function processOrderCanceledLog(augur: Augur, log: FormattedEventL
   return async (db: Knex) => {
     const orderTypeLabel = log.orderType === "0" ? "buy" : "sell";
     await db.from("orders").where("orderId", log.orderId).update({ orderState: OrderState.CANCELED });
-    await  db.into("orders_canceled").insert({ orderId: log.orderId, transactionHash: log.transactionHash, logIndex: log.logIndex, blockNumber: log.blockNumber });
-    const ordersRow: MarketIDAndOutcomeAndPrice = await  db.first("marketId", "outcome", "price", "sharesEscrowed", "orderCreator").from("orders").where("orderId", log.orderId);
+    await db.into("orders_canceled").insert({ orderId: log.orderId, transactionHash: log.transactionHash, logIndex: log.logIndex, blockNumber: log.blockNumber });
+    const ordersRow: MarketIDAndOutcomeAndPrice = await db.first("marketId", "outcome", "price", "sharesEscrowed", "orderCreator").from("orders").where("orderId", log.orderId);
+    if (!ordersRow) throw new Error(`expected to find order with id ${log.orderId}`);
     ordersRow.orderType = orderTypeLabel;
+    await updateSpreadPercentForMarketAndOutcomes(db, ordersRow.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCanceled, Object.assign({}, log, ordersRow));
   };
 }
@@ -35,7 +38,9 @@ export async function processOrderCanceledLogRemoval(augur: Augur, log: Formatte
     await db.from("orders").where("orderId", log.orderId).update({ orderState: OrderState.OPEN });
     await db.from("orders_canceled").where("orderId", log.orderId).delete();
     const ordersRow: MarketIDAndOutcomeAndPrice = await db.first("marketId", "outcome", "price").from("orders").where("orderId", log.orderId);
-    if (ordersRow) ordersRow.orderType = orderTypeLabel;
+    if (!ordersRow) throw new Error(`expected to find order with id ${log.orderId}`);
+    ordersRow.orderType = orderTypeLabel;
+    await updateSpreadPercentForMarketAndOutcomes(db, ordersRow.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCanceled, Object.assign({}, log, ordersRow));
   };
 }

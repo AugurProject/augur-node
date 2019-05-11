@@ -1,17 +1,17 @@
-import * as Knex from "knex";
-import BigNumber from "bignumber.js";
-import Augur from "augur.js";
-import * as _ from "lodash";
-import { each } from "bluebird";
 import { forEachOf } from "async";
-import { Address, FormattedEventLog, MarketCreatedLogExtraInfo, MarketsRow, OutcomesRow, TokensRow, ErrorCallback } from "../../types";
+import Augur from "augur.js";
+import BigNumber from "bignumber.js";
+import * as Knex from "knex";
+import * as _ from "lodash";
+import { ETHER, MarketType, SubscriptionEventNames, WEI_PER_ETHER, ZERO } from "../../constants";
+import { createSearchProvider } from "../../database/fts";
+import { augurEmitter } from "../../events";
+import { Address, ErrorCallback, FormattedEventLog, MarketCreatedLogExtraInfo, MarketsRow, OutcomesRow, TokensRow } from "../../types";
+import { contentSearchBuilder } from "../../utils/content-search-builder";
 import { convertDivisorToRate } from "../../utils/convert-divisor-to-rate";
 import { convertFixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
-import { createSearchProvider } from "../../database/fts";
-import { contentSearchBuilder } from "../../utils/content-search-builder";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
-import { augurEmitter } from "../../events";
-import { ETHER, MarketType, SubscriptionEventNames, WEI_PER_ETHER, ZERO } from "../../constants";
+import { DefaultSpreadPercentString, DefaultSpreadPercentBigNumber } from "../../utils/liquidity";
 import { getCurrentTime } from "../process-block";
 
 function getOutcomes(augur: Augur, log: FormattedEventLog) {
@@ -105,6 +105,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       volume: "0",
       sharesOutstanding: "0",
       openInterest: "0",
+      spreadPercent: DefaultSpreadPercentString,
       validityBondSize: calls.validityBondAttoeth,
       forking: 0,
       needsMigration: 0,
@@ -116,6 +117,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       price: new BigNumber(log.minPrice, 10).plus(new BigNumber(log.maxPrice, 10)).dividedBy(new BigNumber(calls.getOutcomes.numOutcomes, 10)),
       volume: ZERO,
       shareVolume: ZERO,
+      spreadPercent: DefaultSpreadPercentBigNumber,
     });
     const tokensDataToInsert: Partial<TokensRow> = {
       marketId: log.market,

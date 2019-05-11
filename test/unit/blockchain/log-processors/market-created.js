@@ -160,6 +160,7 @@ describe("blockchain/log-processors/market-created", () => {
             tag1: "TEST_TAG_1",
             tag2: "TEST_TAG_2",
             volume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             shareVolume: new BigNumber("0", 10),
             sharesOutstanding: new BigNumber("0", 10),
             openInterest: new BigNumber("0", 10),
@@ -194,6 +195,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }, {
             marketId: "0x1111111111111111111111111111111111111111",
@@ -201,6 +203,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }],
           search: [{
@@ -366,6 +369,7 @@ describe("blockchain/log-processors/market-created", () => {
             tag1: "TEST_TAG_1",
             tag2: "TEST_TAG_2",
             volume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             shareVolume: new BigNumber("0", 10),
             sharesOutstanding: new BigNumber("0", 10),
             openInterest: new BigNumber("0", 10),
@@ -401,6 +405,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: "test outcome 0",
+            spreadPercent: new BigNumber("1", 10),
           }, {
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 1,
@@ -408,6 +413,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: "test outcome 1",
+            spreadPercent: new BigNumber("1", 10),
           }, {
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 2,
@@ -415,6 +421,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: "test outcome 2",
+            spreadPercent: new BigNumber("1", 10),
           }, {
             marketId: "0x1111111111111111111111111111111111111112",
             outcome: 3,
@@ -422,6 +429,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: "test outcome 3",
+            spreadPercent: new BigNumber("1", 10),
           }],
           search: [{
             category: "TEST_CATEGORY",
@@ -594,6 +602,7 @@ describe("blockchain/log-processors/market-created", () => {
             tag1: "TEST_TAG_1",
             tag2: "TEST_TAG_2",
             volume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             shareVolume: new BigNumber("0", 10),
             sharesOutstanding: new BigNumber("0", 10),
             openInterest: new BigNumber("0", 10),
@@ -629,6 +638,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: null,
+            spreadPercent: new BigNumber("1", 10),
           }, {
             marketId: "0x1111111111111111111111111111111111111113",
             outcome: 1,
@@ -636,6 +646,7 @@ describe("blockchain/log-processors/market-created", () => {
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
             description: null,
+            spreadPercent: new BigNumber("1", 10),
           }],
           search: [{
             category: "TEST_CATEGORY",
@@ -795,6 +806,7 @@ describe("blockchain/log-processors/market-created", () => {
             tag1: null,
             tag2: null,
             volume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             shareVolume: new BigNumber("0", 10),
             sharesOutstanding: new BigNumber("0", 10),
             openInterest: new BigNumber("0", 10),
@@ -829,6 +841,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }, {
             marketId: "0x1111111111111111111111111111111111111111",
@@ -836,6 +849,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }],
           search: [{
@@ -1006,6 +1020,7 @@ describe("blockchain/log-processors/market-created", () => {
             tag1: "TEST_TAG_1",
             tag2: "TEST_TAG_2",
             volume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             shareVolume: new BigNumber("0", 10),
             sharesOutstanding: new BigNumber("0", 10),
             reportingState: "PRE_REPORTING",
@@ -1039,6 +1054,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }, {
             marketId: "0x1111111111111111111111111111111111111111",
@@ -1046,6 +1062,7 @@ describe("blockchain/log-processors/market-created", () => {
             price: new BigNumber("0.5", 10),
             volume: new BigNumber("0", 10),
             shareVolume: new BigNumber("0", 10),
+            spreadPercent: new BigNumber("1", 10),
             description: null,
           }],
           search: [{

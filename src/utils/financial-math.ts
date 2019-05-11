@@ -250,7 +250,7 @@ interface TradeRealizedProfitDelta {
 // on a single market outcome. TradePrice is the price shown in the UI,
 // looking at the order book or historical price chart. NB TradePrice
 // is not the cashflow price a user paid/received, that's SharePrice.
-interface TradePrice {
+export interface TradePrice {
   tradePrice: Price;
 }
 
@@ -286,14 +286,14 @@ interface LastTradePriceMinusMinPrice {
 // MarketMinPrice is a market's minimum TradePrice. In
 // DB markets.minPrice. MarketMinPrice is necessary in
 // general to convert between TradePrice and SharePrice.
-interface MarketMinPrice {
+export interface MarketMinPrice {
   marketMinPrice: Price;
 }
 
 // MarketMaxPrice is a market's maximum TradePrice. In
 // DB markets.maxPrice. MarketMaxPrice is necessary in
 // general to convert between TradePrice and SharePrice.
-interface MarketMaxPrice {
+export interface MarketMaxPrice {
   marketMaxPrice: Price;
 }
 

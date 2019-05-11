@@ -1,23 +1,23 @@
 import Augur from "augur.js";
-import * as Knex from "knex";
 import { BigNumber } from "bignumber.js";
-import { Address, FormattedEventLog, MarketsRow, OrdersRow, TokensRow, OrderState } from "../../types";
+import * as Knex from "knex";
+import { QueryBuilder } from "knex";
+import { BN_WEI_PER_ETHER, SubscriptionEventNames } from "../../constants";
 import { augurEmitter } from "../../events";
+import { Address, FormattedEventLog, MarketsRow, OrdersRow, OrderState, TokensRow } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { formatOrderAmount, formatOrderPrice } from "../../utils/format-order";
-import { BN_WEI_PER_ETHER, SubscriptionEventNames } from "../../constants";
-import { QueryBuilder } from "knex";
-import { updateProfitLossRemoveRow } from "./profit-loss/update-profit-loss";
+import { updateSpreadPercentForMarketAndOutcomes } from "../../utils/liquidity";
 
 export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLog) {
-  return async(db: Knex) => {
+  return async (db: Knex) => {
     const amount: BigNumber = new BigNumber(log.amount, 10);
     const price: BigNumber = new BigNumber(log.price, 10);
     const orderType: string = log.orderType;
     const moneyEscrowed: BigNumber = new BigNumber(log.moneyEscrowed, 10);
     const sharesEscrowed: BigNumber = new BigNumber(log.sharesEscrowed, 10);
     const shareToken: Address = log.shareToken;
-    const tokensRow: TokensRow|undefined = await db.first("marketId", "outcome").from("tokens").where({ contractAddress: shareToken });
+    const tokensRow: TokensRow | undefined = await db.first("marketId", "outcome").from("tokens").where({ contractAddress: shareToken });
     if (!tokensRow) throw new Error(`market and outcome not found for shareToken ${shareToken} (${log.transactionHash}`);
     const marketId = tokensRow.marketId;
     const outcome = tokensRow.outcome!;
@@ -65,14 +65,17 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
     }
     await upsertOrder;
     await marketPendingOrphanCheck(db, orderData);
-
+    await updateSpreadPercentForMarketAndOutcomes(db, marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCreated, Object.assign({}, log, orderData));
   };
 }
 
 export async function processOrderCreatedLogRemoval(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
+    const marketIdQuery: Pick<OrdersRow<BigNumber>, "marketId"> = await db.first("marketId").from("orders").where("orderId", log.orderId);
+    if (!marketIdQuery) throw new Error(`expected to find order with id ${log.orderId}`);
     await db.from("orders").where("orderId", log.orderId).delete();
+    await updateSpreadPercentForMarketAndOutcomes(db, marketIdQuery.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCreated, log);
   };
 }
