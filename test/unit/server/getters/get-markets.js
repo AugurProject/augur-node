@@ -14,6 +14,7 @@ describe("server/getters/get-markets", () => {
 
   const runTest = (t) => {
     test(t.description, async () => {
+      if (t.preQuery) await t.preQuery(db);
       t.method = "getMarkets";
       const marketsMatched = await dispatchJsonRpcRequest(db, t, {});
       t.assertions(marketsMatched);
@@ -475,8 +476,8 @@ describe("server/getters/get-markets", () => {
       universe: "0x000000000000000000000000000000000000000b",
       maxFee: 0.03,
     },
-    assertions: (marketsWithMaxFee) => {
-      expect(marketsWithMaxFee).not.toContain("0x0000000000000000000000000000000000000001"); // .04 combined fee
+    assertions: (marketIds) => {
+      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001"); // .04 combined fee
     },
   });
   runTest({
@@ -485,18 +486,40 @@ describe("server/getters/get-markets", () => {
       universe: "0x000000000000000000000000000000000000000b",
       maxEndTime: 1506573471,
     },
-    assertions: (marketsWithMaxFee) => {
-      expect(marketsWithMaxFee).toContain("0x0000000000000000000000000000000000000001");
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
     },
   });
   runTest({
     description: "set a maximum end time #2",
     params: {
       universe: "0x000000000000000000000000000000000000000b",
-      maxEndTime: 1506573470, // this is the exact end time of 0x1000000000000000000000000000000000000001
+      maxEndTime: 1506573470,
     },
-    assertions: (marketsWithMaxFee) => {
-      expect(marketsWithMaxFee).not.toContain("0x0000000000000000000000000000000000000001");
+    assertions: (marketIds) => {
+      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum spread percent #1",
+    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxSpreadPercent: 0.1338,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum spread percent #2",
+    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxSpreadPercent: 0.1337,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
     },
   });
 });
