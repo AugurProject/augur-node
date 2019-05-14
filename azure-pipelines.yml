@@ -19,6 +19,7 @@ jobs:
         inputs:
           versionSpec: $(NODE_JS_VERSION)
       - bash: |
+          set -euo pipefail
           yarn
           npm run build:ts
           npm run lint
