@@ -5,8 +5,27 @@ import { Address, MarketsRow, OrdersRow, OrderState } from "../types";
 import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 import { MarketMaxPrice, MarketMinPrice, TradePrice } from "./financial-math";
 
+// QuantityAtPrice is one line in the order book
+interface QuantityAtPrice extends TradePrice {
+  quantity: Shares;
+}
+
+interface GetOutcomeSpreadParams extends MarketMinPrice, MarketMaxPrice {
+  bidsSortedByPriceDescending: Array<QuantityAtPrice>;
+  asksSortedByPriceAscending: Array<QuantityAtPrice>;
+  percentQuantityIncludedInSpread: Percent; // tuning parameter. Percent quantity of largest side order book side that will be used to calculate spread percent
+}
+
+const DefaultPercentQuantityIncludedInSpread = new Percent(new BigNumber(0.1)); // default for GetOutcomeSpreadParams.percentQuantityIncludedInSpread
+
+interface GetOutcomeSpreadResult {
+  spreadPercent: Percent;
+}
+
 // updateSpreadPercentForMarketAndOutcomes updates in DB markets.spreadPercent
 // and outcomes.spreadPercent the passed market and all its outcomes.
+// Clients must call updateSpreadPercentForMarketAndOutcomes
+// each time the orders table changes for any reason.
 export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId: Address): Promise<void> {
   const marketsQuery: undefined | Pick<MarketsRow<BigNumber>, "marketType" | "numOutcomes" | "minPrice" | "maxPrice"> = await db
     .first("marketType", "numOutcomes", "minPrice", "maxPrice")
@@ -31,8 +50,7 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
     return tmpOutcomes;
   })();
 
-  // outcomeSpreads[i] is OutcomeSpread for outcome outcomes[i]
-  const outcomeSpreads: Array<OutcomeSpread> = outcomes.map((outcome) => {
+  const outcomeSpreads: Array<GetOutcomeSpreadResult & { outcome: number }> = outcomes.map((outcome) => {
     const outcomeBids: Array<QuantityAtPrice> = _.sortBy(
       orders.filter((o) => o.outcome === outcome && o.orderType === "buy"),
       (o: OrderPartial) => o.price.toNumber(),
@@ -42,29 +60,32 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
       (o: OrderPartial) => o.price.toNumber(),
     ).map(orderToQuantityAtPrice);
 
-    return getOutcomeSpread({
+    const outcomeSpread = getOutcomeSpread({
       bidsSortedByPriceDescending: outcomeBids,
       asksSortedByPriceAscending: outcomeAsks,
       marketMinPrice: new Price(marketsQuery.minPrice),
       marketMaxPrice: new Price(marketsQuery.maxPrice),
-      ...DefaultTuningParams,
+      percentQuantityIncludedInSpread: DefaultPercentQuantityIncludedInSpread,
     });
+    return {
+      outcome,
+      ...outcomeSpread,
+    };
   });
 
   const marketSpreadPercent: Percent = outcomeSpreads.reduce<Percent>(
     (maxOutcomeSpread, os) => maxOutcomeSpread.max(os.spreadPercent),
     Percent.ZERO);
 
-  outcomes.forEach(async (outcome, index) => {
+  outcomeSpreads.forEach(async (os) => {
     await db("outcomes").update({
-      spreadPercent: outcomeSpreads[index].spreadPercent.magnitude.toString(),
-    }).where({ outcome, marketId });
+      spreadPercent: os.spreadPercent.magnitude.toString(),
+    }).where({ outcome: os.outcome, marketId });
   });
 
   await db("markets").update({
     spreadPercent: marketSpreadPercent.magnitude.toString(),
   }).where({ marketId });
-
 
   function orderToQuantityAtPrice(o: OrderPartial): QuantityAtPrice {
     return {
@@ -74,98 +95,90 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
   }
 }
 
-interface QuantityAtPrice extends TradePrice {
-  quantity: Shares;
-}
+function getOutcomeSpread(params: GetOutcomeSpreadParams): GetOutcomeSpreadResult {
+  // numShares is the number of shares that will be used in the spreadPercent
+  // calculation. numShares will be used from each side of order book,
+  // so if numShares=10 then we'll take 10 from sell and 10 from buy.
+  const numShares: Shares = (() => {
+    const sumAskQuantity: Shares = params.asksSortedByPriceAscending.reduce<Shares>((sum, qtyAtPrice) => sum.plus(qtyAtPrice.quantity), Shares.ZERO);
+    const sumBidQuantity: Shares =
+      params.bidsSortedByPriceDescending.reduce<Shares>((sum, qtyAtPrice) => sum.plus(qtyAtPrice.quantity), Shares.ZERO);
+    const percentSharesOfLargestSide: Shares = sumAskQuantity.max(sumBidQuantity)
+      .multipliedBy(params.percentQuantityIncludedInSpread);
 
-interface GetOutcomeSpreadTuningParameters {
-  percentQuantityIncludedInSpread: Percent;
-}
+    // If entire book is empty then we'll set numShares to one which causes
+    // spreadPercent to naturally and correctly be 100% because we'll take
+    // one share from each side of an empty book, and our "empty book" has
+    // infinite quantity bids at minPrice and asks at maxPrice (see below).
+    return percentSharesOfLargestSide.isZero() ? Shares.ONE : percentSharesOfLargestSide;
+  })();
 
-const DefaultTuningParams: GetOutcomeSpreadTuningParameters = {
-  percentQuantityIncludedInSpread: new Percent(new BigNumber(0.1)),
-};
+  const bidValue = takeFromBidsOrAsks({
+    numShares,
+    marketMinPrice: params.marketMinPrice,
+    marketMaxPrice: params.marketMaxPrice,
+    bidsSortedByPriceDescending: params.bidsSortedByPriceDescending,
+  });
 
-interface GetOutcomeSpreadParams extends
-  GetOutcomeSpreadTuningParameters,
-  MarketMinPrice,
-  MarketMaxPrice {
-  bidsSortedByPriceDescending: Array<QuantityAtPrice>;
-  asksSortedByPriceAscending: Array<QuantityAtPrice>;
-}
-
-interface OutcomeSpread {
-  spreadPercent: Percent;
-}
-
-function getOutcomeSpread(params: GetOutcomeSpreadParams): OutcomeSpread {
-  const sumAskQuantity: Shares = params.asksSortedByPriceAscending.reduce<Shares>((sum, qtyAtPrice) => sum.plus(qtyAtPrice.quantity), Shares.ZERO);
-  const sumBidQuantity: Shares =
-    params.bidsSortedByPriceDescending.reduce<Shares>((sum, qtyAtPrice) => sum.plus(qtyAtPrice.quantity), Shares.ZERO);
-  const xPercentShares = sumAskQuantity.max(sumBidQuantity)
-    .multipliedBy(params.percentQuantityIncludedInSpread); // TODO rename xPercentShares to something ??
-  const smallestSideAmount = sumAskQuantity.min(sumBidQuantity);
-  let numShares = xPercentShares.min(smallestSideAmount);
-
-  let bidValue = Tokens.ZERO;
-  let askValue = Tokens.ZERO;
-
-  // TODO refactor into helper method and use for both bidValue and askValue
-  let qtyRemainingToTake = numShares;
-  let i = 0;
-  while (qtyRemainingToTake.gt(Shares.ZERO)) {
-    const qtyToTakeAtThisPrice = qtyRemainingToTake.min(
-      params.bidsSortedByPriceDescending[i].quantity);
-    bidValue = bidValue.plus(
-      qtyToTakeAtThisPrice.multipliedBy(
-        params.bidsSortedByPriceDescending[i].tradePrice).expect(Tokens));
-    qtyRemainingToTake = qtyRemainingToTake.minus(qtyToTakeAtThisPrice);
-    i += 1;
-  }
-
-  qtyRemainingToTake = numShares;
-  i = 0;
-  while (qtyRemainingToTake.gt(Shares.ZERO)) {
-    const qtyToTakeAtThisPrice = qtyRemainingToTake.min(
-      params.asksSortedByPriceAscending[i].quantity);
-    askValue = askValue.plus(
-      qtyToTakeAtThisPrice.multipliedBy(
-        params.asksSortedByPriceAscending[i].tradePrice).expect(Tokens));
-    qtyRemainingToTake = qtyRemainingToTake.minus(qtyToTakeAtThisPrice);
-    i += 1;
-  }
-
-  if (numShares.lte(Shares.ZERO)) {
-    // one or both sides of order book was empty; we'll pretend instead
-    // it/each had 1 share to faciliate calculating spreadPercent.
-    numShares = numShares.plus(Shares.ONE);
-    if (sumBidQuantity.lte(Shares.ZERO)) {
-      // bid side of order book was empty
-      bidValue = params.marketMinPrice.multipliedBy(Shares.ONE).expect(Tokens);
-    }
-    if (sumAskQuantity.lte(Shares.ZERO)) {
-      // ask side of order book was empty
-      askValue = params.marketMaxPrice.multipliedBy(Shares.ONE).expect(Tokens);
-    }
-  }
+  const askValue = takeFromBidsOrAsks({
+    numShares,
+    marketMinPrice: params.marketMinPrice,
+    marketMaxPrice: params.marketMaxPrice,
+    asksSortedByPriceAscending: params.asksSortedByPriceAscending,
+  });
 
   const spreadPercent: Percent = (() => {
     const tmpSpreadPercent = askValue.minus(bidValue).dividedBy(
       params.marketMaxPrice.minus(params.marketMinPrice).multipliedBy(numShares))
       .expect(Percent);
 
-    // TODO rm
-    if (tmpSpreadPercent.lt(Percent.ZERO)) {
-      console.log("tmpSpreadPercent less than zero", tmpSpreadPercent.magnitude.toNumber(), "askValue", askValue.magnitude.toNumber(), "bidValue", bidValue.magnitude.toNumber(), "marketId");
-      // got 285 logs in blocks { fromBlock: 6065353, toBlock: 6066072 }
-      // (node:91641) UnhandledPromiseRejectionWarning: Error: SQLITE_CONSTRAINT: CHECK constraint failed: nonnegativeSpreadPercent
-      // (node:91641) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 26)
-    }
-
+    // tmpSpreadPercent may be negative if the passed bids/asks were corrupt such
+    // that bids were greater than asks, which shouldn't happen since trades should
+    // be created to clear the order book any time best best is greater than best ask.
     return tmpSpreadPercent.lt(Percent.ZERO) ? Percent.ZERO : tmpSpreadPercent;
   })();
 
   return {
     spreadPercent,
   };
+}
+
+const InfinityShares = new Shares(new BigNumber(Infinity));
+
+// takeFromBidsOrAsks simulates consecutive takes from the passed
+// bids or asks up until the passed numShares have been taken.
+// Returns the total value (sum of TradePrice) of the takes.
+function takeFromBidsOrAsks(params: {
+  numShares: Shares,
+} & MarketMinPrice & MarketMaxPrice & (
+    Pick<GetOutcomeSpreadParams, "asksSortedByPriceAscending"> | Pick<GetOutcomeSpreadParams, "bidsSortedByPriceDescending">)): Tokens {
+  let valueTaken = Tokens.ZERO;
+
+  // params includes asksSortedByPriceAscending xor bidsSortedByPriceDescending.
+  // In either case, we'll create a new array by appending an order with
+  // infinite quantity. This has the effect of being able to take from
+  // bidsOrAsks without it ever becoming empty, which helps calculate
+  // spread percents when one side of the order book is small or empty.
+  const bidsOrAsks: Array<QuantityAtPrice> = ("asksSortedByPriceAscending" in params) ?
+    params.asksSortedByPriceAscending.concat([{
+      quantity: InfinityShares,
+      tradePrice: params.marketMaxPrice,
+    }]) :
+    params.bidsSortedByPriceDescending.concat([{
+      quantity: InfinityShares,
+      tradePrice: params.marketMinPrice,
+    }]);
+
+  let qtyRemainingToTake = params.numShares;
+  let i = 0;
+  while (qtyRemainingToTake.gt(Shares.ZERO)) {
+    // bidsOrAsks[i] is always defined because we appended an order with infinite quantity to bidsOrAsks
+    const qtyToTakeAtThisPrice = qtyRemainingToTake.min(bidsOrAsks[i].quantity);
+    valueTaken = valueTaken.plus(
+      qtyToTakeAtThisPrice.multipliedBy(bidsOrAsks[i].tradePrice).expect(Tokens));
+    qtyRemainingToTake = qtyRemainingToTake.minus(qtyToTakeAtThisPrice);
+    i += 1;
+  }
+
+  return valueTaken;
 }
