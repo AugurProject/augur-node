@@ -37,7 +37,7 @@ case ${augur_env} in
         cluster=""
         augur_service=""
         build_environment="release"
-        version = "$(node scripts/get-version.js)"
+        version="$(node scripts/get-version.js)"
         ;;
 
     *)
