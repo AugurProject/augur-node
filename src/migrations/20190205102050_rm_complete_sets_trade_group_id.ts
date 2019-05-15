@@ -8,6 +8,6 @@ exports.up = async (knex: Knex): Promise<any> => {
 
 exports.down = async (knex: Knex): Promise<any> => {
   return knex.schema.table("completeSets", (table: Knex.CreateTableBuilder): void => {
-    table.integer("tradeGroupId");
+    table.string("tradeGroupId");
   });
 };
