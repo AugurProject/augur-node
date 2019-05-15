@@ -45,6 +45,7 @@ describe("blockchain/log-processors/completesets", () => {
         marketId: "0x0000000000000000000000000000000000000002",
         numCompleteSets: new BigNumber("2", 10),
         numPurchasedOrSold: "2",
+        tradeGroupId: null, // DB completeSets.numCompleteSets is a nullable deprecated column that we can't remove because the dropColumn migration fails, see commit "Disable 20190205102050_rm_complete_sets_trade_group_id.ts"
         transactionHash: "0x00000000000000000000000000000000deadbeef",
         universe: "0x0000000000000000000000000000000000000001",
       }]);

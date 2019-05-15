@@ -1,13 +1,9 @@
 import * as Knex from "knex";
 
 exports.up = async (knex: Knex): Promise<any> => {
-  return knex.schema.table("completeSets", (table: Knex.CreateTableBuilder): void => {
-    table.dropColumns("tradeGroupId");
-  });
+  // INTENTIONAL no-op, see commit "Disable 20190205102050_rm_complete_sets_trade_group_id.ts"
 };
 
 exports.down = async (knex: Knex): Promise<any> => {
-  return knex.schema.table("completeSets", (table: Knex.CreateTableBuilder): void => {
-    table.integer("tradeGroupId");
-  });
+  // INTENTIONAL no-op, see commit "Disable 20190205102050_rm_complete_sets_trade_group_id.ts"
 };
