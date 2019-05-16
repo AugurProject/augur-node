@@ -253,6 +253,7 @@ export interface MarketsRow<BigNumberType> extends MarketPricing<BigNumberType> 
   needsMigration: number;
   needsDisavowal: number;
   spreadPercent: BigNumberType;
+  invalidROIPercent: BigNumberType;
 }
 
 export interface SearchRow {
@@ -283,6 +284,7 @@ export interface OutcomesRow<BigNumberType> {
   shareVolume: BigNumberType;
   description: string|null;
   spreadPercent: BigNumberType;
+  invalidROIPercent: BigNumberType;
 }
 
 export interface TokensRow {

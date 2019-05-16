@@ -11,7 +11,7 @@ import { contentSearchBuilder } from "../../utils/content-search-builder";
 import { convertDivisorToRate } from "../../utils/convert-divisor-to-rate";
 import { convertFixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
-import { DefaultSpreadPercentString, DefaultSpreadPercentBigNumber } from "../../utils/liquidity";
+import { DefaultSpreadPercentString, DefaultSpreadPercentBigNumber, DefaultInvalidROIPercentString, DefaultInvalidROIPercentBigNumber } from "../../utils/liquidity";
 import { getCurrentTime } from "../process-block";
 
 function getOutcomes(augur: Augur, log: FormattedEventLog) {
@@ -106,6 +106,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       sharesOutstanding: "0",
       openInterest: "0",
       spreadPercent: DefaultSpreadPercentString,
+      invalidROIPercent: DefaultInvalidROIPercentString,
       validityBondSize: calls.validityBondAttoeth,
       forking: 0,
       needsMigration: 0,
@@ -118,6 +119,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       volume: ZERO,
       shareVolume: ZERO,
       spreadPercent: DefaultSpreadPercentBigNumber,
+      invalidROIPercent: DefaultInvalidROIPercentBigNumber,
     });
     const tokensDataToInsert: Partial<TokensRow> = {
       marketId: log.market,

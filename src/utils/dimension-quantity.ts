@@ -2,6 +2,7 @@ import { BigNumber } from "bignumber.js";
 
 const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
+const TWO = new BigNumber(2);
 
 // TODO toString() method "20 tokens", "20 tokens/share", "20 tokens^2*shares^-3"
 // TODO ETH/attoETH/erc20
@@ -55,47 +56,45 @@ abstract class Quantity<T extends Quantity<T>> {
       throw new Error(`expected BigNumber.s to be -1 or 1, was ${this.magnitude.s}`);
     }
   }
-  public multipliedBy(other: Percent): T;
-  public multipliedBy(other: Scalar): T extends (Percent) ? Scalar : T;
+  public multipliedBy(other: Percent): T extends (Scalar) ? Percent : T;
+  public multipliedBy(other: Scalar): T extends (Percent) ? Percent : T;
   public multipliedBy<B extends Quantity<B>>(other: B): T extends (Scalar | Percent) ? B : UnverifiedQuantity;
   public multipliedBy<B extends Quantity<B>>(other: B): B | T | UnverifiedQuantity {
     const newMagnitude = this.magnitude.multipliedBy(other.magnitude);
     // TODO doc lack of symmtery between Scalar/Percent is why we need these special cases. Scalar is stronger than Percent because Scalar*Percent=Scalar
-    // UPDATE - TODO maybe this should be opposite: Scalar*Percent=Percent
-    if (this instanceof Scalar && other instanceof Percent) {
+    if (this instanceof Percent && other instanceof Scalar) {
       return new this.derivedConstructor(newMagnitude);
     }
-    if (other instanceof Scalar && this instanceof Percent) {
+    if (other instanceof Percent && this instanceof Scalar) {
       return new other.derivedConstructor(newMagnitude);
     }
-    if (this instanceof Scalar || this instanceof Percent) {
+    if (this instanceof Percent || this instanceof Scalar) {
       return new other.derivedConstructor(newMagnitude);
     }
-    if (other instanceof Scalar || other instanceof Percent) {
+    if (other instanceof Percent || other instanceof Scalar) {
       return new this.derivedConstructor(newMagnitude);
     }
     const newDimension = Object.assign({}, this.dimension);
     Dimensions.forEach((u) => newDimension[u] += other.dimension[u]);
     return new UnverifiedQuantity(newMagnitude, newDimension);
   }
-  public dividedBy(other: Percent): T;
-  public dividedBy(other: Scalar): T extends (Percent) ? Scalar : T;
+  public dividedBy(other: Percent): T extends (Scalar) ? Percent : T;
+  public dividedBy(other: Scalar): T extends (Percent) ? Percent : T;
   public dividedBy<B extends Quantity<B>>(other: B): T extends (Scalar | Percent) ? B : UnverifiedQuantity;
   public dividedBy<B extends Quantity<B>>(other: B): B | T | UnverifiedQuantity {
     if (other.magnitude.isZero()) throw new Error(`dividedBy failed: divide by zero, this=numerator=${this}, other=denominator=${other}`);
     const newMagnitude = this.magnitude.dividedBy(other.magnitude);
     // TODO doc lack of symmtery between Scalar/Percent is why we need these special cases. Scalar is stronger than Percent because Scalar*Percent=Scalar
-    // UPDATE - TODO maybe this should be opposite: Scalar*Percent=Percent
-    if (this instanceof Scalar && other instanceof Percent) {
+    if (this instanceof Percent && other instanceof Scalar) {
       return new this.derivedConstructor(newMagnitude);
     }
-    if (other instanceof Scalar && this instanceof Percent) {
+    if (other instanceof Percent && this instanceof Scalar) {
       return new other.derivedConstructor(newMagnitude);
     }
-    if (this instanceof Scalar || this instanceof Percent) {
+    if (this instanceof Percent || this instanceof Scalar) {
       return new other.derivedConstructor(newMagnitude);
     }
-    if (other instanceof Scalar || other instanceof Percent) {
+    if (other instanceof Percent || other instanceof Scalar) {
       return new this.derivedConstructor(newMagnitude);
     }
     const newDimension = Object.assign({}, this.dimension);
@@ -224,7 +223,7 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
 
 export function scalar(magnitude: number | BigNumber): Scalar {
   if (typeof magnitude === "number") {
-    return new Scalar(new BigNumber(magnitude));
+    return new Scalar(new BigNumber(magnitude, 10));
   }
   return new Scalar(magnitude);
 }
@@ -234,6 +233,8 @@ const ScalarUnitDimension: DimensionVector = Object.freeze({
 });
 export class Scalar extends Quantity<Scalar> {
   public static ZERO: Scalar = new Scalar(ZERO);
+  public static ONE: Scalar = new Scalar(ONE);
+  public static TWO: Scalar = new Scalar(TWO);
   public scalar: true; // this unique field makes this unit disjoint with other units so that you can't `a: Tokens = new Scalar()`
   constructor(magnitude: BigNumber) {
     super(Scalar, magnitude, ScalarUnitDimension);
@@ -336,23 +337,23 @@ export function safePercent<A extends Quantity<A>, B extends Quantity<B>>(params
 // ****************************************************************
 // tests/scratch below here
 
-const t = new Tokens(ZERO);
+const t = new Tokens(ONE);
 const t2 = new Tokens(new BigNumber(3));
 const t3: Tokens = t.plus(t2);
-const s = new Scalar(ZERO);
-const p = new Percent(ZERO);
+const s = new Scalar(ONE);
+const p = new Percent(ONE);
 
 // TODO these need unit tests too to check for stuff like `v5.tokens == "tokens"`
 const v5: Tokens = t.multipliedBy(s);
 const v6: Tokens = s.multipliedBy(t);
 const v7: UnverifiedQuantity = t.multipliedBy(t);
-const v8: Scalar = s.multipliedBy(s);
+const v8: Scalar = s.multipliedBy(s).dividedBy(s);
 
 const v111: Percent = p.multipliedBy(p);
-const v112: Scalar = s.multipliedBy(p); // TODO : Percent instead?
-const v113: Scalar = p.multipliedBy(s); // TODO : Percent instead?
-const v114: Tokens = p.multipliedBy(t);
-const v115: Tokens = t.multipliedBy(p);
+const v112: Percent = s.multipliedBy(p).dividedBy(s).dividedBy(p);
+const v113: Percent = p.multipliedBy(s).dividedBy(s).dividedBy(p);
+const v114: Tokens = p.multipliedBy(t).multipliedBy(s);
+const v115: Tokens = t.multipliedBy(p).dividedBy(p);
 
 const uq2 = new UnverifiedQuantity(ONE, {
   tokens: 1,

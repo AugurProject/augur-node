@@ -4,7 +4,7 @@ import * as Knex from "knex";
 import { SubscriptionEventNames } from "../../constants";
 import { augurEmitter } from "../../events";
 import { Bytes32, FormattedEventLog, OrderState } from "../../types";
-import { updateSpreadPercentForMarketAndOutcomes } from "../../utils/liquidity";
+import { updateLiquidityMetricsForMarketAndOutcomes } from "../../utils/liquidity";
 
 interface MarketIDAndOutcomeAndPrice {
   marketId: Bytes32;
@@ -27,7 +27,7 @@ export async function processOrderCanceledLog(augur: Augur, log: FormattedEventL
     const ordersRow: MarketIDAndOutcomeAndPrice = await db.first("marketId", "outcome", "price", "sharesEscrowed", "orderCreator").from("orders").where("orderId", log.orderId);
     if (!ordersRow) throw new Error(`expected to find order with id ${log.orderId}`);
     ordersRow.orderType = orderTypeLabel;
-    await updateSpreadPercentForMarketAndOutcomes(db, ordersRow.marketId);
+    await updateLiquidityMetricsForMarketAndOutcomes(db, ordersRow.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCanceled, Object.assign({}, log, ordersRow));
   };
 }
@@ -40,7 +40,7 @@ export async function processOrderCanceledLogRemoval(augur: Augur, log: Formatte
     const ordersRow: MarketIDAndOutcomeAndPrice = await db.first("marketId", "outcome", "price").from("orders").where("orderId", log.orderId);
     if (!ordersRow) throw new Error(`expected to find order with id ${log.orderId}`);
     ordersRow.orderType = orderTypeLabel;
-    await updateSpreadPercentForMarketAndOutcomes(db, ordersRow.marketId);
+    await updateLiquidityMetricsForMarketAndOutcomes(db, ordersRow.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCanceled, Object.assign({}, log, ordersRow));
   };
 }

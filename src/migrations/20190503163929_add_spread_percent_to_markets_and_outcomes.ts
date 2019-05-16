@@ -1,5 +1,5 @@
 import * as Knex from "knex";
-import { updateSpreadPercentForMarketAndOutcomes } from "../utils/liquidity";
+import { updateLiquidityMetricsForMarketAndOutcomes } from "../utils/liquidity";
 
 exports.up = async (knex: Knex): Promise<any> => {
   const addSpreadPercentToMarkets = knex.schema.hasColumn("markets", "spreadPercent").then(async (exists) => {
@@ -11,7 +11,7 @@ exports.up = async (knex: Knex): Promise<any> => {
   return Promise.all([addSpreadPercentToMarkets, addSpreadPercentToOutcomes])
     .then(async () => {
       for (const { marketId } of await knex.select("marketId").from("markets")) {
-        await updateSpreadPercentForMarketAndOutcomes(knex, marketId);
+        await updateLiquidityMetricsForMarketAndOutcomes(knex, marketId);
       }
     });
 };

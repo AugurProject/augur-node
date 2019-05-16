@@ -22,10 +22,8 @@ import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 // are two distinct positions. A position is said to be "closed" if the user
 // has no shares in that outcome. A position is said to be "long" ("short") if
 // the user earns money when the price of an outcome's shares goes up (down).
-enum PositionType {
-  CLOSED = "closed",
-  SHORT = "short",
-  LONG = "long",
+interface PositionType {
+  positionType: "closed" | "long" | "short";
 }
 
 // NetPosition is the number of shares a user currently owns in a market
@@ -317,14 +315,39 @@ interface TotalFees {
   totalFees: Tokens;
 }
 
+// ReporterFeeRate is the universe-wide variable reporter fee rate
+// that yields ReporterFees. ReporterFeeRate is expressed as percent
+// of Tokens released from escrow when complete sets are destroyed.
+export interface ReporterFeeRate {
+  reporterFeeRate: Percent;
+}
+
+// MarketCreatorFeeRate is the market-specific fee rate set by the market
+// creator that yields MarketCreatorFees. MarketCreatorFeeRate is expressed as
+// a percent of Tokens released from escrow when complete sets are destroyed.
+interface MarketCreatorFeeRate {
+  marketCreatorFeeRate: Percent;
+}
+
+// TotalFeeRate is ReporterFeeRate plus MarketCreatorFeeRate.
+export interface TotalFeeRate {
+  totalFeeRate: Percent;
+}
+
 export function getPositionType(params: NetPosition): PositionType {
   if (params.netPosition.isZero()) {
-    return PositionType.CLOSED;
+    return {
+      positionType: "closed",
+    };
   }
   if (params.netPosition.sign === -1) {
-    return PositionType.SHORT;
+    return {
+      positionType: "short",
+    };
   }
-  return PositionType.LONG;
+  return {
+    positionType: "long",
+  };
 }
 
 export function getTradePrice(params: MarketMinPrice & TradePriceMinusMinPrice): TradePrice {
@@ -339,23 +362,30 @@ export function getTradePriceMinusMinPrice(params: MarketMinPrice & TradePrice):
   };
 }
 
-export function getSharePriceForPosition(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePriceMinusMinPrice): SharePrice {
+export function getSharePrice(params: MarketMinPrice & MarketMaxPrice & PositionType & TradePriceMinusMinPrice): SharePrice {
   // For example, in a scalar market with marketMinPrice=20, marketMaxPrice=25,
   // and tradePrice=22, the sharePrice for a long position is 2 Tokens/Share
   // (ie. tradePrice-marketMinPrice = 22-20 = 2), and for a short position
   // is 3 Tokens/Share (ie. marketMaxPrice-tradePrice = 25-22 = 3)
-  switch (getPositionType(params)) {
-    case PositionType.CLOSED:
+  switch (params.positionType) {
+    case "closed":
       return { sharePrice: Price.ZERO };
-    case PositionType.SHORT:
+    case "short":
       return {
         sharePrice: params.marketMaxPrice.minus(getTradePrice(params).tradePrice),
       };
-    case PositionType.LONG:
+    case "long":
       return {
         sharePrice: params.tradePriceMinusMinPrice,
       };
   }
+}
+
+export function getSharePriceForPosition(params: MarketMinPrice & MarketMaxPrice & NetPosition & TradePriceMinusMinPrice): SharePrice {
+  return getSharePrice({
+    ...params,
+    ...getPositionType(params),
+  });
 }
 
 export function getNextNetPosition(params: NetPosition & TradePositionDelta): NextNetPosition {
@@ -575,5 +605,11 @@ export function getTotalProfitPercent(params:
 export function getTotalFees(params: ReporterFees & MarketCreatorFees): TotalFees {
   return {
     totalFees: params.reporterFees.plus(params.marketCreatorFees),
+  };
+}
+
+export function getTotalFeeRate(params: ReporterFeeRate & MarketCreatorFeeRate): TotalFeeRate {
+  return {
+    totalFeeRate: params.reporterFeeRate.plus(params.marketCreatorFeeRate),
   };
 }
