@@ -57,7 +57,7 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
   }
 
   if (params.maxSpreadPercent) {
-    query.whereRaw("CAST(markets.spreadPercent as REAL) < ?", [params.maxSpreadPercent]);
+    query.whereRaw("CAST(markets.spreadPercent as REAL) <= ?", [params.maxSpreadPercent]);
   }
 
   if (params.maxEndTime) {
