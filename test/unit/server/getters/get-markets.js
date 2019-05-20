@@ -519,7 +519,37 @@ describe("server/getters/get-markets", () => {
       maxSpreadPercent: 0.1337,
     },
     assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum spread percent #3",
+    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxSpreadPercent: 0.1336,
+    },
+    assertions: (marketIds) => {
       expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum spread percent #4 (market defaults to 100% spread)",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxSpreadPercent: 1,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum spread percent #5 (don't set one)",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
     },
   });
 });
