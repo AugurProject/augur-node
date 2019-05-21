@@ -18,13 +18,26 @@ function validate(testCase) {
   return testCase;
 }
 
+// validateROI validates a testCase related to invalidROIPercent
+function validateROI(testCase) {
+  function assertHas(prop) {
+    if (!testCase.hasOwnProperty(prop)) throw new Error(`expected test case to have property ${prop}, testCase=${testCase}`);
+  }
+  assertHas("name");
+  assertHas("marketId");
+  assertHas("logs");
+  assertHas("expectedInvalidROIPercent");
+  assertHas("expectedInvalidROIPercentOutcome1"); // every testCase checks outcome 1, but only categoricals check [0, numOutcomes-1]
+  return testCase;
+}
+
 function bn(n) {
   return new BigNumber(n, 10);
 }
 
-const yesNoId = "0xfd9d2cab985b4e1052502c197d989fdf9e7d4b1e"; // marketId of a yesNo market in seeds/markets that has no seeds/orders
-const scalarId = "0x0000000000000000000000000000000000000ff1"; // marketId of a scalar market in seeds/markets that has no seeds/orders; has minPrice=200, maxPrice=400
-const catId = "0x0000000000000000000000000000000000000015"; // marketId of a categorical market in seeds/markets that has no seeds/orders; has 4 outcomes
+const yesNoId = "0xfd9d2cab985b4e1052502c197d989fdf9e7d4b1e"; // marketId of a yesNo market in seeds/markets that has no seeds/orders. yesNo has reporting fee which is used in invalidROIPercent calculation
+const scalarId = "0x0000000000000000000000000000000000000ff1"; // marketId of a scalar market in seeds/markets that has no seeds/orders; has minPrice=200, maxPrice=400. scalar has reporting fee which is used in invalidROIPercent calculation
+const catId = "0x0000000000000000000000000000000000000015"; // marketId of a categorical market in seeds/markets that has no seeds/orders; has 4 outcomes. categorical has reporting fee which is used in invalidROIPercent calculation
 
 // outcomesByMarketId is used to generate test cases only for
 // outcomes that are actually used by a given market. It needs
@@ -729,6 +742,359 @@ const testCases = [
     expectedSpreadPercentMarket: bn(0.3423),
     expectedSpreadPercentOutcome1: bn(0.3423),
   }),
+
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "yesNo buy side empty",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.6", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "categorical buy side empty",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.6", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.6", amount: "1" },
+      { outcome: 2, orderType: "sell", price: "0.6", amount: "1" },
+      { outcome: 3, orderType: "sell", price: "0.6", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome0: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "scalar buy side empty",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "320", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "yesNo sell side empty",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "buy", price: "0.4", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "categorical sell side empty",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "buy", price: "0.4", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.4", amount: "1" },
+      { outcome: 2, orderType: "buy", price: "0.4", amount: "1" },
+      { outcome: 3, orderType: "buy", price: "0.4", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome0: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "scalar sell side empty",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "buy", price: "240", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "yesNo only buy side makes money on invalid",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.25", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "categorical only buy side makes money on invalid",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.25", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.15", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.25", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+      { outcome: 2, orderType: "sell", price: "0.25", amount: "1" },
+      { outcome: 2, orderType: "buy", price: "0.15", amount: "1" },
+      { outcome: 3, orderType: "sell", price: "0.25", amount: "1" },
+      { outcome: 3, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome0: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "scalar only buy side makes money on invalid",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "280", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "220", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "yesNo only sell side makes money on invalid",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.65", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "categorical only sell side makes money on invalid",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.65", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.65", amount: "1" },
+      { outcome: 2, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 2, orderType: "buy", price: "0.25", amount: "1" },
+      { outcome: 3, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 3, orderType: "buy", price: "0.65", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome0: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    isTestingInvalidROIPercent: true,
+    name: "scalar only sell side makes money on invalid",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "380", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "350", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+
+  validateROI({
+    // yesNoId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "yesNo both sides make money on invalid #1",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.8", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.2", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.5),
+    expectedInvalidROIPercentOutcome1: bn(0.5),
+  }),
+  validateROI({
+    // yesNoId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "yesNo both sides make money on invalid #2",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.7", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.3", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    // yesNoId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "yesNo both sides make money on invalid #3",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.85", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.8", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.75),
+    expectedInvalidROIPercentOutcome1: bn(0.75),
+  }),
+  validateROI({
+    // yesNoId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "yesNo both sides make money on invalid #4",
+    marketId: yesNoId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "0.700001", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.299999", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.15", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    // catId has 40% total fees which are included in invalidROI calculation; catId has 4 outcomes so the invalidSharePriceWithFees is 0.15
+    isTestingInvalidROIPercent: true,
+    name: "categorical both sides make money on invalid #1",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 0, orderType: "sell", price: "0.925", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.10", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.05", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.75),
+    expectedInvalidROIPercentOutcome0: bn(0.75),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    // catId has 40% total fees which are included in invalidROI calculation; catId has 4 outcomes so the invalidSharePriceWithFees is 0.15
+    isTestingInvalidROIPercent: true,
+    name: "categorical both sides make money on invalid #2",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 0, orderType: "sell", price: "0.9", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.149999", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.05", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.25),
+    expectedInvalidROIPercentOutcome0: bn(0.25),
+    expectedInvalidROIPercentOutcome1: bn(0),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    // catId has 40% total fees which are included in invalidROI calculation; catId has 4 outcomes so the invalidSharePriceWithFees is 0.15
+    isTestingInvalidROIPercent: true,
+    name: "categorical both sides make money on invalid #3",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 0, orderType: "sell", price: "0.9", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.1", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.05", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.925", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.1", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.05", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.75),
+    expectedInvalidROIPercentOutcome0: bn(0.5),
+    expectedInvalidROIPercentOutcome1: bn(0.75),
+    expectedInvalidROIPercentOutcome2: bn(0),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    // catId has 40% total fees which are included in invalidROI calculation; catId has 4 outcomes so the invalidSharePriceWithFees is 0.15
+    isTestingInvalidROIPercent: true,
+    name: "categorical both sides make money on invalid #4",
+    marketId: catId,
+    logs: [
+      { outcome: 0, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 0, orderType: "sell", price: "0.9", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.1", amount: "1" },
+      { outcome: 0, orderType: "buy", price: "0.05", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "0.925", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.1", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "0.05", amount: "1" },
+      { outcome: 2, orderType: "sell", price: "0.95", amount: "1" },
+      { outcome: 2, orderType: "sell", price: "0.925", amount: "1" },
+      { outcome: 2, orderType: "buy", price: "0.1", amount: "1" },
+      { outcome: 2, orderType: "buy", price: "0.05", amount: "1" },
+      { outcome: 3, orderType: "sell", price: "0.7", amount: "1" },
+      { outcome: 3, orderType: "buy", price: "0.3", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.75),
+    expectedInvalidROIPercentOutcome0: bn(0.5),
+    expectedInvalidROIPercentOutcome1: bn(0.75),
+    expectedInvalidROIPercentOutcome2: bn(0.75),
+    expectedInvalidROIPercentOutcome3: bn(0),
+  }),
+  validateROI({
+    // scalarId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "scalar both sides make money on invalid #1",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "370", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "360", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "240", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "230", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.5),
+    expectedInvalidROIPercentOutcome1: bn(0.5),
+  }),
+  validateROI({
+    // scalarId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "scalar both sides make money on invalid #2",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "370", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "340", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "260", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "230", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
+  validateROI({
+    // scalarId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "scalar both sides make money on invalid #3",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "370", amount: "1" },
+      { outcome: 1, orderType: "sell", price: "360", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "230", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "230", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0.75),
+    expectedInvalidROIPercentOutcome1: bn(0.75),
+  }),
+  validateROI({
+    // scalarId has 40% total fees which are included in invalidROI calculation
+    isTestingInvalidROIPercent: true,
+    name: "scalar both sides make money on invalid #4",
+    marketId: scalarId,
+    logs: [
+      { outcome: 1, orderType: "sell", price: "340.00001", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "259.99999", amount: "1" },
+      { outcome: 1, orderType: "buy", price: "230", amount: "1" },
+    ],
+    expectedInvalidROIPercent: bn(0),
+    expectedInvalidROIPercentOutcome1: bn(0),
+  }),
 ];
 
 async function convertDisplayPriceToOnChainPrice(db, marketId, displayPrice) {
@@ -767,7 +1133,7 @@ async function testLogToOrderCreatedLog(db, marketId, testLog) {
 
 const runOneTestCase = (testCase) => {
   describe(testCase.name, () => {
-    let db, spreadPercent;
+    let db, spreadPercent, invalidROIPercent;
     beforeEach(async () => {
       db = await setupTestDb().then(seedDb);
       if (db === undefined) throw new Error("expected db to be defined");
@@ -781,12 +1147,14 @@ const runOneTestCase = (testCase) => {
       const marketsQuery = await db("markets").first().where({ marketId: testCase.marketId });
       if (!marketsQuery) throw new Error(`expected to find market with marketId=${testCase.marketId}`);
       spreadPercent = marketsQuery.spreadPercent;
+      invalidROIPercent = marketsQuery.invalidROIPercent;
     });
 
     afterEach(async () => {
       await db.destroy();
       db = undefined;
       spreadPercent = undefined;
+      invalidROIPercent = undefined;
     });
 
     function smartExpectSpreadPercent(actualSpreadPercent, expectedSpreadPercent) {
@@ -799,9 +1167,15 @@ const runOneTestCase = (testCase) => {
       }
     }
 
-    test("spreadPercent for market", () => {
-      smartExpectSpreadPercent(spreadPercent, testCase.expectedSpreadPercentMarket);
-    });
+    if (testCase.isTestingInvalidROIPercent) {
+      test("invalidROIPercent for market", () => {
+        expect(invalidROIPercent.toNumber()).toBeCloseTo(testCase.expectedInvalidROIPercent.toNumber(), 5);
+      });
+    } else {
+      test("spreadPercent for market", () => {
+        smartExpectSpreadPercent(spreadPercent, testCase.expectedSpreadPercentMarket);
+      });
+    }
 
     // We'll generate an outcome spreadPercent test case for
     // up to 8 outcomes for the passed testCase.marketId.
@@ -812,16 +1186,29 @@ const runOneTestCase = (testCase) => {
         // outcome `i` isn't used by testCase.marketId
         return;
       }
-      test(`spreadPercent for outcome ${i}`, async () => {
-        if (!testCase.hasOwnProperty(`expectedSpreadPercentOutcome${i}`)) {
-          throw new Error(`missing expected spreadPercent for outcome ${i}`);
-        }
+      if (testCase.isTestingInvalidROIPercent) {
+        test(`invalidROIPercent for outcome ${i}`, async () => {
+          if (!testCase.hasOwnProperty(`expectedInvalidROIPercentOutcome${i}`)) {
+            throw new Error(`missing expected invalidROIPercent for outcome ${i}`);
+          }
 
-        const outcomesQuery = await db("outcomes").first().where({ marketId: testCase.marketId, outcome: i });
-        if (!outcomesQuery) throw new Error(`expected to find outcome with marketId=${testCase.marketId} outcome=${i}`);
+          const outcomesQuery = await db("outcomes").first().where({ marketId: testCase.marketId, outcome: i });
+          if (!outcomesQuery) throw new Error(`expected to find outcome with marketId=${testCase.marketId} outcome=${i}`);
 
-        smartExpectSpreadPercent(outcomesQuery.spreadPercent, testCase[`expectedSpreadPercentOutcome${i}`]);
-      });
+          expect(outcomesQuery.invalidROIPercent.toNumber()).toBeCloseTo(testCase[`expectedInvalidROIPercentOutcome${i}`].toNumber(), 5);
+        });
+      } else {
+        test(`spreadPercent for outcome ${i}`, async () => {
+          if (!testCase.hasOwnProperty(`expectedSpreadPercentOutcome${i}`)) {
+            throw new Error(`missing expected spreadPercent for outcome ${i}`);
+          }
+
+          const outcomesQuery = await db("outcomes").first().where({ marketId: testCase.marketId, outcome: i });
+          if (!outcomesQuery) throw new Error(`expected to find outcome with marketId=${testCase.marketId} outcome=${i}`);
+
+          smartExpectSpreadPercent(outcomesQuery.spreadPercent, testCase[`expectedSpreadPercentOutcome${i}`]);
+        });
+      }
     });
   });
 };

@@ -2,16 +2,32 @@ import { BigNumber } from "bignumber.js";
 import * as Knex from "knex";
 import * as _ from "lodash";
 import { Address, MarketsRow, OrdersRow, OrderState } from "../types";
-import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
-import { MarketMaxPrice, MarketMinPrice, TradePrice } from "./financial-math";
+import { Percent, Price, scalar, Scalar, Shares, Tokens } from "./dimension-quantity";
+import { getSharePrice, MarketMaxPrice, MarketMinPrice, ReporterFeeRate, TradePrice } from "./financial-math";
 
-// DefaultSpreadPercentString is the default value for a new market or outcome.
+// DefaultSpreadPercentString is the default value
+// of spreadPercent for a new market or outcome.
 export const DefaultSpreadPercentString: string = "1";
 export const DefaultSpreadPercentBigNumber: BigNumber = new BigNumber(DefaultSpreadPercentString, 10);
+
+// DefaultInvalidROIPercentString is the default value
+// of invalidROIPercent for a new market or outcome.
+export const DefaultInvalidROIPercentString: string = "0";
+export const DefaultInvalidROIPercentBigNumber: BigNumber = new BigNumber(DefaultInvalidROIPercentString, 10);
 
 // QuantityAtPrice is one line in the order book
 interface QuantityAtPrice extends TradePrice {
   quantity: Shares;
+}
+
+interface GetInvalidROIParams extends MarketMinPrice, MarketMaxPrice, ReporterFeeRate {
+  bidsSortedByPriceDescending: Array<QuantityAtPrice>;
+  asksSortedByPriceAscending: Array<QuantityAtPrice>;
+  numOutcomes: number; // number of outcomes in this market
+}
+
+interface GetInvalidROIResult {
+  invalidROIPercent: Percent;
 }
 
 interface GetOutcomeSpreadParams extends MarketMinPrice, MarketMaxPrice {
@@ -26,13 +42,13 @@ interface GetOutcomeSpreadResult {
   spreadPercent: Percent;
 }
 
-// updateSpreadPercentForMarketAndOutcomes updates in DB markets.spreadPercent
+// updateLiquidityMetricsForMarketAndOutcomes updates in DB markets.spreadPercent
 // and outcomes.spreadPercent the passed market and all its outcomes.
-// Clients must call updateSpreadPercentForMarketAndOutcomes
+// Clients must call updateLiquidityMetricsForMarketAndOutcomes
 // each time the orders table changes for any reason.
-export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId: Address): Promise<void> {
-  const marketsQuery: undefined | Pick<MarketsRow<BigNumber>, "marketType" | "numOutcomes" | "minPrice" | "maxPrice"> = await db
-    .first("marketType", "numOutcomes", "minPrice", "maxPrice")
+export async function updateLiquidityMetricsForMarketAndOutcomes(db: Knex, marketId: Address): Promise<void> {
+  const marketsQuery: undefined | Pick<MarketsRow<BigNumber>, "marketType" | "numOutcomes" | "minPrice" | "maxPrice" | "marketCreatorFeeRate" | "reportingFeeRate"> = await db
+    .first("marketType", "numOutcomes", "minPrice", "maxPrice", "marketCreatorFeeRate", "reportingFeeRate")
     .from("markets")
     .where({ marketId });
   if (marketsQuery === undefined) throw new Error(`expected to find marketId=${marketId}`);
@@ -54,7 +70,12 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
     return tmpOutcomes;
   })();
 
-  const outcomeSpreads: Array<GetOutcomeSpreadResult & { outcome: number }> = outcomes.map((outcome) => {
+  const marketMinPrice = new Price(marketsQuery.minPrice);
+  const marketMaxPrice = new Price(marketsQuery.maxPrice);
+
+  const reporterFeeRate = new Percent(marketsQuery.reportingFeeRate);
+
+  const outcomeLiquidityMetrics: Array<GetInvalidROIResult & GetOutcomeSpreadResult & { outcome: number }> = outcomes.map((outcome) => {
     const outcomeBids: Array<QuantityAtPrice> = _.sortBy(
       orders.filter((o) => o.outcome === outcome && o.orderType === "buy"),
       (o: OrderPartial) => o.price.toNumber(),
@@ -64,31 +85,47 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
       (o: OrderPartial) => o.price.toNumber(),
     ).map(orderToQuantityAtPrice);
 
+    const invalidROI = getInvalidROI({
+      bidsSortedByPriceDescending: outcomeBids,
+      asksSortedByPriceAscending: outcomeAsks,
+      marketMinPrice,
+      marketMaxPrice,
+      reporterFeeRate,
+      numOutcomes: marketsQuery.numOutcomes,
+    });
+
     const outcomeSpread = getOutcomeSpread({
       bidsSortedByPriceDescending: outcomeBids,
       asksSortedByPriceAscending: outcomeAsks,
-      marketMinPrice: new Price(marketsQuery.minPrice),
-      marketMaxPrice: new Price(marketsQuery.maxPrice),
+      marketMinPrice,
+      marketMaxPrice,
       percentQuantityIncludedInSpread: DefaultPercentQuantityIncludedInSpread,
     });
     return {
       outcome,
+      ...invalidROI,
       ...outcomeSpread,
     };
   });
 
-  const marketSpreadPercent: Percent = outcomeSpreads.reduce<Percent>(
-    (maxOutcomeSpread, os) => maxOutcomeSpread.max(os.spreadPercent),
+  const marketSpreadPercent: Percent = outcomeLiquidityMetrics.reduce<Percent>(
+    (maxSpreadPercent, os) => maxSpreadPercent.max(os.spreadPercent),
     Percent.ZERO);
 
-  outcomeSpreads.forEach(async (os) => {
+  const marketInvalidROIPercent: Percent = outcomeLiquidityMetrics.reduce<Percent>(
+    (maxInvalidROIPercent, os) => maxInvalidROIPercent.max(os.invalidROIPercent),
+    Percent.ZERO);
+
+  outcomeLiquidityMetrics.forEach(async (os) => {
     await db("outcomes").update({
       spreadPercent: os.spreadPercent.magnitude.toString(),
+      invalidROIPercent: os.invalidROIPercent.magnitude.toString(),
     }).where({ outcome: os.outcome, marketId });
   });
 
   await db("markets").update({
     spreadPercent: marketSpreadPercent.magnitude.toString(),
+    invalidROIPercent: marketInvalidROIPercent.magnitude.toString(),
   }).where({ marketId });
 
   function orderToQuantityAtPrice(o: OrderPartial): QuantityAtPrice {
@@ -97,6 +134,85 @@ export async function updateSpreadPercentForMarketAndOutcomes(db: Knex, marketId
       tradePrice: new Price(o.price),
     };
   }
+}
+
+// getInvalidROI returns the return on investment percent this outcome's
+// best bid and ask would get if this market was determined to be
+// invalid. The intuition is that although v1 cannot measure market
+// invalidity we can still detect an order book that will profit if the
+// market becomes invalid. The outcome's invalidROIPercent is defined
+// to be the average of bestBidROIPercent and bestAskROIPercent, unless
+// either are zero in which case the outcome's invalidROIPercent is zero.
+function getInvalidROI(params: GetInvalidROIParams): GetInvalidROIResult {
+  // invalidSharePrice is a SharePrice representing the single
+  // price all shares settle at if the market finalizes invalid.
+  const invalidSharePrice: Price = (() => {
+    const marketDisplayRange = params.marketMaxPrice.minus(params.marketMinPrice);
+    const invalidTradePriceMinusMinPrice: Price =
+      marketDisplayRange.dividedBy(scalar(params.numOutcomes));
+
+    // Eg. invalidSharePriceWithoutFees==0.5 for binary and scalar markets;
+    // invalidSharePriceWithoutFees==0.333 for categorical markets with three outcomes;
+    // invalidSharePriceWithoutFees=5 for a scalar market with min=10, max=20.
+    const invalidSharePriceWithoutFees = getSharePrice({
+      ...params,
+      tradePriceMinusMinPrice: invalidTradePriceMinusMinPrice,
+      positionType: "long",
+    }).sharePrice;
+
+    // The proceeds from redeeming an invalid share are, in general, reduced by
+    // reporter and market creator fees. However here we defensively assume that
+    // the market creator fees are going to the creator of the orders on the
+    // book, ie. we assume that order creator is the market creator. This causes
+    // invalidROIPercent to potentially be erroneously higher in the general case-
+    // because most order creators aren't in fact the market creator- but it removes
+    // the case where invalidROIPercent is zero but a market creator could still make
+    // profit on an invalid market from creator fees. The net effect is that we only
+    // subtract reporter fees, not creator fees, from invalidSharePriceWithoutFees.
+    const invalidSharePriceWithFees = invalidSharePriceWithoutFees
+      .multipliedBy(Scalar.ONE.minus(params.reporterFeeRate));
+    return invalidSharePriceWithFees;
+  })();
+
+  const bestBidSharePrice: undefined | Price = params.bidsSortedByPriceDescending.length < 1 ? undefined : getSharePrice({
+    ...params,
+    tradePriceMinusMinPrice:
+      params.bidsSortedByPriceDescending[0].tradePrice.minus(params.marketMinPrice),
+    positionType: "long",
+  }).sharePrice;
+
+  const bestAskSharePrice: undefined | Price = params.asksSortedByPriceAscending.length < 1 ? undefined : getSharePrice({
+    ...params,
+    tradePriceMinusMinPrice:
+      params.asksSortedByPriceAscending[0].tradePrice.minus(params.marketMinPrice),
+    positionType: "short",
+  }).sharePrice;
+
+  const bestBidROIPercent: undefined | Percent = (() => {
+    if (bestBidSharePrice === undefined) return undefined;
+    else if (bestBidSharePrice.lte(Price.ZERO)) return Percent.ZERO;
+    return invalidSharePrice.dividedBy(bestBidSharePrice).expect(Percent).minus(Scalar.ONE);
+  })();
+
+  const bestAskROIPercent: undefined | Percent = (() => {
+    if (bestAskSharePrice === undefined) return undefined;
+    else if (bestAskSharePrice.lte(Price.ZERO)) return Percent.ZERO;
+    return invalidSharePrice.dividedBy(bestAskSharePrice).expect(Percent).minus(Scalar.ONE);
+  })();
+
+  const invalidROIPercent: Percent = (() => {
+    if (bestBidROIPercent === undefined ||
+      bestAskROIPercent === undefined ||
+      bestBidROIPercent.lte(Percent.ZERO) ||
+      bestAskROIPercent.lte(Percent.ZERO)) {
+      return Percent.ZERO;
+    }
+    return bestBidROIPercent.plus(bestAskROIPercent).dividedBy(Scalar.TWO);
+  })();
+
+  return {
+    invalidROIPercent,
+  };
 }
 
 function getOutcomeSpread(params: GetOutcomeSpreadParams): GetOutcomeSpreadResult {

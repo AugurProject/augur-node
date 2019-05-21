@@ -552,4 +552,58 @@ describe("server/getters/get-markets", () => {
       expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
     },
   });
+  runTest({
+    description: "set a maximum invalidROI percent #1",
+    preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxInvalidROIPercent: 0.1235,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum invalidROI percent #2",
+    preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxInvalidROIPercent: 0.1234,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum invalidROI percent #3",
+    preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxInvalidROIPercent: 0.1233,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum invalidROI percent #4",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxInvalidROIPercent: 0,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
+  runTest({
+    description: "set a maximum invalidROI percent #5",
+    preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      maxInvalidROIPercent: 0,
+    },
+    assertions: (marketIds) => {
+      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+    },
+  });
 });
