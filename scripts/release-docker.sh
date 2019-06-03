@@ -32,11 +32,11 @@ case ${augur_env} in
         cluster="stable-augur-net"
         augur_service="stable-augur-node"
         ;;
-    release)
+    latest)
         network="rinkeby"
         cluster=""
         augur_service=""
-        build_environment="release"
+        build_environment="latest"
         version="$(node scripts/get-version.js)"
         ;;
 
