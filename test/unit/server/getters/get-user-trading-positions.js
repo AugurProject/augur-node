@@ -6,6 +6,7 @@ const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request
 const processBlock= require("src/blockchain/process-block");
 const { updateMarketState } = require("src/blockchain/log-processors/database");
 const { BN_WEI_PER_ETHER, ZERO } = require("src/constants");
+const { unsafeSetSELL_INCREMENT_COST, unsafeResetSELL_INCREMENT_COST } = require("src/utils/liquidity");
 
 function bn(n) {
   return new BigNumber(n, 10);
@@ -48,11 +49,13 @@ describe("server/getters/get-user-trading-positions#Binary-1", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -175,11 +178,13 @@ describe("server/getters/get-user-trading-positions#Binary-2", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -316,11 +321,13 @@ describe("server/getters/get-user-trading-positions#Cat3-1", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -461,11 +468,13 @@ describe("server/getters/get-user-trading-positions#Cat3-2", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -624,11 +633,13 @@ describe("server/getters/get-user-trading-positions#Cat3-3", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -793,11 +804,13 @@ describe("server/getters/get-user-trading-positions#Scalar", () => {
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -1025,11 +1038,13 @@ describe("server/getters/get-user-trading-positions#tradingPositionsTotal", () =
   ];
 
   beforeEach(async () => {
+    unsafeSetSELL_INCREMENT_COST(new BigNumber(100));
     processBlock.getCurrentTime.mockReturnValue(Date.now()/1000);
     db = await setupTestDb(augur, logs, logFactory.getBlockDetails(), true);
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
@@ -1088,6 +1103,7 @@ describe("server/getters/get-user-trading-positions frozenFundsTotal ignores val
   });
 
   afterEach(async () => {
+    unsafeResetSELL_INCREMENT_COST();
     await db.destroy();
   });
 
