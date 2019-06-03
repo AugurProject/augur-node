@@ -35,8 +35,12 @@ const whitelist: TableWhitelist = {
     shareVolume: true,
     sharesOutstanding: true,
     spreadPercent: true,
+    invalidROIPercent: true,
+    bestBidTakerInvalidProfitTokens: true,
+    bestAskTakerInvalidProfitTokens: true,
     designatedReportStake: true,
     openInterest: true,
+    liquidityTokens: true, // liquidityTokens isn't a column in DB table markets but may be included in a markets result set
   },
   orders: {
     price: true,
@@ -81,6 +85,9 @@ const whitelist: TableWhitelist = {
     volume: true,
     shareVolume: true,
     spreadPercent: true,
+    invalidROIPercent: true,
+    bestBidTakerInvalidProfitTokens: true,
+    bestAskTakerInvalidProfitTokens: true,
   },
   payouts: {
     payout0: true,
@@ -126,6 +133,14 @@ const whitelist: TableWhitelist = {
     profit: true,
     frozenFunds: true,
     realizedCost: true,
+  },
+  outcomes_liquidity: {
+    spreadPercent: true,
+    liquidityTokens: true,
+  },
+  markets_liquidity: {
+    spreadPercent: true,
+    liquidityTokens: true,
   },
 };
 

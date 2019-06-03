@@ -500,56 +500,110 @@ describe("server/getters/get-markets", () => {
       expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
     },
   });
-  runTest({
-    description: "set a maximum spread percent #1",
-    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
-    params: {
-      universe: "0x000000000000000000000000000000000000000b",
-      maxSpreadPercent: 0.1338,
-    },
-    assertions: (marketIds) => {
-      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
-    },
-  });
-  runTest({
-    description: "set a maximum spread percent #2",
-    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
-    params: {
-      universe: "0x000000000000000000000000000000000000000b",
-      maxSpreadPercent: 0.1337,
-    },
-    assertions: (marketIds) => {
-      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
-    },
-  });
-  runTest({
-    description: "set a maximum spread percent #3",
-    preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
-    params: {
-      universe: "0x000000000000000000000000000000000000000b",
-      maxSpreadPercent: 0.1336,
-    },
-    assertions: (marketIds) => {
-      expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
-    },
-  });
-  runTest({
-    description: "set a maximum spread percent #4 (market defaults to 100% spread)",
-    params: {
-      universe: "0x000000000000000000000000000000000000000b",
-      maxSpreadPercent: 1,
-    },
-    assertions: (marketIds) => {
-      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
-    },
-  });
-  runTest({
-    description: "set a maximum spread percent #5 (don't set one)",
-    params: {
-      universe: "0x000000000000000000000000000000000000000b",
-    },
-    assertions: (marketIds) => {
-      expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
-    },
-  });
+  // runTest({
+  //   description: "set a maximum spread percent #1",
+  //   preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxSpreadPercent: 0.1338,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum spread percent #2",
+  //   preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxSpreadPercent: 0.1337,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum spread percent #3",
+  //   preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxSpreadPercent: 0.1336,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum spread percent #4 (market defaults to 100% spread)",
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxSpreadPercent: 1,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum spread percent #5 (don't set one)",
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum invalidROI percent #1",
+  //   preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxInvalidROIPercent: 0.1235,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum invalidROI percent #2",
+  //   preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxInvalidROIPercent: 0.1234,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum invalidROI percent #3",
+  //   preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxInvalidROIPercent: 0.1233,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum invalidROI percent #4",
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxInvalidROIPercent: 0,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
+  // runTest({
+  //   description: "set a maximum invalidROI percent #5",
+  //   preQuery: (db) => db("markets").update({ invalidROIPercent: "0.1234" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),
+  //   params: {
+  //     universe: "0x000000000000000000000000000000000000000b",
+  //     maxInvalidROIPercent: 0,
+  //   },
+  //   assertions: (marketIds) => {
+  //     expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
+  //   },
+  // });
 });

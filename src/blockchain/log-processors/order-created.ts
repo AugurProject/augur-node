@@ -7,7 +7,7 @@ import { augurEmitter } from "../../events";
 import { Address, FormattedEventLog, MarketsRow, OrdersRow, OrderState, TokensRow } from "../../types";
 import { fixedPointToDecimal, numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import { formatOrderAmount, formatOrderPrice } from "../../utils/format-order";
-import { updateSpreadPercentForMarketAndOutcomes } from "../../utils/liquidity";
+import { updateLiquidityMetricsForMarketAndOutcomes } from "../../utils/liquidity";
 
 export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLog) {
   return async (db: Knex) => {
@@ -65,7 +65,7 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
     }
     await upsertOrder;
     await marketPendingOrphanCheck(db, orderData);
-    await updateSpreadPercentForMarketAndOutcomes(db, marketId);
+    await updateLiquidityMetricsForMarketAndOutcomes(db, marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCreated, Object.assign({}, log, orderData));
   };
 }
@@ -75,7 +75,7 @@ export async function processOrderCreatedLogRemoval(augur: Augur, log: Formatted
     const marketIdQuery: Pick<OrdersRow<BigNumber>, "marketId"> = await db.first("marketId").from("orders").where("orderId", log.orderId);
     if (!marketIdQuery) throw new Error(`expected to find order with id ${log.orderId}`);
     await db.from("orders").where("orderId", log.orderId).delete();
-    await updateSpreadPercentForMarketAndOutcomes(db, marketIdQuery.marketId);
+    await updateLiquidityMetricsForMarketAndOutcomes(db, marketIdQuery.marketId);
     augurEmitter.emit(SubscriptionEventNames.OrderCreated, log);
   };
 }

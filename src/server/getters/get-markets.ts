@@ -14,7 +14,8 @@ export const GetMarketsParamsSpecific = t.type({
   designatedReporter: t.union([t.string, t.null, t.undefined]),
   maxFee: t.union([t.number, t.null, t.undefined]),
   maxEndTime: t.union([t.number, t.null, t.undefined]), // unix epoch time in seconds
-  maxSpreadPercent: t.union([t.number, t.null, t.undefined]), // maximum markets.spreadPercent to include in results, ranges from 0 to 1, eg. 5% is maxSpreadPercent=0.05
+  liquiditySortSpreadPercent: t.union([t.number, t.null, t.undefined]), // must be included and used if and only if sortBy === 'liquidityTokens'; each market has liquidityTokens defined for multiple spreadPercents, liquiditySortSpreadPercent determines which of these is included in markets result set
+  enableInvalidFilter: t.union([t.boolean, t.null, t.undefined]), // if true then markets detected to be potentially invalid will be filtered out
   hasOrders: t.union([t.boolean, t.null, t.undefined]),
 });
 
@@ -29,6 +30,19 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
   const query = getMarketsWithReportingState(db, columns);
   query.join("blocks as marketStateBlock", "marketStateBlock.blockNumber", "market_state.blockNumber");
   query.leftJoin("blocks as lastTradeBlock", "lastTradeBlock.blockNumber", "markets.lastTradeBlockNumber").select("lastTradeBlock.timestamp as lastTradeTime");
+
+  if (params.sortBy === "liquidityTokens") {
+    // liquidityTokens is not regularly a column in result set, so we'll
+    // generate it to sort by liquidityTokens. Each market has liquidityTokens
+    // defined for multiple spreadPercents, liquiditySortSpreadPercent
+    // determines which of these is included in markets result set.
+    const spreadPercent: number = params.liquiditySortSpreadPercent ? params.liquiditySortSpreadPercent : 1;
+    query.innerJoin("markets_liquidity", function() {
+      this.on("markets.marketId", "markets_liquidity.marketId")
+        .andOn("markets_liquidity.spreadPercent", db.raw("?", spreadPercent));
+    }).select("liquidityTokens")
+    .whereRaw("cast(liquidityTokens as real) > 0"); // markets with liquidityTokens == 0 have no liquidity at this spreadPercent, we want to filter these out because sorting by liquidityTokens is both a sort and a filter by design
+  }
 
   if (params.universe != null) query.where("universe", params.universe);
   if (params.creator != null) query.where({ marketCreator: params.creator });
@@ -56,8 +70,8 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
     query.whereRaw("(CAST(markets.reportingFeeRate as numeric) + CAST(markets.marketCreatorFeeRate as numeric)) < ?", [params.maxFee]);
   }
 
-  if (params.maxSpreadPercent) {
-    query.whereRaw("CAST(markets.spreadPercent as REAL) <= ?", [params.maxSpreadPercent]);
+  if (params.enableInvalidFilter) {
+    query.whereRaw("(CAST(markets.bestBidTakerInvalidProfitTokens as REAL) > 0 OR CAST(markets.bestAskTakerInvalidProfitTokens as REAL) > 0)");
   }
 
   if (params.maxEndTime) {
