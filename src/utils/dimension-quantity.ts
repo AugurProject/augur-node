@@ -243,7 +243,7 @@ export class Scalar extends Quantity<Scalar> {
 
 export function percent(magnitude: number | BigNumber): Percent {
   if (typeof magnitude === "number") {
-    return new Percent(new BigNumber(magnitude));
+    return new Percent(new BigNumber(magnitude, 10));
   }
   return new Percent(magnitude);
 }
@@ -258,7 +258,7 @@ export class Percent extends Quantity<Percent> {
 
 export function tokens(magnitude: number | BigNumber): Tokens {
   if (typeof magnitude === "number") {
-    return new Tokens(new BigNumber(magnitude));
+    return new Tokens(new BigNumber(magnitude, 10));
   }
   return new Tokens(magnitude);
 }
@@ -276,7 +276,7 @@ export class Tokens extends Quantity<Tokens> {
 
 export function shares(magnitude: number | BigNumber): Shares {
   if (typeof magnitude === "number") {
-    return new Shares(new BigNumber(magnitude));
+    return new Shares(new BigNumber(magnitude, 10));
   }
   return new Shares(magnitude);
 }
@@ -295,7 +295,7 @@ export class Shares extends Quantity<Shares> {
 
 export function price(magnitude: number | BigNumber): Price {
   if (typeof magnitude === "number") {
-    return new Price(new BigNumber(magnitude));
+    return new Price(new BigNumber(magnitude, 10));
   }
   return new Price(magnitude);
 }

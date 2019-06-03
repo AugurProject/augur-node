@@ -17,6 +17,7 @@ import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
 import { getFileHash, getHighestDbVersion } from "./sync/file-operations";
 import { BackupRestore } from "./sync/backup-restore";
 import { checkOrphanedOrders } from "./blockchain/check-orphaned-orders";
+import { startFetchingGasPrice } from "./utils/gas";
 
 export interface SyncedBlockInfo {
   lastSyncBlockNumber: number;
@@ -47,6 +48,7 @@ export class AugurNodeController {
   }
 
   public async start(errorCallback: ErrorCallback | undefined) {
+    startFetchingGasPrice();
     this.running = true;
     this.errorCallback = errorCallback;
     try {
