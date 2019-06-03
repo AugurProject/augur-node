@@ -71,7 +71,7 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
   }
 
   if (params.enableInvalidFilter) {
-    query.whereRaw("CAST(markets.invalidROIPercent as REAL) <= 0 AND (CAST(markets.bestBidTakerInvalidProfitTokens as REAL) > 0 OR CAST(markets.bestAskTakerInvalidProfitTokens as REAL) > 0)");
+    query.whereRaw("(CAST(markets.bestBidTakerInvalidProfitTokens as REAL) > 0 OR CAST(markets.bestAskTakerInvalidProfitTokens as REAL) > 0)");
   }
 
   if (params.maxEndTime) {
