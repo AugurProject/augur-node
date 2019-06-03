@@ -188,10 +188,10 @@ function getBestBidAskTakerInvalidProfit(params: GetInvalidMetricsParams): Pick<
   const bestBidQuantity: undefined | Shares = params.bidsSortedByPriceDescending.length < 1 ? undefined : params.bidsSortedByPriceDescending[0].quantity;
   const bestAskQuantity: undefined | Shares = params.asksSortedByPriceAscending.length < 1 ? undefined : params.asksSortedByPriceAscending[0].quantity;
 
-  const bestBidTakerInvalidRevenue: undefined | Tokens = bestBidQuantity && bestBidQuantity.multipliedBy(invalidSharePrice).expect(Tokens);
-  const bestAskTakerInvalidRevenue: undefined | Tokens = bestAskQuantity && bestAskQuantity.multipliedBy(invalidSharePrice)
-    .multipliedBy(scalar(params.numOutcomes - 1)) // the short side gets N-1 shares which will resolve at invalid price
+  const bestBidTakerInvalidRevenue: undefined | Tokens = bestBidQuantity && bestBidQuantity.multipliedBy(invalidSharePrice)
+    .multipliedBy(scalar(params.numOutcomes - 1)) // the taker is taking the short side of bestBid and gets N-1 shares which will resolve at invalid price
     .expect(Tokens);
+  const bestAskTakerInvalidRevenue: undefined | Tokens = bestAskQuantity && bestAskQuantity.multipliedBy(invalidSharePrice).expect(Tokens);
 
   const bestBidTakerSharePrice: undefined | Price = params.bidsSortedByPriceDescending.length < 1 ? undefined : getSharePrice({
     ...params,
