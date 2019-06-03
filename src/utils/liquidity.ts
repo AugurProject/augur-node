@@ -161,7 +161,8 @@ function getInvalidROIPercent(params: GetInvalidMetricsParams): Percent {
   const bestAskROIPercent: undefined | Percent = (() => {
     if (bestAskSharePrice === undefined) return undefined;
     else if (bestAskSharePrice.lte(Price.ZERO)) return Percent.ZERO;
-    return invalidSharePrice.dividedBy(bestAskSharePrice).expect(Percent).minus(Scalar.ONE);
+    return invalidSharePrice.multipliedBy(scalar(params.numOutcomes - 1)) // the short side gets N-1 shares which will resolve at invalid price
+      .dividedBy(bestAskSharePrice).expect(Percent).minus(Scalar.ONE);
   })();
 
   const invalidROIPercent: Percent = (() => {
