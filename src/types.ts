@@ -254,6 +254,8 @@ export interface MarketsRow<BigNumberType> extends MarketPricing<BigNumberType> 
   needsDisavowal: number;
   spreadPercent: BigNumberType;
   invalidROIPercent: BigNumberType;
+  bestBidTakerInvalidProfitTokens: BigNumberType;
+  bestAskTakerInvalidProfitTokens: BigNumberType;
 }
 
 export interface SearchRow {
@@ -285,6 +287,8 @@ export interface OutcomesRow<BigNumberType> {
   description: string|null;
   spreadPercent: BigNumberType;
   invalidROIPercent: BigNumberType;
+  bestBidTakerInvalidProfitTokens: BigNumberType;
+  bestAskTakerInvalidProfitTokens: BigNumberType;
 }
 
 export interface TokensRow {
@@ -534,6 +538,13 @@ export interface OrdersRow<BigNumberType> extends BaseTransactionRow {
   tokensEscrowed: BigNumberType;
   sharesEscrowed: BigNumberType;
   tradeGroupId: Bytes32|null;
+}
+
+export interface OutcomesLiquidityRow<BigNumberType> {
+  marketId: Address;
+  outcome: number;
+  spreadPercent: BigNumberType;
+  liquidityTokens: BigNumberType;
 }
 
 export interface UITrade {

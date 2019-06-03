@@ -22,7 +22,7 @@ import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
 // are two distinct positions. A position is said to be "closed" if the user
 // has no shares in that outcome. A position is said to be "long" ("short") if
 // the user earns money when the price of an outcome's shares goes up (down).
-interface PositionType {
+export interface PositionType {
   positionType: "closed" | "long" | "short";
 }
 
@@ -31,13 +31,13 @@ interface PositionType {
 // ("short") position and earns money if the price goes up (down). If NetPosition
 // is zero the position is said to be "closed". In the context of a trade,
 // NetPosition is prior to the trade being processed, see NextNetPosition.
-interface NetPosition {
+export interface NetPosition {
   netPosition: Shares;
 }
 
 // NextNetPosition is, in the context of a trade, a user's NetPosition after
 // processing that trade. NetPosition is prior to the trade being processed.
-interface NextNetPosition {
+export interface NextNetPosition {
   nextNetPosition: Shares;
 }
 
@@ -46,7 +46,7 @@ interface NextNetPosition {
 // technical reasons this average includes subtraction of MarketMinPrice
 // (ie. an average of TradePriceMinusMinPrice, not TradePrice). This
 // is a _trade price_ average, not to be confused with SharePrice.
-interface AverageTradePriceMinusMinPriceForOpenPosition {
+export interface AverageTradePriceMinusMinPriceForOpenPosition {
   averageTradePriceMinusMinPriceForOpenPosition: Price;
 }
 
@@ -54,7 +54,7 @@ interface AverageTradePriceMinusMinPriceForOpenPosition {
 // a trade, a user's AverageTradePriceMinusMinPriceForOpenPosition after
 // processing that trade. AverageTradePriceMinusMinPriceForOpenPosition
 // is prior to the trade being processed.
-interface NextAverageTradePriceMinusMinPriceForOpenPosition {
+export interface NextAverageTradePriceMinusMinPriceForOpenPosition {
   nextAverageTradePriceMinusMinPriceForOpenPosition: Price;
 }
 
@@ -67,7 +67,7 @@ interface NextAverageTradePriceMinusMinPriceForOpenPosition {
 // user may pay shares of other outcomes in lieu of tokens, which doesn't change
 // the calculation for UnrealizedCost, but it does mean that (in a categorical
 // market) UnrealizedCost may be greater than the actual tokens a user remitted.
-interface UnrealizedCost {
+export interface UnrealizedCost {
   unrealizedCost: Tokens;
 }
 
@@ -77,7 +77,7 @@ interface UnrealizedCost {
 // price paid by anyone trading on that outcome. For example if a user has
 // a long position of 10 shares in a binary market, and the last price is
 // 0.75, then `NetPosition=10 * LastPrice=0.75 --> UnrealizedRevenue=7.5`.
-interface UnrealizedRevenue {
+export interface UnrealizedRevenue {
   unrealizedRevenue: Tokens;
 }
 
@@ -85,7 +85,7 @@ interface UnrealizedRevenue {
 // NetPosition if they were to close it at the last price for that market
 // outcome. The last price is the most recent price paid by anyone trading on
 // that outcome. UnrealizedProfit is UnrealizedRevenue minus UnrealizedCost.
-interface UnrealizedProfit {
+export interface UnrealizedProfit {
   unrealizedProfit: Tokens;
 }
 
@@ -93,7 +93,7 @@ interface UnrealizedProfit {
 // current NetPosition if they were to close it at the last price for that market
 // outcome. The last price is the most recent price paid by anyone trading on that
 // outcome. UnrealizedProfitPercent is UnrealizedProfit divided by UnrealizedCost.
-interface UnrealizedProfitPercent {
+export interface UnrealizedProfitPercent {
   unrealizedProfitPercent: Percent;
 }
 
@@ -108,26 +108,26 @@ interface UnrealizedProfitPercent {
 // user may pay shares of other outcomes in lieu of tokens, which doesn't change
 // the calculation for RealizedCost, but it does mean that (in a categorical
 // market) RealizedCost may be greater than the actual tokens a user remitted.
-interface RealizedCost {
+export interface RealizedCost {
   realizedCost: Tokens;
 }
 
 // NextRealizedCost is, in the context of a trade, a user's RealizedCost after
 // processing that trade. RealizedCost is prior to the trade being processed.
-interface NextRealizedCost {
+export interface NextRealizedCost {
   nextRealizedCost: Tokens;
 }
 
 // RealizedProfit is the profit a user made for total historical
 // positions which have _since been closed_ in a market outcome. Ie.
 // RealizedProfit is accrued profit for shares a user previously owned.
-interface RealizedProfit {
+export interface RealizedProfit {
   realizedProfit: Tokens;
 }
 
 // NextRealizedProfit is, in the context of a trade, a user's RealizedProfit after
 // processing that trade. RealizedProfit is prior to the trade being processed.
-interface NextRealizedProfit {
+export interface NextRealizedProfit {
   nextRealizedProfit: Tokens;
 }
 
@@ -135,21 +135,21 @@ interface NextRealizedProfit {
 // historical positions which have _since been closed_ in a market outcome. Ie.
 // RealizedProfitPercent is accrued profit percent for shares a user previously
 // owned. RealizedProfitPercent is RealizedProfit divided by RealizedCost.
-interface RealizedProfitPercent {
+export interface RealizedProfitPercent {
   realizedProfitPercent: Percent;
 }
 
 // TotalCost is UnrealizedCost plus RealizedCost. Ie. TotalCost is
 // the cashflow amount the user remitted, based on SharePrice not
 // TradePrice, for all shares they ever bought in this market outcome.
-interface TotalCost {
+export interface TotalCost {
   totalCost: Tokens;
 }
 
 // TotalProfit is UnrealizedProfit plus RealizedProfit. Ie. TotalProfit is the
 // profit a user made on previously owned shares in a market outcome, plus what
 // they could make if they closed their current NetPosition in that outcome.
-interface TotalProfit {
+export interface TotalProfit {
   totalProfit: Tokens;
 }
 
@@ -158,7 +158,7 @@ interface TotalProfit {
 // would make if they closed their NetPosition at the LastPrice.
 // In other words, TotalProfitPercent is what RealizedProfitPercent
 // _would become_ if the user closed their NetPosition at LastPrice.
-interface TotalProfitPercent {
+export interface TotalProfitPercent {
   totalProfitPercent: Percent;
 }
 
@@ -167,7 +167,7 @@ interface TotalProfitPercent {
 // NetPosition=5 and TradePositionDelta=-2, then this trade is partially
 // closing their long position with a trade quantity of 2. A positive
 // (negative) tradePositionDelta corresponds to a buy (sell) trade.
-interface TradePositionDelta {
+export interface TradePositionDelta {
   tradePositionDelta: Shares;
 }
 
@@ -181,12 +181,12 @@ interface TradePositionDelta {
 // may pay shares of other outcomes in lieu of tokens, which doesn't change
 // the calculation for TradeCost, but it does mean that (in a categorical
 // market) TradeCost may be greater than the actual tokens a user remitted.
-interface TradeCost {
+export interface TradeCost {
   tradeCost: Tokens;
 }
 
 // TradeCostIncludingFees is TradeCost plus TotalFees for that trade.
-interface TradeCostIncludingFees {
+export interface TradeCostIncludingFees {
   tradeCostIncludingFees: Tokens;
 }
 
@@ -194,14 +194,14 @@ interface TradeCostIncludingFees {
 // or a "sell" trade, from the perspective of this user. Each trade has
 // a counterparty that sees this trade as the opposite type, ie. if you
 // and I do a trade, and my trade is a "buy", then your trade is a "sell".
-interface TradeBuyOrSell {
+export interface TradeBuyOrSell {
   tradeBuyOrSell: "buy" | "sell";
 }
 
 // TradeQuantity is the number of shares bought or sold in one trade.
 // TradeQuantity is context-free: it doesn't know if this trade was a
 // buy/sell trade, or if this trade opened/closed/reversed a user's position.
-interface TradeQuantity {
+export interface TradeQuantity {
   tradeQuantity: Shares;
 }
 
@@ -211,7 +211,7 @@ interface TradeQuantity {
 // because the user is further opening, not closing their position in
 // this trade. If a user's NetPosition=-10 and TradePositionDelta=7, then
 // TradeQuantityClosed=7 ie. the user is closing 7 shares this trade.
-interface TradeQuantityClosed {
+export interface TradeQuantityClosed {
   tradeQuantityClosed: Shares;
 }
 
@@ -221,26 +221,26 @@ interface TradeQuantityClosed {
 // the user is further opening their position in this trade. If a user's
 // NetPosition=-10 and TradePositionDelta=7, then TradeQuantityOpened=0 ie.
 // the user is partially closing, not opening, their position in this trade.
-interface TradeQuantityOpened {
+export interface TradeQuantityOpened {
   tradeQuantityOpened: Shares;
 }
 
 // TradeRealizedCostDelta is the change in RealizedCost as a result of processing
 // a trade. Ie. NextRealizedCost = TradeRealizedCostDelta + RealizedCost.
-interface TradeRealizedCostDelta {
+export interface TradeRealizedCostDelta {
   tradeRealizedCostDelta: Tokens;
 }
 
 // TradeRealizedRevenueDelta is the change in RealizedRevenue as a
 // result of processing a trade. (At this time RealizedRevenue doesn't
 // have its own type, it's built directly into NextRealizedProfit.)
-interface TradeRealizedRevenueDelta {
+export interface TradeRealizedRevenueDelta {
   tradeRealizedRevenueDelta: Tokens;
 }
 
 // TradeRealizedProfitDelta is the change in RealizedProfit as a result of processing
 // a trade. Ie. NextRealizedProfit = TradeRealizedProfitDelta + RealizedProfit.
-interface TradeRealizedProfitDelta {
+export interface TradeRealizedProfitDelta {
   tradeRealizedProfitDelta: Tokens;
 }
 
@@ -270,14 +270,14 @@ export interface TradePriceMinusMinPrice {
 // other outcomes in lieu of tokens, which doesn't change the calculation for
 // SharePrice, but it does mean that (in a categorical market) the user may
 // pay shares of other outcomes instead of tokens when satisfying SharePrice.
-interface SharePrice {
+export interface SharePrice {
   sharePrice: Price;
 }
 
 // LastTradePriceMinusMinPrice is the TradePriceMinusMinPrice for the most recent
 // trade (made by anyone) on that market outcome. LastTradePriceMinusMinPrice--
 // also known as the "last price"-- is used to calculate UnrealizedRevenue.
-interface LastTradePriceMinusMinPrice {
+export interface LastTradePriceMinusMinPrice {
   lastTradePriceMinusMinPrice: Price;
 }
 
@@ -298,7 +298,7 @@ export interface MarketMaxPrice {
 // ReporterFees are fees paid by a user to Augur Reporters based on the
 // universe-wide variable reporter fee rate. ReporterFees is within some context,
 // eg. reporter fees for one trade or all reporter fees ever paid by a user.
-interface ReporterFees {
+export interface ReporterFees {
   reporterFees: Tokens;
 }
 
@@ -306,12 +306,12 @@ interface ReporterFees {
 // market based on the market creator fee rate set by that creator.
 // MarketCreatorFees is within some context, eg. market creator fees
 // for one trade or all market creator fees ever paid by a user.
-interface MarketCreatorFees {
+export interface MarketCreatorFees {
   marketCreatorFees: Tokens;
 }
 
 // TotalFees is ReporterFees plus MarketCreatorFees.
-interface TotalFees {
+export interface TotalFees {
   totalFees: Tokens;
 }
 
@@ -325,13 +325,21 @@ export interface ReporterFeeRate {
 // MarketCreatorFeeRate is the market-specific fee rate set by the market
 // creator that yields MarketCreatorFees. MarketCreatorFeeRate is expressed as
 // a percent of Tokens released from escrow when complete sets are destroyed.
-interface MarketCreatorFeeRate {
+export interface MarketCreatorFeeRate {
   marketCreatorFeeRate: Percent;
 }
 
 // TotalFeeRate is ReporterFeeRate plus MarketCreatorFeeRate.
 export interface TotalFeeRate {
   totalFeeRate: Percent;
+}
+
+// DisplayRange is the range in which a market's shares may be
+// priced. DisplayRange is MarketMaxPrice minus MarketMinPrice.
+// DisplayRange is also the number of Tokens for which a complete
+// set of shares may be redeemed or purchased from the Augur system.
+export interface DisplayRange {
+  displayRange: Price;
 }
 
 export function getPositionType(params: NetPosition): PositionType {
@@ -362,7 +370,7 @@ export function getTradePriceMinusMinPrice(params: MarketMinPrice & TradePrice):
   };
 }
 
-export function getSharePrice(params: MarketMinPrice & MarketMaxPrice & PositionType & TradePriceMinusMinPrice): SharePrice {
+export function getSharePrice(params: MarketMinPrice & MarketMaxPrice & PositionType & (TradePriceMinusMinPrice | TradePrice)): SharePrice {
   // For example, in a scalar market with marketMinPrice=20, marketMaxPrice=25,
   // and tradePrice=22, the sharePrice for a long position is 2 Tokens/Share
   // (ie. tradePrice-marketMinPrice = 22-20 = 2), and for a short position
@@ -372,11 +380,15 @@ export function getSharePrice(params: MarketMinPrice & MarketMaxPrice & Position
       return { sharePrice: Price.ZERO };
     case "short":
       return {
-        sharePrice: params.marketMaxPrice.minus(getTradePrice(params).tradePrice),
+        sharePrice: params.marketMaxPrice.minus("tradePrice" in params ?
+          params.tradePrice :
+          getTradePrice(params).tradePrice),
       };
     case "long":
       return {
-        sharePrice: params.tradePriceMinusMinPrice,
+        sharePrice: "tradePriceMinusMinPrice" in params ?
+          params.tradePriceMinusMinPrice :
+          getTradePriceMinusMinPrice(params).tradePriceMinusMinPrice,
       };
   }
 }
@@ -611,5 +623,11 @@ export function getTotalFees(params: ReporterFees & MarketCreatorFees): TotalFee
 export function getTotalFeeRate(params: ReporterFeeRate & MarketCreatorFeeRate): TotalFeeRate {
   return {
     totalFeeRate: params.reporterFeeRate.plus(params.marketCreatorFeeRate),
+  };
+}
+
+export function getDisplayRange(params: MarketMinPrice & MarketMaxPrice): DisplayRange {
+  return {
+    displayRange: params.marketMaxPrice.minus(params.marketMinPrice),
   };
 }

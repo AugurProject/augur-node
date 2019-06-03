@@ -11,7 +11,7 @@ import { contentSearchBuilder } from "../../utils/content-search-builder";
 import { convertDivisorToRate } from "../../utils/convert-divisor-to-rate";
 import { convertFixedPointToDecimal } from "../../utils/convert-fixed-point-to-decimal";
 import { formatBigNumberAsFixed } from "../../utils/format-big-number-as-fixed";
-import { DefaultSpreadPercentString, DefaultSpreadPercentBigNumber, DefaultInvalidROIPercentString, DefaultInvalidROIPercentBigNumber } from "../../utils/liquidity";
+import { DefaultSpreadPercentString, DefaultSpreadPercentBigNumber, DefaultInvalidROIPercentString, DefaultInvalidROIPercentBigNumber, DefaultTakerInvalidProfitTokensString, DefaultTakerInvalidProfitTokensBigNumber } from "../../utils/liquidity";
 import { getCurrentTime } from "../process-block";
 
 function getOutcomes(augur: Augur, log: FormattedEventLog) {
@@ -107,6 +107,8 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       openInterest: "0",
       spreadPercent: DefaultSpreadPercentString,
       invalidROIPercent: DefaultInvalidROIPercentString,
+      bestBidTakerInvalidProfitTokens: DefaultTakerInvalidProfitTokensString,
+      bestAskTakerInvalidProfitTokens: DefaultTakerInvalidProfitTokensString,
       validityBondSize: calls.validityBondAttoeth,
       forking: 0,
       needsMigration: 0,
@@ -120,6 +122,8 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       shareVolume: ZERO,
       spreadPercent: DefaultSpreadPercentBigNumber,
       invalidROIPercent: DefaultInvalidROIPercentBigNumber,
+      bestBidTakerInvalidProfitTokens: DefaultTakerInvalidProfitTokensBigNumber,
+      bestAskTakerInvalidProfitTokens: DefaultTakerInvalidProfitTokensBigNumber,
     });
     const tokensDataToInsert: Partial<TokensRow> = {
       marketId: log.market,
