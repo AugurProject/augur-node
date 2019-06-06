@@ -4,6 +4,11 @@ import axios from "axios";
 export const defaultStandardGasPriceGwei = new BigNumber(5, 10);
 
 let apiStandardGasPriceGwei: undefined | BigNumber;
+let gasFetchNote: string = "never fetched";
+
+export function getGasFetchNote(): string {
+  return gasFetchNote;
+}
 
 export function currentStandardGasPriceGwei(): BigNumber {
   return apiStandardGasPriceGwei || defaultStandardGasPriceGwei;
@@ -25,8 +30,10 @@ function fetchGasPrice(): void {
     // ethgasstation API uses "10 gwei" units for gas prices,
     // so resp.average needs to be divided by 10 to be gwei.
     apiStandardGasPriceGwei = new BigNumber(resp.data.average / 10.0, 10);
+    gasFetchNote = `ethgasstation standard fetched on ${new Date().toISOString()}`;
     if (!apiStandardGasPriceGwei || apiStandardGasPriceGwei.isNaN()) {
       apiStandardGasPriceGwei = undefined;
+      gasFetchNote = `ethgasstation standard parse failed on ${new Date().toISOString()}`;
       throw new Error(`failed to parse response.data.average into a BigNumber, response.data.average=${resp.data.average}`);
     }
     // console.log(`fetched ethgasstation standard gas price of ${apiStandardGasPriceGwei.toString()} gwei`);
@@ -34,5 +41,6 @@ function fetchGasPrice(): void {
   .catch((err) => {
     console.error(`error fetching gas price from ethgasstation`, err);
     apiStandardGasPriceGwei = undefined;
+    gasFetchNote = `ethgasstation standard fetch failed on ${new Date().toISOString()}`;
   });
 }

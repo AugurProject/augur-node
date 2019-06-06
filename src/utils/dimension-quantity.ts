@@ -161,6 +161,9 @@ abstract class Quantity<T extends Quantity<T>> {
     }
     return new this.derivedConstructor(BigNumber.max(this.magnitude, other.magnitude));
   }
+  public toNumber(): number {
+    return this.magnitude.toNumber();
+  }
 
   // TODO there is a general pattern among some functions eg. plus/minus/min: ensure dimensions equal and then return derivedConstructor(some new magnitude); can probably simplify this code and it'd be worth it once more functions are added
 }

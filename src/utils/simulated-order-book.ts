@@ -15,12 +15,13 @@ export interface BidsAndAsks {
 
 interface MarketOrderBooks extends MarketMinPrice, MarketMaxPrice, ReporterFeeRate, MarketCreatorFeeRate, TotalFeeRate, DisplayRange {
   numOutcomes: number; // number of outcomes in this market
+  endDate: Date; // market end Date
   orderBooks: Array<{ outcome: number, orderBook: OrderBook }>;
 }
 
 export async function getMarketOrderBooks(db: Knex, marketId: Address): Promise<MarketOrderBooks> {
-  const marketsQuery: undefined | Pick<MarketsRow<BigNumber>, "marketType" | "numOutcomes" | "minPrice" | "maxPrice" | "marketCreatorFeeRate" | "reportingFeeRate"> = await db
-    .first("marketType", "numOutcomes", "minPrice", "maxPrice", "marketCreatorFeeRate", "reportingFeeRate")
+  const marketsQuery: undefined | Pick<MarketsRow<BigNumber>, "marketType" | "numOutcomes" | "minPrice" | "maxPrice" | "marketCreatorFeeRate" | "reportingFeeRate" | "endTime"> = await db
+    .first("marketType", "numOutcomes", "minPrice", "maxPrice", "marketCreatorFeeRate", "reportingFeeRate", "endTime")
     .from("markets")
     .where({ marketId });
   if (marketsQuery === undefined) throw new Error(`expected to find marketId=${marketId}`);
@@ -83,6 +84,7 @@ export async function getMarketOrderBooks(db: Knex, marketId: Address): Promise<
     totalFeeRate,
     displayRange,
     numOutcomes: marketsQuery.numOutcomes,
+    endDate: new Date(marketsQuery.endTime * 1000),
     orderBooks,
   };
 

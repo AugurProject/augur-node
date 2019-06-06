@@ -15,6 +15,8 @@ import { makeJsonRpcResponse } from "./make-json-rpc-response";
 import { makeJsonRpcError, JsonRpcErrorCode } from "./make-json-rpc-error";
 import { EventEmitter } from "events";
 import { logger } from "../utils/logger";
+import { version } from "../data.package.json";
+import { currentStandardGasPriceGwei, getGasFetchNote } from "../utils/gas";
 
 // tslint:disable-next-line:no-var-requires
 import cors = require("cors");
@@ -60,7 +62,7 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
       const networkId: string = augur.rpc.getNetworkID();
       const universe: Address = augur.contracts.addresses[networkId].Universe;
 
-      getMarkets(db, augur, {universe} as t.TypeOf<typeof GetMarketsParams>).then((result: any) => {
+      getMarkets(db, augur, { universe } as t.TypeOf<typeof GetMarketsParams>).then((result: any) => {
         if (result.length === 0) {
           res.status(503).send({ status: ServerStatus.DOWN, reason: "No markets found", universe });
         } else {
@@ -117,6 +119,17 @@ export function runServer(db: Knex, augur: Augur, controlEmitter: EventEmitter =
     } else {
       res.send({ status: ServerStatus.UP, reason: "Finished with sync" });
     }
+  });
+
+  app.get("/version", (req, res) => {
+    res.send({ version });
+  });
+
+  app.get("/gas", (req, res) => {
+    res.send({
+      gasPriceGwei: currentStandardGasPriceGwei().toNumber(),
+      gasFetchNote: getGasFetchNote(),
+    });
   });
 
   app.use(cors());
