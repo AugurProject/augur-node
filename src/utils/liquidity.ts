@@ -3,7 +3,7 @@ import * as Knex from "knex";
 import * as _ from "lodash";
 import { Address, OutcomesLiquidityRow } from "../types";
 import { Percent, percent, Price, scalar, Scalar, Shares, Tokens, tokens } from "./dimension-quantity";
-import { getSharePrice, MarketMaxPrice, MarketMinPrice, ReporterFeeRate, TotalFeeRate } from "./financial-math";
+import { getSharePrice, MarketMaxPrice, MarketMinPrice, ReporterFeeRate, TotalFeeRate, continuousCompound } from "./financial-math";
 import { currentStandardGasPriceGwei } from "./gas";
 import { BidsAndAsks, getMarketOrderBooks, OrderBook, QuantityAtPrice } from "./simulated-order-book";
 
@@ -18,6 +18,7 @@ export const DefaultTakerInvalidProfitTokensBigNumber: BigNumber = new BigNumber
 
 interface GetInvalidMetricsParams extends MarketMinPrice, MarketMaxPrice, ReporterFeeRate, TotalFeeRate, BidsAndAsks {
   numOutcomes: number; // number of outcomes in this market
+  endDate: Date;
 }
 
 interface InvalidMetrics {
@@ -182,6 +183,19 @@ const gasToTrade = new BigNumber(1750000, 10); // 1.75M gas for a trade
 const gasToClaimWinnings = new BigNumber(1000000, 10); // 1M gas to claim winnings
 const tenToTheNine = new BigNumber(10 ** 9, 10);
 
+const annualDiscountRate = percent(0.1);
+const yearsAfterExpiryToAssumeFinalization = scalar(14.0 / 365.0);
+const millisecondsPerYear = scalar(365 * 24 * 60 * 60 * 1000);
+
+function yearsBetweenDates(params: {
+  startDate: Date,
+  endDate: Date,
+}): Scalar {
+  const millisDelta = scalar(params.endDate.getTime())
+    .minus(scalar(params.startDate.getTime()));
+  return millisDelta.dividedBy(millisecondsPerYear);
+}
+
 function getBestBidAskTakerInvalidProfit(params: GetInvalidMetricsParams): Pick<InvalidMetrics, "bestBidTakerInvalidProfitTokens" | "bestAskTakerInvalidProfitTokens"> {
   const invalidSharePrice: Price = getInvalidSharePrice(params, params.totalFeeRate);
 
@@ -209,8 +223,26 @@ function getBestBidAskTakerInvalidProfit(params: GetInvalidMetricsParams): Pick<
   const takerGasCostToRealizeProfit = new Tokens(gasToTrade.plus(gasToClaimWinnings)
     .multipliedBy(currentStandardGasPriceGwei()).dividedBy(tenToTheNine)); // gas*(gwei/gas) = gwei / 10^9 = tokens
 
-  const bestBidTakerInvalidCost: undefined | Tokens = bestBidQuantity && bestBidTakerSharePrice && bestBidQuantity.multipliedBy(bestBidTakerSharePrice).expect(Tokens);
-  const bestAskTakerInvalidCost: undefined | Tokens = bestAskQuantity && bestAskTakerSharePrice && bestAskQuantity.multipliedBy(bestAskTakerSharePrice).expect(Tokens);
+  const yearsToExpiry: Scalar = yearsBetweenDates({
+    startDate: new Date(),
+    endDate: params.endDate,
+  });
+  const timeToFinalizationInYears: Scalar =
+    yearsToExpiry.plus(yearsAfterExpiryToAssumeFinalization)
+      .max(Scalar.ZERO); // disallow negative timeToFinalizationInYears which would be like claiming invalid winnings in the past
+
+  const bestBidTakerInvalidCost: undefined | Tokens = bestBidQuantity && bestBidTakerSharePrice &&
+    continuousCompound({
+      amount: bestBidQuantity.multipliedBy(bestBidTakerSharePrice).expect(Tokens),
+      interestRate: annualDiscountRate,
+      compoundingDuration: timeToFinalizationInYears,
+    });
+  const bestAskTakerInvalidCost: undefined | Tokens = bestAskQuantity && bestAskTakerSharePrice &&
+    continuousCompound({
+      amount: bestAskQuantity.multipliedBy(bestAskTakerSharePrice).expect(Tokens),
+      interestRate: annualDiscountRate,
+      compoundingDuration: timeToFinalizationInYears,
+    });
 
   const bestBidTakerInvalidProfit: undefined | Tokens = bestBidTakerInvalidRevenue && bestBidTakerInvalidCost && bestBidTakerInvalidRevenue.minus(bestBidTakerInvalidCost).minus(takerGasCostToRealizeProfit);
   const bestAskTakerInvalidProfit: undefined | Tokens = bestAskTakerInvalidRevenue && bestAskTakerInvalidCost && bestAskTakerInvalidRevenue.minus(bestAskTakerInvalidCost).minus(takerGasCostToRealizeProfit);

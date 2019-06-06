@@ -1,4 +1,4 @@
-import { Percent, Price, Shares, Tokens } from "./dimension-quantity";
+import { Percent, Price, Scalar, scalar, Shares, Tokens } from "./dimension-quantity";
 
 // This library is intended to be a home for all augur financial formulas.
 // The emphasis is on safety and education with mechanisms like more specific
@@ -630,4 +630,16 @@ export function getDisplayRange(params: MarketMinPrice & MarketMaxPrice): Displa
   return {
     displayRange: params.marketMaxPrice.minus(params.marketMinPrice),
   };
+}
+
+// continuousCompound applies continuously compounding interest to
+// the passed amount. The passed interestRate and compoundingDuration
+// must use same time unit, eg. annual rate and duration in years.
+export function continuousCompound(params: {
+  amount: Tokens,
+  interestRate: Percent,
+  compoundingDuration: Scalar,
+}): Tokens {
+  return params.amount.multipliedBy(scalar(Math.exp(
+    params.interestRate.multipliedBy(params.compoundingDuration).toNumber())));
 }
