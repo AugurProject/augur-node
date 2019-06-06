@@ -15,7 +15,7 @@ import { makeJsonRpcResponse } from "./make-json-rpc-response";
 import { makeJsonRpcError, JsonRpcErrorCode } from "./make-json-rpc-error";
 import { EventEmitter } from "events";
 import { logger } from "../utils/logger";
-import { version } from "../package.json";
+import { version } from "../data.package.json";
 import { currentStandardGasPriceGwei, getGasFetchNote } from "../utils/gas";
 
 // tslint:disable-next-line:no-var-requires
