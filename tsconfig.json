@@ -15,7 +15,6 @@
     "outDir": "build",
     "rootDir": "src",
     "baseUrl": "./",
-    "resolveJsonModule": true,
     "paths": {
       "*":  ["node_modules/augur-core/typings/*"]
     },
