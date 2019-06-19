@@ -25,7 +25,7 @@ export const GetMarketsParams = t.intersection([
 ]);
 
 // Returning marketIds should likely be more generalized, since it is a single line change for most getters (awaiting reporting, by user, etc)
-export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof GetMarketsParams>) {
+export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof GetMarketsParams>): Promise<Array<Address>> {
   const columns = ["markets.marketId", "marketStateBlock.timestamp as reportingStateUpdatedOn"];
   const query = getMarketsWithReportingState(db, columns);
   query.join("blocks as marketStateBlock", "marketStateBlock.blockNumber", "market_state.blockNumber");

@@ -4,6 +4,10 @@ const ZERO = new BigNumber(0);
 const ONE = new BigNumber(1);
 const TWO = new BigNumber(2);
 
+// TODO big v2 upgrade/refactor where some of the domain-specific types expressed in finmath become dimension-quantity types, eg. instead of `interface SharePrice { sharePrice: Price; }` we can have `class SharePrice extends Quantity<Shares>` where its dimension vector = `{ domain: 'sharePrice', ...PriceUnitDimension }` such that the "sharePrice" becomes part of its dimension. Not sure if this is a good idea/pattern or a terrible idea, eg. how do you add a sharePrice and a tradePrice if they effectively have different dimensions? Then again maybe you should only be using dimension-quantity's new `domain` dimension if "SharePrice vs TradePrice" are as different as "SharePrice vs Percent" --> this seems to hold, eg. you'd never ever want to add a SharePrice and TradePrice, nor a SharePriceOnChain (eg. domain='sharePriceOnChain' ) and a SharePrice. --> but at what point do you say "this SharePrice is now a TradePrice because I added some stuff to it", how does conversion work? --> conversion should probably be built into the types themselves, sharePrice.toTradePrice(args)?
+
+// TODO to support GWei * 10^9 = Tokens include `scalar` in dimension vector... or maybe separate from dimension vector, since it's not part of the unit, it's a baked-in coefficient. So if you tried to add GWei and Tokens, the underlying dimension vectors would both be in tokens, but the GWei has a coefficient of 10*^-9 that needs to be normalized into Tokens scale before they can be added.
+
 // TODO toString() method "20 tokens", "20 tokens/share", "20 tokens^2*shares^-3"
 // TODO ETH/attoETH/erc20
 // TODO support derivation for non-unit quantity types, similar to safe-units. Eg. `export const Price = Tokens.dividedBy(Shares)`
@@ -15,6 +19,7 @@ const TWO = new BigNumber(2);
 // and could be extended to include Ether, but unfortunately is
 // impractical due to extremely long compile times (minutes).
 
+// TODO add "gas" and make Gas, GasPrice and use these in gas.ts
 type Dimension = "tokens" | "shares";
 const Dimensions: Array<Dimension> = ["tokens", "shares"];
 
@@ -224,6 +229,8 @@ class UnverifiedQuantity extends Quantity<UnverifiedQuantity> {
 // ************************************************************************
 // **** specific units below here; a lot of this could be generated code
 
+// TODO drop helper functions like scalar/percent/token and instead allow any constructor to take number or BigNumber
+
 export function scalar(magnitude: number | BigNumber): Scalar {
   if (typeof magnitude === "number") {
     return new Scalar(new BigNumber(magnitude, 10));
@@ -302,6 +309,7 @@ export function price(magnitude: number | BigNumber): Price {
   }
   return new Price(magnitude);
 }
+// TODO Price should be called a `TokenPrice` because it's Token/Shares. GasPrice is Gas/Shares. Update gas.ts to use these
 const PriceUnitDimension: DimensionVector = Object.freeze({
   tokens: 1,
   shares: -1,

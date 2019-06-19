@@ -15,25 +15,58 @@ describe("server/getters/get-categories", () => {
     const params = {
       universe: "0x000000000000000000000000000000000000000b",
     };
+
+    // getCategories only returns categories that have markets that have liquidity data. Instead of making new seeds we insert seed data here.
+    for (const { marketId } of await db.select("marketId").from("markets")) {
+      await db("outcomes_liquidity").insert({
+        marketId,
+        outcome: 1,
+        spreadPercent: 0.99, // TODO 1.0
+        liquidityTokens: 1,
+      });
+    }
+
     await expect(dispatchJsonRpcRequest(db, {
       method: "getCategories",
       params,
     }, null)).resolves.toEqual([
-      {"categoryName": "AUGUR", "nonFinalizedOpenInterest": "0", "openInterest": "3", "tags": []},
-      {"categoryName": "ETHEREUM", "nonFinalizedOpenInterest": "4.5", "openInterest": "4.5", "tags": []},
-      {"categoryName": "FINANCE", "nonFinalizedOpenInterest": "2.5", "openInterest": "2.6", "tags": []},
-      {"categoryName": "POLITICS", "nonFinalizedOpenInterest": "3", "openInterest": "12", "tags": []},
-      {"categoryName": "TEST CATEGORY", "nonFinalizedOpenInterest": "0", "openInterest": "0", "tags": [
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "tagName": "test tag 1"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "tagName": "test tag 2"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 2, "openInterest": "0", "tagName": "Finance"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 2, "openInterest": "0", "tagName": "Augur"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 1, "openInterest": "0", "tagName": "politics"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 1, "openInterest": "0", "tagName": "ethereum"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 5, "openInterest": "0", "tagName": "tagging it"},
-        {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 5, "openInterest": "0", "tagName": "tagged it"},
-      ]},
-      {"categoryName": "ethereum", "nonFinalizedOpenInterest": "0", "openInterest": "0", "tags": []},
+      {
+        "categoryName": "TEST CATEGORY",
+        "nonFinalizedOpenInterest": "0",
+        "openInterest": "0",
+        "liquidityTokens": "28", // TODO BUG this is incorrect because right now we're double counting
+        "tags": [
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "liquidityTokens": "6", "tagName": "test tag 1"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "liquidityTokens": "6", "tagName": "test tag 2"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 2, "openInterest": "0", "liquidityTokens": "2", "tagName": "Finance"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 2, "openInterest": "0", "liquidityTokens": "2", "tagName": "Augur"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 1, "openInterest": "0", "liquidityTokens": "1", "tagName": "politics"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 1, "openInterest": "0", "liquidityTokens": "1", "tagName": "ethereum"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 5, "openInterest": "0", "liquidityTokens": "5", "tagName": "tagging it"},
+          {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 5, "openInterest": "0", "liquidityTokens": "5", "tagName": "tagged it"},
+        ]},
+      {
+        "categoryName": "TeSt CaTeGoRy",
+        "nonFinalizedOpenInterest": "0",
+        "openInterest": "0",
+        "liquidityTokens": "2", // TODO BUG this is incorrect it should be "1" because right now we're double counting
+        "tags": [
+          {
+            "nonFinalizedOpenInterest": "0",
+            "numberOfMarketsWithThisTag": 1,
+            "openInterest": "0",
+            "liquidityTokens": "1",
+            "tagName": "tEsT tag 1",
+          },
+          {
+            "nonFinalizedOpenInterest": "0",
+            "numberOfMarketsWithThisTag": 1,
+            "openInterest": "0",
+            "liquidityTokens": "1",
+            "tagName": "test tag 2",
+          },
+        ],
+      },
     ]);
   });
 
