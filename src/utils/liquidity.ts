@@ -364,11 +364,12 @@ interface GetLiquidityResult {
   liquidityTokensAtSpreadPercents: Array<LiquidityTokensAtSpreadPercent>;
 }
 
+export const MAX_SPREAD_PERCENT = 1;
 const LIQUIDITY_SPREAD_PERCENTS: Array<Percent> = [
   percent(0.1),
   percent(0.15),
   percent(0.2),
-  percent(0.99), // WARNING "Sort by Liquidity, All Speads" in UI currently uses 99% spread instead of 100% spread. This is because extremely large quantity with dust/epsilon prices orders function as a denial of service attack against getLiquidity because it processes quantity incrementally, so if you have a 100k qty order and it's taking only 0.05qty per iteration it's going to take two million iterations... and the data structures are fairly inefficient so that takes a very long time
+  percent(MAX_SPREAD_PERCENT),
 ];
 
 const SELL_INCREMENT_COST_DEFAULT: Tokens = tokens(0.05);
@@ -379,6 +380,9 @@ export function unsafeSetSELL_INCREMENT_COST(t: BigNumber): void {
 export function unsafeResetSELL_INCREMENT_COST(): void {
   SELL_INCREMENT_COST = SELL_INCREMENT_COST_DEFAULT;
 }
+
+const ONE_MILLION = scalar(1000000);
+const MAX_ITERATIONS = 100000;
 
 function getLiquidity(params: GetLiquidityParams): GetLiquidityResult {
   const sellIncrement: Shares =
@@ -395,7 +399,19 @@ function getLiquidity(params: GetLiquidityParams): GetLiquidityResult {
   // from the order book each iteration because we take the best bids/asks first.
   const spreadPercentsAscending = _.sortBy(params.spreadPercents, (sp: Percent) => sp.magnitude.toNumber());
   let i = 0;
+  let iterations = 0;
   while (i < spreadPercentsAscending.length) {
+    iterations++;
+    // When iterations exceeds MAX_ITERATIONS we'll greatly increase the
+    // incremental take amount so as to terminate the algorithm. This is because
+    // extremely large quantity with dust/epsilon prices orders function as
+    // a denial of service attack because this algorithm processes quantity
+    // incrementally, so if you have a 100k qty order and it's taking only
+    // 0.05qty per iteration it's going to take two million iterations... and
+    // the data structures are fairly inefficient so that takes a very long time.
+    const sellIncrementCostThisIteration = SELL_INCREMENT_COST.multipliedBy(iterations > MAX_ITERATIONS ? ONE_MILLION : Scalar.ONE);
+    const sellIncrementThisIteration = sellIncrement.multipliedBy(iterations > MAX_ITERATIONS ? ONE_MILLION : Scalar.ONE);
+
     // Incrementally sell complete sets into the order book
     liquidityTokenCost = liquidityTokenCost.plus(SELL_INCREMENT_COST);
     const proceedsThisIncrement: Tokens = params.orderBook
