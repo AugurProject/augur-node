@@ -1,5 +1,6 @@
 const { setupTestDb, seedDb } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
+const { MAX_SPREAD_PERCENT } = require("src/utils/liquidity");
 
 describe("server/getters/get-categories", () => {
   let db;
@@ -21,7 +22,7 @@ describe("server/getters/get-categories", () => {
       await db("outcomes_liquidity").insert({
         marketId,
         outcome: 1,
-        spreadPercent: 0.99, // TODO 1.0
+        spreadPercent: MAX_SPREAD_PERCENT,
         liquidityTokens: 1,
       });
     }
@@ -32,9 +33,9 @@ describe("server/getters/get-categories", () => {
     }, null)).resolves.toEqual([
       {
         "categoryName": "TEST CATEGORY",
-        "nonFinalizedOpenInterest": "0",
-        "openInterest": "0",
-        "liquidityTokens": "28", // TODO BUG this is incorrect because right now we're double counting
+        "nonFinalizedOpenInterest": "4.16",
+        "openInterest": "4.16",
+        "liquidityTokens": "16",
         "tags": [
           {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "liquidityTokens": "6", "tagName": "test tag 1"},
           {"nonFinalizedOpenInterest": "0", "numberOfMarketsWithThisTag": 6, "openInterest": "0", "liquidityTokens": "6", "tagName": "test tag 2"},
@@ -49,7 +50,7 @@ describe("server/getters/get-categories", () => {
         "categoryName": "TeSt CaTeGoRy",
         "nonFinalizedOpenInterest": "0",
         "openInterest": "0",
-        "liquidityTokens": "2", // TODO BUG this is incorrect it should be "1" because right now we're double counting
+        "liquidityTokens": "1",
         "tags": [
           {
             "nonFinalizedOpenInterest": "0",
