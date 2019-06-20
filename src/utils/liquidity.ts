@@ -372,7 +372,7 @@ const LIQUIDITY_SPREAD_PERCENTS: Array<Percent> = [
   percent(MAX_SPREAD_PERCENT),
 ];
 
-const SELL_INCREMENT_COST_DEFAULT: Tokens = tokens(0.05);
+const SELL_INCREMENT_COST_DEFAULT: Tokens = tokens(0.02);
 let SELL_INCREMENT_COST: Tokens = SELL_INCREMENT_COST_DEFAULT;
 export function unsafeSetSELL_INCREMENT_COST(t: BigNumber): void {
   SELL_INCREMENT_COST = new Tokens(t);
