@@ -18,7 +18,7 @@ let didStart = false;
 export function startFetchingGasPrice(): void {
   if (didStart) return;
   didStart = true;
-  setInterval(fetchGasPrice, 60 * 1000);
+  setInterval(fetchGasPrice, 3600 * 1000);
   fetchGasPrice();
 }
 
