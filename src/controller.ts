@@ -48,7 +48,7 @@ export class AugurNodeController {
   }
 
   public async start(errorCallback: ErrorCallback | undefined) {
-    startFetchingGasPrice();
+    // startFetchingGasPrice(); removing b/c of runtime issue in AWS
     this.running = true;
     this.errorCallback = errorCallback;
     try {
