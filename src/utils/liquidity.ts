@@ -381,7 +381,7 @@ export function unsafeResetSELL_INCREMENT_COST(): void {
   SELL_INCREMENT_COST = SELL_INCREMENT_COST_DEFAULT;
 }
 
-const ONE_MILLION = scalar(1000000);
+const ONE_HUNDRED_MILLION = scalar(100000000);
 const MAX_ITERATIONS = 100000;
 
 function getLiquidity(params: GetLiquidityParams): GetLiquidityResult {
@@ -403,21 +403,21 @@ function getLiquidity(params: GetLiquidityParams): GetLiquidityResult {
   while (i < spreadPercentsAscending.length) {
     iterations++;
     // When iterations exceeds MAX_ITERATIONS we'll greatly increase the
-    // incremental take amount so as to terminate the algorithm. This is because
-    // extremely large quantity with dust/epsilon prices orders function as
-    // a denial of service attack because this algorithm processes quantity
+    // incremental take amount so as to terminate the algorithm faster. This is
+    // because extremely large quantity with dust/epsilon prices orders function
+    // as a denial of service attack because this algorithm processes quantity
     // incrementally, so if you have a 100k qty order and it's taking only
     // 0.05qty per iteration it's going to take two million iterations... and
     // the data structures are fairly inefficient so that takes a very long time.
-    const sellIncrementCostThisIteration = SELL_INCREMENT_COST.multipliedBy(iterations > MAX_ITERATIONS ? ONE_MILLION : Scalar.ONE);
-    const sellIncrementThisIteration = sellIncrement.multipliedBy(iterations > MAX_ITERATIONS ? ONE_MILLION : Scalar.ONE);
+    const sellIncrementCostThisIteration = SELL_INCREMENT_COST.multipliedBy(iterations > MAX_ITERATIONS ? ONE_HUNDRED_MILLION : Scalar.ONE);
+    const sellIncrementThisIteration = sellIncrement.multipliedBy(iterations > MAX_ITERATIONS ? ONE_HUNDRED_MILLION : Scalar.ONE);
 
     // Incrementally sell complete sets into the order book
-    liquidityTokenCost = liquidityTokenCost.plus(SELL_INCREMENT_COST);
+    liquidityTokenCost = liquidityTokenCost.plus(sellIncrementCostThisIteration);
     const proceedsThisIncrement: Tokens = params.orderBook
-      .closeLongFillOnlyWithFeeAdjustment(sellIncrement, params.feeRate)
+      .closeLongFillOnlyWithFeeAdjustment(sellIncrementThisIteration, params.feeRate)
       .plus(params.orderBook
-        .closeShortFillOnlyWithFeeAdjustment(sellIncrement, params.feeRate),
+        .closeShortFillOnlyWithFeeAdjustment(sellIncrementThisIteration, params.feeRate),
       );
     nextLiquidityTokens = liquidityTokens.plus(proceedsThisIncrement);
 
