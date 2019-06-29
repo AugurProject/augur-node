@@ -382,7 +382,7 @@ export function unsafeResetSELL_INCREMENT_COST(): void {
 }
 
 const ONE_HUNDRED_MILLION = scalar(100000000);
-const MAX_ITERATIONS = 100000;
+const MAX_ITERATIONS = 100000; // MAX_ITERATIONS is not arbitrary: the formula `MAX_ITERATIONS * SELL_INCREMENT_COST` is the amount of tokens that getLiquidity will process at "high resolution"
 
 function getLiquidity(params: GetLiquidityParams): GetLiquidityResult {
   const sellIncrement: Shares =
