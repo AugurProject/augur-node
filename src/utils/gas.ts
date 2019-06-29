@@ -23,7 +23,9 @@ export function startFetchingGasPrice(): void {
 }
 
 function fetchGasPrice(): void {
-  axios.get("https://ethgasstation.info/json/ethgasAPI.json")
+  axios.get("https://ethgasstation.info/json/ethgasAPI.json", {
+    timeout: 1500,
+  })
   .then((resp: any) => {
     if (!(resp && resp.data && resp.data.average)) throw new Error(`expected response to contain data.average, response=${resp}`);
 
