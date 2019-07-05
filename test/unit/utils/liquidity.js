@@ -3,6 +3,8 @@ const Augur = require("augur.js");
 import { setupTestDb, seedDb } from "../test.database";
 import { processOrderCreatedLog } from "src/blockchain/log-processors/order-created";
 import { numTicksToTickSize } from "src/utils/convert-fixed-point-to-decimal";
+import { checkMarketLiquidityUpdates } from "src/blockchain/check-market-liquidity-updates";
+
 
 const augur = new Augur();
 
@@ -1143,6 +1145,8 @@ const runOneTestCase = (testCase) => {
         const orderCreatedLog = await testLogToOrderCreatedLog(db, testCase.marketId, log);
         await(await processOrderCreatedLog(augur, orderCreatedLog))(db);
       }
+
+      await checkMarketLiquidityUpdates(db);
 
       const marketsQuery = await db("markets").first().where({ marketId: testCase.marketId });
       if (!marketsQuery) throw new Error(`expected to find market with marketId=${testCase.marketId}`);

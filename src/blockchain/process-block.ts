@@ -11,6 +11,7 @@ import { SubscriptionEventNames, DB_VERSION, DB_FILE, DB_WARP_SYNC_FILE, DUMP_EV
 import { processLogByName } from "./process-logs";
 import { BackupRestore } from "../sync/backup-restore";
 import { checkOrphanedOrders } from "./check-orphaned-orders";
+import { checkMarketLiquidityUpdates } from "./check-market-liquidity-updates";
 
 export type BlockDirection = "add" | "remove";
 
@@ -74,6 +75,7 @@ export async function processBlockAndLogs(db: Knex, augur: Augur, direction: Blo
     }
   });
   await checkOrphanedOrders(db, augur);
+  await checkMarketLiquidityUpdates(db);
   try {
     if (isWarpSync && parseInt(block.number, 16) % DUMP_EVERY_BLOCKS === 0) {
       // every X blocks export db to warp file.

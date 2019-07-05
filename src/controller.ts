@@ -17,6 +17,8 @@ import { BlockAndLogsQueue } from "./blockchain/block-and-logs-queue";
 import { getFileHash, getHighestDbVersion } from "./sync/file-operations";
 import { BackupRestore } from "./sync/backup-restore";
 import { checkOrphanedOrders } from "./blockchain/check-orphaned-orders";
+import { checkMarketLiquidityUpdates } from "./blockchain/check-market-liquidity-updates";
+
 import { startFetchingGasPrice } from "./utils/gas";
 
 export interface SyncedBlockInfo {
@@ -62,6 +64,7 @@ export class AugurNodeController {
       if (!this.isRunning()) return;
       this.controlEmitter.emit(ControlMessageType.BulkOrphansCheckStarted);
       await checkOrphanedOrders(this.db, this.augur);
+      await checkMarketLiquidityUpdates(this.db);
       this.controlEmitter.emit(ControlMessageType.BulkOrphansCheckFinished);
       this.logger.info("Bulk orphaned orders check with blockchain complete.");
       // We received a shutdown so just return.

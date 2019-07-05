@@ -64,8 +64,7 @@ export async function processOrderCreatedLog(augur: Augur, log: FormattedEventLo
       upsertOrder = db.from("orders").where(orderId).update(orderData);
     }
     await upsertOrder;
-    await marketPendingOrphanCheck(db, orderData);
-    await updateLiquidityMetricsForMarketAndOutcomes(db, marketId);
+    await marketPendingOrderbookUpdates(db, orderData);
     augurEmitter.emit(SubscriptionEventNames.OrderCreated, Object.assign({}, log, orderData));
   };
 }
@@ -80,13 +79,17 @@ export async function processOrderCreatedLogRemoval(augur: Augur, log: Formatted
   };
 }
 
-async function marketPendingOrphanCheck(db: Knex, orderData: OrdersRow<string>) {
+async function marketPendingOrderbookUpdates(db: Knex, orderData: OrdersRow<string>) {
   const pendingOrderData = {
     marketId: orderData.marketId,
     outcome: orderData.outcome,
     orderType: orderData.orderType,
   };
   const result: { count: number } = await db.first(db.raw("count(*) as count")).from("pending_orphan_checks").where(pendingOrderData);
-  if (result.count > 0) return;
-  return await db.insert(pendingOrderData).into("pending_orphan_checks");
+  if (result.count === 0) {
+    await db.insert(pendingOrderData).into("pending_orphan_checks");
+  }
+  const liquidityResult: { count: number } = await db.first(db.raw("count(*) as count")).from("pending_liquidity_updates").where({marketId: orderData.marketId});
+  if (liquidityResult.count > 0) return;
+  return await db.insert({marketId: orderData.marketId}).into("pending_liquidity_updates");
 }
