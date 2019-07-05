@@ -470,6 +470,7 @@ export type UIMarketsInfo<BigNumberType> = Array<UIMarketInfo<BigNumberType>|nul
 export interface OpenInterestAggregation<BigNumberType> {
   nonFinalizedOpenInterest: BigNumberType; // sum of open interest for non-finalized markets in this aggregation (ie. markets with ReportingState != FINALIZED)
   openInterest: BigNumberType; // sum of open interest for all markets in this aggregation
+  liquidityTokens: BigNumberType; // sum of markets_liquidity.liquidityTokens for all markets in this aggregation for a given markets_liquidity.spreadPercent because a market has one liquidityTokens per spreadPercent
 }
 
 // TagAggregation is an aggregation of tag statistics/data for a set of

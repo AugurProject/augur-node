@@ -27,7 +27,10 @@ export async function processOrderCanceledLog(augur: Augur, log: FormattedEventL
     const ordersRow: MarketIDAndOutcomeAndPrice = await db.first("marketId", "outcome", "price", "sharesEscrowed", "orderCreator").from("orders").where("orderId", log.orderId);
     if (!ordersRow) throw new Error(`expected to find order with id ${log.orderId}`);
     ordersRow.orderType = orderTypeLabel;
-    await updateLiquidityMetricsForMarketAndOutcomes(db, ordersRow.marketId);
+    const liquidityResult: { count: number } = await db.first(db.raw("count(*) as count")).from("pending_liquidity_updates").where({marketId: ordersRow.marketId});
+    if (liquidityResult.count === 0) {
+      await db.insert({marketId: ordersRow.marketId}).into("pending_liquidity_updates");
+    }
     augurEmitter.emit(SubscriptionEventNames.OrderCanceled, Object.assign({}, log, ordersRow));
   };
 }

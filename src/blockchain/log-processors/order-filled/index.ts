@@ -88,7 +88,10 @@ export async function processOrderFilledLog(augur: Augur, log: FormattedEventLog
     await updateProfitLoss(db, marketId, orderType === "buy" ? amount : amount.negated(), orderCreator, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
     await updateProfitLoss(db, marketId, orderType === "sell" ? amount : amount.negated(), filler, outcome, price, log.transactionHash, log.blockNumber, log.logIndex, tradesRowBigNumber);
 
-    await updateLiquidityMetricsForMarketAndOutcomes(db, marketId);
+    const liquidityResult: { count: number } = await db.first(db.raw("count(*) as count")).from("pending_liquidity_updates").where({marketId});
+    if (liquidityResult.count === 0) {
+      await db.insert({marketId}).into("pending_liquidity_updates");
+    }
   };
 }
 
