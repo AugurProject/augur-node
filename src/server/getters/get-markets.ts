@@ -17,6 +17,7 @@ export const GetMarketsParamsSpecific = t.type({
   liquiditySortSpreadPercent: t.union([t.number, t.null, t.undefined]), // must be included and used if and only if sortBy === 'liquidityTokens'; each market has liquidityTokens defined for multiple spreadPercents, liquiditySortSpreadPercent determines which of these is included in markets result set
   enableInvalidFilter: t.union([t.boolean, t.null, t.undefined]), // if true then markets detected to be potentially invalid will be filtered out
   hasOrders: t.union([t.boolean, t.null, t.undefined]),
+  minInitialRep: t.union([t.number, t.null, t.undefined]), // minimum amount of initial REP stake
 });
 
 export const GetMarketsParams = t.intersection([
@@ -76,6 +77,15 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
 
   if (params.maxEndTime) {
     query.whereRaw("markets.endTime < ?", [params.maxEndTime]);
+  }
+
+  if (params.minInitialRep) {
+    query.whereRaw(`? <= (
+      select sum(CAST(balance as INTEGER)) from (
+        select balance from balances join universes on universes.universe = markets.universe where markets.marketId = balances.owner and balances.token == universes.reputationToken
+      union all
+        select balance from balances join initial_reports on initial_reports.initialReporter = balances.owner join universes on universes.universe = markets.universe where markets.marketId = initial_reports.marketId and balances.token == universes.reputationToken
+    ))`, [params.minInitialRep]);
   }
 
   const marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);

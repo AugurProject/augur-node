@@ -500,6 +500,23 @@ describe("server/getters/get-markets", () => {
       expect(marketIds).not.toContain("0x0000000000000000000000000000000000000001");
     },
   });
+  runTest({
+    description: "filter for minimum initial stake",
+    params: {
+      universe: "0x000000000000000000000000000000000000000b",
+      minInitialRep: 10,
+    },
+    assertions: (filteredMarkets) => {
+      expect(filteredMarkets).toEqual([
+        "0x0000000000000000000000000000000000000016",
+        "0x0000000000000000000000000000000000000019",
+        "0x0000000000000000000000000000000000000011",
+        "0x0000000000000000000000000000000000000211",
+        "0x0000000000000000000000000000000000000222",
+        "0x00000000000000000000000000000000000000f1",
+      ]);
+    },
+  });
   // runTest({
   //   description: "set a maximum spread percent #1",
   //   preQuery: (db) => db("markets").update({ spreadPercent: "0.1337" }).where({ marketId: "0x0000000000000000000000000000000000000001"}),

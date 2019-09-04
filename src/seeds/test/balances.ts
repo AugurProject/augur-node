@@ -156,6 +156,22 @@ exports.seed = async (knex: Knex): Promise<any> => {
       token: "FEE_TOKEN_02_1",
       owner: "0x0000000000000000001000000000000000000004",
       balance: "76",
+    }, {
+      token: "REP_TOKEN",
+      owner: "0x0000000000000000000000000000000000000016",
+      balance: "10",
+    }, {
+      token: "REP_TOKEN",
+      owner: "0x00000000000000000000000000000000000000f1",
+      balance: "5",
+    }, {
+      token: "REP_TOKEN",
+      owner: "0x0000000000000000000000000000000000abe222",
+      balance: "5",
+    }, {
+      token: "REP_TOKEN",
+      owner: "0x0000000000000000000000000000000000abe223",
+      balance: "10",
     }];
     return knex.batchInsert("balances", seedData, seedData.length);
   });

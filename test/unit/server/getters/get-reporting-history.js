@@ -170,6 +170,28 @@ describe("server/getters/get-reporting-history", () => {
             },
             crowdsourcers: [],
           },
+          "0x0000000000000000000000000000000000000222": {
+            initialReporter: {
+              initialReporter: "0x0000000000000000000000000000000000abe223",
+              transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000E00",
+              logIndex: 0,
+              creationBlockNumber: 1400100,
+              creationTime: 1506480000,
+              blockHash: "0x1400100",
+              marketId: "0x0000000000000000000000000000000000000222",
+              feeWindow: "0x1000000000000000000000000000000000000000",
+              amountStaked: "102",
+              isCategorical: false,
+              isScalar: false,
+              isInvalid: false,
+              isSubmitted: true,
+              payoutNumerators: [
+                "0",
+                "10000",
+              ],
+            },
+            crowdsourcers: [],
+          },
         },
       });
     },
