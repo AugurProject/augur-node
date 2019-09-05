@@ -256,6 +256,7 @@ export interface MarketsRow<BigNumberType> extends MarketPricing<BigNumberType> 
   invalidROIPercent: BigNumberType;
   bestBidTakerInvalidProfitTokens: BigNumberType;
   bestAskTakerInvalidProfitTokens: BigNumberType;
+  initialReporterAddress: string;
 }
 
 export interface SearchRow {
@@ -289,6 +290,11 @@ export interface OutcomesRow<BigNumberType> {
   invalidROIPercent: BigNumberType;
   bestBidTakerInvalidProfitTokens: BigNumberType;
   bestAskTakerInvalidProfitTokens: BigNumberType;
+}
+
+export interface TotalInitialREPStakeRow<BigNumberType> {
+  marketId: Address;
+  totalInitialREPStake: BigNumberType;
 }
 
 export interface TokensRow {
@@ -461,6 +467,8 @@ export interface UIMarketInfo<BigNumberType> {
   tickSize: BigNumberType;
   consensus: NormalizedPayout<BigNumberType>|null;
   outcomes: Array<UIOutcomeInfo<string>>;
+  totalInitialREPStake: BigNumberType;
+  initialReporterAddress: string;
 }
 
 export type UIMarketsInfo<BigNumberType> = Array<UIMarketInfo<BigNumberType>|null>;

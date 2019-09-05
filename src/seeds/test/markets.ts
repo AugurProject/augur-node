@@ -79,6 +79,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           },
           {
             marketId: "0x0000000000000000000000000000000000000002",
@@ -187,6 +188,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x0000000000000000000000000000000000abe123",
           },
           {
             marketId: "0x0000000000000000000000000000000000000012",
@@ -476,6 +478,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x0000000000000000000000000000000000abe111",
           },
           {
             marketId: "0x0000000000000000000000000000000000000211",
@@ -513,6 +516,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x0000000000000000000000000000000000abe321",
           },
           {
             marketId: "0x0000000000000000000000000000000000000222",
@@ -549,6 +553,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x0000000000000000000000000000000000abe223",
           },
           {
             marketId: "0x0000000000000000000000000000000000000233",
@@ -621,6 +626,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             shareVolume: "0",
             validityBondSize: "0",
             logIndex: 0,
+            initialReporterAddress: "0x0000000000000000000000000000000000abe222",
           },
           {
             marketId: "0x0000000000000000000000000000000000000ff1",
@@ -866,7 +872,7 @@ exports.seed = async (knex: Knex): Promise<any> => {
             logIndex: 0,
           },
         ];
-        return knex.batchInsert("markets", seedData, seedData.length);
+        return knex.batchInsert("markets", seedData, seedData.length / 2);
       },
     );
 };

@@ -45,7 +45,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000001",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -68,6 +68,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: 7,
+          initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
             id: 0,
@@ -129,7 +131,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000002",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -152,6 +154,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: "0",
+          initialReporterAddress: null,
           consensus: {
             isInvalid: false,
             payout: [
@@ -202,7 +206,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000001",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -225,6 +229,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: 7,
+          initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
             id: 0,
@@ -287,7 +293,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000002",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -310,6 +316,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: "0",
+          initialReporterAddress: null,
           consensus: {
             isInvalid: false,
             payout: [
@@ -359,7 +367,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000002",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -382,6 +390,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: "0",
+          initialReporterAddress: null,
           consensus: {
             isInvalid: false,
             payout: [
@@ -419,7 +429,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000001",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -442,6 +452,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: 7,
+          initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
             id: 0,
@@ -540,6 +552,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: 4000000,
+          initialReporterAddress: "0x0000000000000000000000000000000000abe111",
           consensus: {
             isInvalid: false,
             payout: [
@@ -627,7 +641,7 @@ describe("server/getters/get-markets-info", () => {
           marketCreatorFeesBalance: "0",
           marketCreatorMailbox: "0xbbb0000000000000000000000000000000000001",
           marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
-          initialReportSize: null,
+          initialReportSize: "0",
           category: "TEST CATEGORY",
           tags: ["test tag 1", "test tag 2"],
           volume: "0",
@@ -650,6 +664,8 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
+          totalInitialREPStake: 7,
+          initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
             id: 0,

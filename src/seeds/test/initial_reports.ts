@@ -48,6 +48,17 @@ exports.seed = async (knex: Knex): Promise<any> => {
       amountStaked: "102",
       initialReporter: "0x0000000000000000000000000000000000abe222",
       redeemed: false,
+    }, {
+      blockNumber: 1400100,
+      transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000E00",
+      logIndex: 0,
+      marketId: "0x0000000000000000000000000000000000000222",
+      reporter: "0x0000000000000000000000000000000000000b0b",
+      payoutId: 5,
+      isDesignatedReporter: true,
+      amountStaked: "102",
+      initialReporter: "0x0000000000000000000000000000000000abe223",
+      redeemed: false,
     },
     ];
     return knex.batchInsert("initial_reports", seedData, seedData.length);
