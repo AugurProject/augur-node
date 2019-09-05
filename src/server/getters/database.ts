@@ -96,7 +96,7 @@ export function reshapeOutcomesRowToUIOutcomeInfo(outcomesRow: OutcomesRow<BigNu
   };
 }
 
-export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber> | null): UIMarketInfo<string> {
+export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcomesInfo: Array<UIOutcomeInfo<BigNumber>>, winningPayoutRow: PayoutRow<BigNumber> | null, totalInitialREPStake: BigNumber): UIMarketInfo<string> {
   let consensus: NormalizedPayout<string> | null = null;
   if (winningPayoutRow != null) {
     consensus = normalizedPayoutsToFixed(normalizePayouts(winningPayoutRow));
@@ -145,6 +145,8 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcome
       numTicks: row.numTicks,
       outcomes: _.map(outcomesInfo, (outcomeInfo) => formatBigNumberAsFixed<UIOutcomeInfo<BigNumber>, UIOutcomeInfo<string>>(outcomeInfo)),
       tickSize: numTicksToTickSize(row.numTicks, row.minPrice, row.maxPrice),
+      totalInitialREPStake,
+      initialReporterAddress: row.initialReporterAddress
     }),
     {
       consensus,
@@ -161,7 +163,6 @@ export function reshapeDisputeTokensRowToUIDisputeTokenInfo(disputeTokenRow: Dis
 }
 
 export function getMarketsWithReportingState(db: Knex, selectColumns?: Array<string>): Knex.QueryBuilder {
-  // TODO: turn leftJoin() into join() once we take care of market_state on market creation
   const columns = selectColumns ? selectColumns.slice() : ["markets.*", "market_state.reportingState as reportingState", "blocks.timestamp as creationTime"];
   return db
     .select(columns)

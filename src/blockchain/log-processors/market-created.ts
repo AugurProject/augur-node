@@ -50,6 +50,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
     reportingFeeDivisor: augur.api.Universe.getOrCacheReportingFeeDivisor(universePayload),
     validityBondAttoeth: augur.api.Market.getValidityBondAttoeth(marketPayload),
     getOutcomes: getOutcomes(augur, log),
+    initialReporterAddress: augur.api.Market.getInitialReporter(marketPayload),
   };
   const calls = _.zipObject(_.keys(callPromises), await Promise.all(_.values(callPromises)));
 
@@ -114,6 +115,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       needsMigration: 0,
       needsDisavowal: 0,
       finalizationBlockNumber: null,
+      initialReporterAddress: calls.initialReporterAddress
     };
     const outcomesDataToInsert: Partial<OutcomesRow<string>> = formatBigNumberAsFixed<Partial<OutcomesRow<BigNumber>>, Partial<OutcomesRow<string>>>({
       marketId: log.market,

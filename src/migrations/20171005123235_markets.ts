@@ -39,7 +39,8 @@ exports.up = async (knex: Knex): Promise<any> => {
       "consensusPayoutId" integer,
       "disputeRounds" integer,
       "isInvalid" boolean,
-      "needsDisavowal" boolean DEFAULT false
+      "needsDisavowal" boolean DEFAULT false,
+      "initialReporterAddress" varchar(255)
     )`)
     .raw(`CREATE INDEX "endTime" ON markets ("endTime")`);
   });

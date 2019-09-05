@@ -81,11 +81,8 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
 
   if (params.minInitialRep) {
     query.whereRaw(`? <= (
-      select sum(CAST(balance as INTEGER)) from (
-        select balance from balances join universes on universes.universe = markets.universe where markets.marketId = balances.owner and balances.token == universes.reputationToken
-      union all
-        select balance from balances join initial_reports on initial_reports.initialReporter = balances.owner join universes on universes.universe = markets.universe where markets.marketId = initial_reports.marketId and balances.token == universes.reputationToken
-    ))`, [params.minInitialRep]);
+      select sum(CAST(balance as INTEGER)) from balances join universes on universes.universe = markets.universe where (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) and balances.token == universes.reputationToken
+    )`, [params.minInitialRep]);
   }
 
   const marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);

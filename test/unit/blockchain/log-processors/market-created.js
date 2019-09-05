@@ -121,6 +121,9 @@ describe("blockchain/log-processors/market-created", () => {
             getValidityBondAttoeth: (p) => {
               return Promise.resolve("800");
             },
+            getInitialReporter: (p) => {
+              return Promise.resolve("0x0000000000000000000000000000000000004444");
+            },
           },
           Universe: {
             getOrCacheReportingFeeDivisor: (p) => {
@@ -155,6 +158,7 @@ describe("blockchain/log-processors/market-created", () => {
             marketCreatorMailbox: "0xbbb1111111111111111111111111111111111111",
             marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
             initialReportSize: null,
+            initialReporterAddress: "0x0000000000000000000000000000000000004444",
             validityBondSize: new BigNumber("800", 10),
             category: "TEST_CATEGORY",
             tag1: "TEST_TAG_1",
@@ -338,6 +342,9 @@ describe("blockchain/log-processors/market-created", () => {
             getValidityBondAttoeth: (p) => {
               return Promise.resolve("800");
             },
+            getInitialReporter: (p) => {
+              return Promise.resolve("0x0000000000000000000000000000000000004444");
+            },
           },
           Universe: {
             getOrCacheReportingFeeDivisor: (p) => {
@@ -373,6 +380,7 @@ describe("blockchain/log-processors/market-created", () => {
             marketCreatorMailbox: "0xbbb1111111111111111111111111111111111112",
             marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
             initialReportSize: null,
+            initialReporterAddress: "0x0000000000000000000000000000000000004444",
             validityBondSize: new BigNumber("800", 10),
             category: "TEST_CATEGORY",
             tag1: "TEST_TAG_1",
@@ -587,6 +595,9 @@ describe("blockchain/log-processors/market-created", () => {
             getValidityBondAttoeth: (p) => {
               return Promise.resolve("800");
             },
+            getInitialReporter: (p) => {
+              return Promise.resolve("0x0000000000000000000000000000000000004444");
+            },
           },
           Universe: {
             getOrCacheReportingFeeDivisor: (p) => {
@@ -621,6 +632,7 @@ describe("blockchain/log-processors/market-created", () => {
             marketCreatorMailbox: "0xbbb1111111111111111111111111111111111113",
             marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
             initialReportSize: null,
+            initialReporterAddress: "0x0000000000000000000000000000000000004444",
             validityBondSize: new BigNumber("800", 10),
             category: "TEST_CATEGORY",
             tag1: "TEST_TAG_1",
@@ -799,6 +811,9 @@ describe("blockchain/log-processors/market-created", () => {
             getValidityBondAttoeth: (p) => {
               return Promise.resolve("800");
             },
+            getInitialReporter: (p) => {
+              return Promise.resolve("0x0000000000000000000000000000000000004444");
+            },
           },
           Universe: {
             getOrCacheReportingFeeDivisor: (p) => {
@@ -834,6 +849,7 @@ describe("blockchain/log-processors/market-created", () => {
             marketCreatorMailbox: "0xbbb1111111111111111111111111111111111111",
             marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
             initialReportSize: null,
+            initialReporterAddress: "0x0000000000000000000000000000000000004444",
             validityBondSize: new BigNumber("800", 10),
             category: "TEST_CATEGORY",
             tag1: null,
@@ -1021,6 +1037,9 @@ describe("blockchain/log-processors/market-created", () => {
             getValidityBondAttoeth: (p) => {
               return Promise.resolve("800");
             },
+            getInitialReporter: (p) => {
+              return Promise.resolve("0x0000000000000000000000000000000000004444");
+            },
           },
           Universe: {
             getOrCacheReportingFeeDivisor: (p) => {
@@ -1057,6 +1076,7 @@ describe("blockchain/log-processors/market-created", () => {
             marketCreatorMailbox: "0xbbb1111111111111111111111111111111111111",
             marketCreatorMailboxOwner: "0x0000000000000000000000000000000000000b0b",
             initialReportSize: null,
+            initialReporterAddress: "0x0000000000000000000000000000000000004444",
             validityBondSize: new BigNumber("800", 10),
             category: "TEST_CATEGORY",
             tag1: "TEST_TAG_1",
