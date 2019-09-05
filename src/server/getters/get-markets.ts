@@ -96,7 +96,7 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
     }, {} as {[marketId: string]: BigNumber});
     marketsRows = _.filter(marketsRows, (row) => {
       return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].gte(params.minInitialRep || 0);
-    })
+    });
   }
 
   return marketsRows.map((marketsRow: MarketsContractAddressRow): Address => marketsRow.marketId);
