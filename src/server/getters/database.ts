@@ -146,7 +146,7 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcome
       outcomes: _.map(outcomesInfo, (outcomeInfo) => formatBigNumberAsFixed<UIOutcomeInfo<BigNumber>, UIOutcomeInfo<string>>(outcomeInfo)),
       tickSize: numTicksToTickSize(row.numTicks, row.minPrice, row.maxPrice),
       totalInitialREPStake,
-      initialReporterAddress: row.initialReporterAddress
+      initialReporterAddress: row.initialReporterAddress,
     }),
     {
       consensus,

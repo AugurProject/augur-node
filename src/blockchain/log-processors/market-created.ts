@@ -115,7 +115,7 @@ export async function processMarketCreatedLog(augur: Augur, log: FormattedEventL
       needsMigration: 0,
       needsDisavowal: 0,
       finalizationBlockNumber: null,
-      initialReporterAddress: calls.initialReporterAddress
+      initialReporterAddress: calls.initialReporterAddress,
     };
     const outcomesDataToInsert: Partial<OutcomesRow<string>> = formatBigNumberAsFixed<Partial<OutcomesRow<BigNumber>>, Partial<OutcomesRow<string>>>({
       marketId: log.market,

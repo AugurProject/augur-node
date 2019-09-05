@@ -28,7 +28,7 @@ export async function getUIMarketsInfo(db: Knex, marketIds: Array<Address>): Pro
   const outcomesRows = await db("outcomes").whereIn("marketId", cleanedMarketIds);
   const winningPayoutRows = await db("payouts").whereIn("marketId", cleanedMarketIds).where("winning", 1);
   if (!marketsRows) return [];
-  const totalInitialREPStakeRows: TotalInitialREPStakeRow<BigNumber>[] = await db.raw(db.raw(`select sum(CAST(balance as INTEGER)) as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?) group by marketId`, [cleanedMarketIds]).toString());
+  const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select sum(CAST(balance as INTEGER)) as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?) group by marketId`, [cleanedMarketIds]).toString());
   const outcomesRowsByMarket = _.groupBy(outcomesRows, (r: OutcomesRow<BigNumber>): string => r.marketId);
   const totalInitialREPStakeByMarket = _.keyBy(totalInitialREPStakeRows, "marketId");
   const winningPayoutByMarket = _.keyBy(winningPayoutRows, (r: PayoutRow<BigNumber> & MarketsContractAddressRow): string => r.marketId);
