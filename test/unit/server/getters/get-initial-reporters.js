@@ -34,7 +34,7 @@ describe("server/getters/get-initial-reporters", () => {
           logIndex: 0,
           marketId: "0x0000000000000000000000000000000000000019",
           redeemed: 0,
-          repBalance: "4000000",
+          repBalance: "4000000000000000000000",
           reporter: "0x0000000000000000000000000000000000000b0b",
           timestamp: 1506480000,
           transactionHash: "0x0000000000000000000000000000000000000000000000000000000000000E00",

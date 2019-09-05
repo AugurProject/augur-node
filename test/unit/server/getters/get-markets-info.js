@@ -68,7 +68,7 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          totalInitialREPStake: 7,
+          totalInitialREPStake: "7",
           initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
@@ -229,7 +229,7 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          totalInitialREPStake: 7,
+          totalInitialREPStake: "7",
           initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
@@ -452,7 +452,7 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          totalInitialREPStake: 7,
+          totalInitialREPStake: "7",
           initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
@@ -552,7 +552,7 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          totalInitialREPStake: 4000000,
+          totalInitialREPStake: "4000000000000000000000",
           initialReporterAddress: "0x0000000000000000000000000000000000abe111",
           consensus: {
             isInvalid: false,
@@ -664,7 +664,7 @@ describe("server/getters/get-markets-info", () => {
           resolutionSource: "http://www.trusted-third-party.com",
           numTicks: "10000",
           tickSize: "0.0001",
-          totalInitialREPStake: 7,
+          totalInitialREPStake: "7",
           initialReporterAddress: "0x1000000000000000000000000000000000abe111",
           consensus: null,
           outcomes: [{
