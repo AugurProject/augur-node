@@ -28,14 +28,21 @@ export async function getUIMarketsInfo(db: Knex, marketIds: Array<Address>): Pro
   const outcomesRows = await db("outcomes").whereIn("marketId", cleanedMarketIds);
   const winningPayoutRows = await db("payouts").whereIn("marketId", cleanedMarketIds).where("winning", 1);
   if (!marketsRows) return [];
-  const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select sum(CAST(balance as INTEGER)) as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?) group by marketId`, [cleanedMarketIds]).toString());
   const outcomesRowsByMarket = _.groupBy(outcomesRows, (r: OutcomesRow<BigNumber>): string => r.marketId);
-  const totalInitialREPStakeByMarket = _.keyBy(totalInitialREPStakeRows, "marketId");
+  const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select balance as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?)`, [cleanedMarketIds]).toString());
+  const totalInitialREPStakeByMarket = _.reduce(totalInitialREPStakeRows, (result, row) => {
+    if (result[row.marketId]) {
+      result[row.marketId] = result[row.marketId].plus(row.totalInitialREPStake);
+    } else {
+      result[row.marketId] = new BigNumber(row.totalInitialREPStake);
+    }
+    return result;
+  }, {} as {[marketId: string]: BigNumber});
   const winningPayoutByMarket = _.keyBy(winningPayoutRows, (r: PayoutRow<BigNumber> & MarketsContractAddressRow): string => r.marketId);
   return _.map(marketsRows, (market): UIMarketInfo<string> => {
     const outcomes = _.map(outcomesRowsByMarket[market.marketId], (outcomesRow: OutcomesRow<BigNumber>): UIOutcomeInfo<BigNumber> => reshapeOutcomesRowToUIOutcomeInfo(outcomesRow));
     let totalInitialREPStake = new BigNumber(0);
-    if (totalInitialREPStakeByMarket[market.marketId]) totalInitialREPStake = totalInitialREPStakeByMarket[market.marketId].totalInitialREPStake;
+    if (totalInitialREPStakeByMarket[market.marketId]) totalInitialREPStake = totalInitialREPStakeByMarket[market.marketId];
     return reshapeMarketsRowToUIMarketInfo(market, outcomes, winningPayoutByMarket[market.marketId], totalInitialREPStake);
   });
 }

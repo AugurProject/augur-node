@@ -1,8 +1,10 @@
 import * as t from "io-ts";
 import * as Knex from "knex";
-import { Address, MarketsContractAddressRow, SortLimitParams } from "../../types";
+import { Address, MarketsContractAddressRow, SortLimitParams, TotalInitialREPStakeRow } from "../../types";
 import { getMarketsWithReportingState, queryModifier } from "./database";
 import { createSearchProvider } from "../../database/fts";
+import { BigNumber } from "bignumber.js";
+import * as _ from "lodash";
 
 export const GetMarketsParamsSpecific = t.type({
   universe: t.string,
@@ -79,13 +81,23 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
     query.whereRaw("markets.endTime < ?", [params.maxEndTime]);
   }
 
-  if (params.minInitialRep) {
-    query.whereRaw(`? <= (
-      select sum(CAST(balance as INTEGER)) from balances join universes on universes.universe = markets.universe where (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) and balances.token == universes.reputationToken
-    )`, [params.minInitialRep]);
-  }
+  let marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);
 
-  const marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);
+  if (params.minInitialRep) {
+    const marketIds = _.map(marketsRows, "marketId");
+    const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select balance as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?)`, [marketIds]).toString());
+    const totalInitialREPStakeByMarket = _.reduce(totalInitialREPStakeRows, (result, row) => {
+      if (result[row.marketId]) {
+        result[row.marketId] = result[row.marketId].plus(row.totalInitialREPStake);
+      } else {
+        result[row.marketId] = new BigNumber(row.totalInitialREPStake);
+      }
+      return result;
+    }, {} as {[marketId: string]: BigNumber});
+    marketsRows = _.filter(marketsRows, (row) => {
+      return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].gte(params.minInitialRep || 0);
+    });
+  }
 
   return marketsRows.map((marketsRow: MarketsContractAddressRow): Address => marketsRow.marketId);
 }
