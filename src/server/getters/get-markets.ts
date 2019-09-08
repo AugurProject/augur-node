@@ -4,7 +4,9 @@ import { Address, MarketsContractAddressRow, SortLimitParams, TotalInitialREPSta
 import { getMarketsWithReportingState, queryModifier } from "./database";
 import { createSearchProvider } from "../../database/fts";
 import { BigNumber } from "bignumber.js";
+import { V2_CUTOFF_TIMESTAMP, WEEK_IN_SECONDS, STAKE_SCHEDULE } from "../../constants";
 import * as _ from "lodash";
+import { getCurrentTime } from "src/blockchain/process-block";
 
 export const GetMarketsParamsSpecific = t.type({
   universe: t.string,
@@ -19,7 +21,7 @@ export const GetMarketsParamsSpecific = t.type({
   liquiditySortSpreadPercent: t.union([t.number, t.null, t.undefined]), // must be included and used if and only if sortBy === 'liquidityTokens'; each market has liquidityTokens defined for multiple spreadPercents, liquiditySortSpreadPercent determines which of these is included in markets result set
   enableInvalidFilter: t.union([t.boolean, t.null, t.undefined]), // if true then markets detected to be potentially invalid will be filtered out
   hasOrders: t.union([t.boolean, t.null, t.undefined]),
-  minInitialRep: t.union([t.number, t.null, t.undefined]), // minimum amount of initial REP stake
+  enableInitialRepFilter: t.union([t.boolean, t.null, t.undefined]), // enable filter for minimum amount of initial REP stake based on v2
 });
 
 export const GetMarketsParams = t.intersection([
@@ -83,19 +85,28 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
 
   let marketsRows = await queryModifier<MarketsContractAddressRow>(db, query, "volume", "desc", params);
 
-  if (params.minInitialRep) {
+  if (params.enableInitialRepFilter) {
     const marketIds = _.map(marketsRows, "marketId");
-    const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select balance as totalInitialREPStake, markets.marketId from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?)`, [marketIds]).toString());
+    const totalInitialREPStakeRows: Array<TotalInitialREPStakeRow<BigNumber>> = await db.raw(db.raw(`select balance as totalInitialREPStake, markets.marketId, markets.endTime from balances join markets on (markets.marketId = balances.owner or markets.initialReporterAddress = balances.owner) join universes on universes.universe = markets.universe where balances.token = universes.reputationToken and markets.marketId in (?)`, [marketIds]).toString());
     const totalInitialREPStakeByMarket = _.reduce(totalInitialREPStakeRows, (result, row) => {
       if (result[row.marketId]) {
-        result[row.marketId] = result[row.marketId].plus(row.totalInitialREPStake);
+        result[row.marketId].totalInitialREPStake = result[row.marketId].totalInitialREPStake.plus(row.totalInitialREPStake);
       } else {
-        result[row.marketId] = new BigNumber(row.totalInitialREPStake);
+        result[row.marketId] = {
+          totalInitialREPStake:  new BigNumber(row.totalInitialREPStake),
+          endTime: row.endTime,
+        };
       }
       return result;
-    }, {} as {[marketId: string]: BigNumber});
+    }, {} as {[marketId: string]: { totalInitialREPStake: BigNumber, endTime: number }});
     marketsRows = _.filter(marketsRows, (row) => {
-      return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].gte(params.minInitialRep || 0);
+      const currentTime = getCurrentTime();
+      const weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - currentTime) / WEEK_IN_SECONDS);
+      let minIntialRep = new BigNumber(0);
+      if (weeksTillV2 <= 12) {
+        minIntialRep = STAKE_SCHEDULE[weeksTillV2];
+      }
+      return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].totalInitialREPStake.gte(minIntialRep);
     });
   }
 

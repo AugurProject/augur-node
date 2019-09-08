@@ -76,7 +76,7 @@ describe("server/getters/get-initial-reporters", () => {
           initialReporter: "0x0000000000000000000000000000000000abe222",
           redeemed: 0,
           isDesignatedReporter: 1,
-          repBalance: "5",
+          repBalance: "6000000000000000000",
         },
         "0x0000000000000000000000000000000000abe223": {
           marketId: "0x0000000000000000000000000000000000000222",
@@ -89,7 +89,7 @@ describe("server/getters/get-initial-reporters", () => {
           initialReporter: "0x0000000000000000000000000000000000abe223",
           redeemed: 0,
           isDesignatedReporter: 1,
-          repBalance: "10",
+          repBalance: "12000000000000000000",
         },
       });
     },

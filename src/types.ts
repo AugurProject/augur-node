@@ -295,6 +295,7 @@ export interface OutcomesRow<BigNumberType> {
 export interface TotalInitialREPStakeRow<BigNumberType> {
   marketId: Address;
   totalInitialREPStake: BigNumberType;
+  endTime: number;
 }
 
 export interface TokensRow {
