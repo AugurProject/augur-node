@@ -6,7 +6,7 @@ import { createSearchProvider } from "../../database/fts";
 import { BigNumber } from "bignumber.js";
 import { V2_CUTOFF_TIMESTAMP, WEEK_IN_SECONDS, STAKE_SCHEDULE } from "../../constants";
 import * as _ from "lodash";
-import { getCurrentTime } from "src/blockchain/process-block";
+import { getCurrentTime } from "../../blockchain/process-block";
 
 export const GetMarketsParamsSpecific = t.type({
   universe: t.string,
@@ -103,7 +103,7 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
       const currentTime = getCurrentTime();
       const weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - currentTime) / WEEK_IN_SECONDS);
       let minIntialRep = new BigNumber(0);
-      if (weeksTillV2 <= 12) {
+      if (weeksTillV2 <= (STAKE_SCHEDULE.length - 1)) {
         minIntialRep = STAKE_SCHEDULE[weeksTillV2];
       }
       return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].totalInitialREPStake.gte(minIntialRep);
