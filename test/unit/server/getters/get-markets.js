@@ -1,6 +1,9 @@
 const ReportingState = require("src/types").ReportingState;
 const { setupTestDb, seedDb } = require("test.database");
 const { dispatchJsonRpcRequest } = require("src/server/dispatch-json-rpc-request");
+jest.mock("src/blockchain/process-block");
+const processBlock = require("src/blockchain/process-block");
+const { V2_CUTOFF_TIMESTAMP, WEEK_IN_SECONDS } = require("src/constants");
 
 describe("server/getters/get-markets", () => {
   let db;
@@ -14,6 +17,7 @@ describe("server/getters/get-markets", () => {
 
   const runTest = (t) => {
     test(t.description, async () => {
+      if (t.mockTime) processBlock.getCurrentTime.mockReturnValue(t.mockTime);
       if (t.preQuery) await t.preQuery(db);
       t.method = "getMarkets";
       const marketsMatched = await dispatchJsonRpcRequest(db, t, {});
@@ -504,14 +508,13 @@ describe("server/getters/get-markets", () => {
     description: "filter for minimum initial stake",
     params: {
       universe: "0x000000000000000000000000000000000000000b",
-      minInitialRep: 10,
+      enableInitialRepFilter: true,
     },
+    mockTime: V2_CUTOFF_TIMESTAMP - (8 * WEEK_IN_SECONDS + 1),
     assertions: (filteredMarkets) => {
       expect(filteredMarkets).toEqual([
         "0x0000000000000000000000000000000000000016",
         "0x0000000000000000000000000000000000000019",
-        "0x0000000000000000000000000000000000000011",
-        "0x0000000000000000000000000000000000000211",
         "0x0000000000000000000000000000000000000222",
         "0x00000000000000000000000000000000000000f1",
       ]);
