@@ -116,5 +116,5 @@ export const STAKE_SCHEDULE = [
   new BigNumber(8).multipliedBy(10 ** 18),
   new BigNumber(4).multipliedBy(10 ** 18),
   new BigNumber(2).multipliedBy(10 ** 18),
-  new BigNumber(1).multipliedBy(10 ** 18)
+  new BigNumber(1).multipliedBy(10 ** 18),
 ];
