@@ -103,9 +103,6 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
       let weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - totalInitialREPStakeByMarket[row.marketId].endTime) / WEEK_IN_SECONDS);
       let minIntialRep = new BigNumber(0);
       const maxWeeks = STAKE_SCHEDULE.length - 1;
-      if (weeksTillV2 > maxWeeks) {
-        weeksTillV2 = maxWeeks;
-      }
       if (weeksTillV2 < 0) {
         weeksTillV2 = 0;
       }
