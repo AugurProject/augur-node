@@ -6,7 +6,6 @@ import { createSearchProvider } from "../../database/fts";
 import { BigNumber } from "bignumber.js";
 import { V2_CUTOFF_TIMESTAMP, WEEK_IN_SECONDS, STAKE_SCHEDULE } from "../../constants";
 import * as _ from "lodash";
-import { getCurrentTime } from "../../blockchain/process-block";
 
 export const GetMarketsParamsSpecific = t.type({
   universe: t.string,
@@ -100,13 +99,17 @@ export async function getMarkets(db: Knex, augur: {}, params: t.TypeOf<typeof Ge
       return result;
     }, {} as {[marketId: string]: { totalInitialREPStake: BigNumber, endTime: number }});
     marketsRows = _.filter(marketsRows, (row) => {
-      const currentTime = getCurrentTime();
-      const weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - currentTime) / WEEK_IN_SECONDS);
+      if (!totalInitialREPStakeByMarket[row.marketId]) return false;
+      let weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - totalInitialREPStakeByMarket[row.marketId].endTime) / WEEK_IN_SECONDS);
       let minIntialRep = new BigNumber(0);
-      if (weeksTillV2 <= (STAKE_SCHEDULE.length - 1)) {
+      const maxWeeks = STAKE_SCHEDULE.length - 1;
+      if (weeksTillV2 < 0) {
+        weeksTillV2 = 0;
+      }
+      if (weeksTillV2 <= maxWeeks) {
         minIntialRep = STAKE_SCHEDULE[weeksTillV2];
       }
-      return totalInitialREPStakeByMarket[row.marketId] && totalInitialREPStakeByMarket[row.marketId].totalInitialREPStake.gte(minIntialRep);
+      return totalInitialREPStakeByMarket[row.marketId].totalInitialREPStake.gte(minIntialRep);
     });
   }
 
