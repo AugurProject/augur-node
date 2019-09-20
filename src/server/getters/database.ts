@@ -26,6 +26,7 @@ import {
 import { numTicksToTickSize } from "../../utils/convert-fixed-point-to-decimal";
 import * as t from "io-ts";
 import { TradingHistoryParams } from "./get-trading-history";
+import { V2_CUTOFF_TIMESTAMP, WEEK_IN_SECONDS, STAKE_SCHEDULE } from "../../constants";
 
 const MAX_DB_CHUNK_SIZE = 800;
 
@@ -101,6 +102,7 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcome
   if (winningPayoutRow != null) {
     consensus = normalizedPayoutsToFixed(normalizePayouts(winningPayoutRow));
   }
+  const passesInitialREPFilter = marketPassesInitialREPFilter(row.endTime, totalInitialREPStake);
   return Object.assign(
     formatBigNumberAsFixed<UIMarketInfo<BigNumber>, UIMarketInfo<string>>({
       id: row.marketId,
@@ -146,6 +148,7 @@ export function reshapeMarketsRowToUIMarketInfo(row: MarketsRowWithTime, outcome
       outcomes: _.map(outcomesInfo, (outcomeInfo) => formatBigNumberAsFixed<UIOutcomeInfo<BigNumber>, UIOutcomeInfo<string>>(outcomeInfo)),
       tickSize: numTicksToTickSize(row.numTicks, row.minPrice, row.maxPrice),
       totalInitialREPStake,
+      passesInitialREPFilter,
       initialReporterAddress: row.initialReporterAddress,
     }),
     {
@@ -197,6 +200,19 @@ export function uiStakeInfoToFixed(stakeInfo: UIStakeInfo<BigNumber>): UIStakeIn
   });
 
   return info;
+}
+
+export function marketPassesInitialREPFilter(endTime: number, totalInitialREPStake: BigNumber): boolean {
+  let weeksTillV2 = Math.round((V2_CUTOFF_TIMESTAMP - endTime) / WEEK_IN_SECONDS);
+  let minIntialRep = new BigNumber(0);
+  const maxWeeks = STAKE_SCHEDULE.length - 1;
+  if (weeksTillV2 < 0) {
+    weeksTillV2 = 0;
+  }
+  if (weeksTillV2 <= maxWeeks) {
+    minIntialRep = STAKE_SCHEDULE[weeksTillV2];
+  }
+  return totalInitialREPStake.gte(minIntialRep);
 }
 
 export async function queryTradingHistoryParams(db: Knex, params: t.TypeOf<typeof TradingHistoryParams>) {

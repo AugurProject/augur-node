@@ -469,6 +469,7 @@ export interface UIMarketInfo<BigNumberType> {
   consensus: NormalizedPayout<BigNumberType>|null;
   outcomes: Array<UIOutcomeInfo<string>>;
   totalInitialREPStake: BigNumberType;
+  passesInitialREPFilter: boolean;
   initialReporterAddress: string;
 }
 
