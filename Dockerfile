@@ -8,7 +8,7 @@ COPY tsconfig.json tsconfig.json
 COPY certs certs
 
 COPY package.json package.json
-RUN git init && npm install && rm -rf .git
+RUN git init && npm install --verbose && rm -rf .git
 
 COPY src src
 COPY test test
