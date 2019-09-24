@@ -79,6 +79,7 @@
     "knex": "0.14.4",
     "lodash": "4.17.11",
     "md5-file": "^4.0.0",
+    "minipass": "2.7.0",
     "pg": "7.3.0",
     "postinstall-build": "5.0.1",
     "speedomatic": "2.1.5",
