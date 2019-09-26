@@ -14,10 +14,10 @@ exports.up = async (knex: Knex): Promise<any> => {
     // NB in markets_liquidity view we need liquidityTokens to retain its type as varchar(255) or else it won't be properly converted to a BigNumber by postProcessDatabaseResults
     .then(() => knex.raw(`CREATE VIEW markets_liquidity AS
       SELECT * FROM (
-        SELECT marketId, spreadPercent, cast(sum(cast(liquidityTokens as real)) as text) as liquidityTokens
+        SELECT "marketId", "spreadPercent", cast(sum(cast("liquidityTokens" as real)) as text) as "liquidityTokens"
         FROM outcomes_liquidity
-        GROUP BY marketId, spreadPercent
-      )`))
+        GROUP BY "marketId", "spreadPercent"
+      ) ml`))
     .then(async () => {
       // may throw if this migration is being run on a newer version of the code
       try {
