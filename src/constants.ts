@@ -106,8 +106,6 @@ export const V2_CUTOFF_TIMESTAMP = 1577923200;
 export const WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
 export const STAKE_SCHEDULE = [
-  new BigNumber(717).multipliedBy(10 ** 18),
-  new BigNumber(359).multipliedBy(10 ** 18),
   new BigNumber(239).multipliedBy(10 ** 18),
   new BigNumber(120).multipliedBy(10 ** 18),
   new BigNumber(60).multipliedBy(10 ** 18),
