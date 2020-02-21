@@ -101,7 +101,7 @@ export const NETWORK_NAMES: NetworkNames = {
   42: "Kovan",
 };
 
-export const V2_CUTOFF_TIMESTAMP = 1581984000;
+export const V2_CUTOFF_TIMESTAMP = 1584187200;
 
 export const WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
