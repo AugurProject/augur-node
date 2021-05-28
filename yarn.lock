@@ -1470,10 +1470,10 @@ augur-core@1.1.0:
     solidity-coverage "0.5.4"
     yargs "11.0.0"
 
-augur.js@6.7.0-1:
-  version "6.7.0-1"
-  resolved "https://registry.yarnpkg.com/augur.js/-/augur.js-6.7.0-1.tgz#312a33575fa19e42e106c9b9adcfcc1381cd5d93"
-  integrity sha512-B7Qv5nAlpE9kF1LHOd3Ai1rZg6jNcbZEqF8QUl4DVbNVP1xMaudP7hfBDwgtmix4iCH3k8q/9mA2yTqw6JPWVw==
+augur.js@6.7.1:
+  version "6.7.1"
+  resolved "https://registry.yarnpkg.com/augur.js/-/augur.js-6.7.1.tgz#8e18bb648845e66612a552264004982e19e52826"
+  integrity sha512-IxhfTdanJ7ADRo+PK2r5hqnvgOFVmUwAPj/K0tD53LABtx0CdNLX1Bf89zPXkn2d12/rpr4X4kMr3XvN5D87Bw==
   dependencies:
     async "1.5.2"
     augur-core "1.1.0"
@@ -1481,7 +1481,7 @@ augur.js@6.7.0-1:
     clone "2.1.1"
     columnify "1.5.4"
     ethereumjs-blockstream "4.0.1"
-    ethrpc "6.1.5"
+    ethrpc "6.2.2"
     event-emitter "0.3.5"
     immutable-delete "1.1.0"
     keccak "1.2.0"
@@ -4129,10 +4129,10 @@ ethjs-util@^0.1.3:
     is-hex-prefixed "1.0.0"
     strip-hex-prefix "1.0.0"
 
-ethrpc@6.1.5:
-  version "6.1.5"
-  resolved "https://registry.yarnpkg.com/ethrpc/-/ethrpc-6.1.5.tgz#32269d41d9499f3aec1fac6545df64c5806f75a3"
-  integrity sha512-RE1zNO4fdLfKHU0eepKbzRtklKS0vq9G7/UB70fwn3fsCIujMl5ZPCN4LozaXaCYLx/4aGOoUalHctbxTYzlfw==
+ethrpc@6.2.1:
+  version "6.2.1"
+  resolved "https://registry.yarnpkg.com/ethrpc/-/ethrpc-6.2.1.tgz#fa8d553004e36b76797cf99820d34aaf72850abb"
+  integrity sha512-WB+0VUvKoXHBsH5z9vlPv1nBMMF81uRVVWKcDSVOzv0AafH0vwMZqPRyU8SKUOHdlDNC9+HK8QBGlysvB6cdKg==
   dependencies:
     async "2.6.0"
     bignumber.js "6.0.0"
@@ -4143,7 +4143,32 @@ ethrpc@6.1.5:
     ethereumjs-tx "1.3.1"
     immutable-delete "1.0.1"
     keccak "1.2.0"
-    lodash "4.17.10"
+    lodash "4.17.15"
+    oboe "2.1.3"
+    postinstall-build "5.0.1"
+    redux "3.6.0"
+    redux-thunk-subscribe "1.0.3"
+    speedomatic "2.1.5"
+    uuid "3.0.1"
+  optionalDependencies:
+    request "2.85.0"
+    websocket "1.0.26"
+
+ethrpc@6.2.2:
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/ethrpc/-/ethrpc-6.2.2.tgz#2df5788fb2ae1bc5b3d00a5e7ca89c51e56c21f1"
+  integrity sha512-D3sMayCq1EOD0wBeiOwJjdHH9SpXwiKTN0SMLHPuFTLc5c9wEeMb6ceE1M17cXPcevtI+09UlvV+w/fE3Jd+Sw==
+  dependencies:
+    async "2.6.0"
+    bignumber.js "6.0.0"
+    browser-request "0.3.3"
+    clone "2.1.1"
+    es6-promise "4.2.4"
+    ethereumjs-blockstream "7.0.0"
+    ethereumjs-tx "1.3.1"
+    immutable-delete "1.0.1"
+    keccak "1.2.0"
+    lodash "4.17.15"
     oboe "2.1.3"
     postinstall-build "5.0.1"
     redux "3.6.0"
@@ -6712,6 +6737,11 @@ lodash@4.17.11, lodash@^4.13.1, lodash@^4.14.0, lodash@^4.17.10, lodash@^4.17.11
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
   integrity sha512-cQKh8igo5QUhZ7lg38DYWAxMvjSAKG0A8wGSVimP07SIUEK2UO+arSRKbRZWtelMtN5V0Hkwh5ryOto/SshYIg==
 
+lodash@4.17.15:
+  version "4.17.15"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
+  integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
+
 log-driver@^1.2.5:
   version "1.2.7"
   resolved "https://registry.yarnpkg.com/log-driver/-/log-driver-1.2.7.tgz#63b95021f0702fedfa2c9bb0a24e7797d71871d8"
@@ -7163,7 +7193,7 @@ natural-compare@^1.4.0:
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
-needle@^2.2.0, needle@^2.2.1:
+needle@^2.2.1:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/needle/-/needle-2.3.0.tgz#ce3fea21197267bacb310705a7bbe24f2a3a3492"
   integrity sha512-QBZu7aAFR0522EyaXZM0FZ9GLpq6lvQ3uq8gteiDUp7wKdy0lSd2hPlgFwVuW1CBkfEs9PfDQsQzZghLs/psdg==
@@ -7278,18 +7308,18 @@ node-notifier@^5.2.1:
     shellwords "^0.1.1"
     which "^1.3.0"
 
-node-pre-gyp@0.10.0:
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.10.0.tgz#6e4ef5bb5c5203c6552448828c852c40111aac46"
-  integrity sha512-G7kEonQLRbcA/mOoFoxvlMrw6Q6dPf92+t/l0DFSMuSlDoWaI9JWIyPwK0jyE1bph//CUEL65/Fz1m2vJbmjQQ==
+node-pre-gyp@0.13.0:
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.13.0.tgz#df9ab7b68dd6498137717838e4f92a33fc9daa42"
+  integrity sha512-Md1D3xnEne8b/HGVQkZZwV27WUi1ZRuZBij24TNaZwUPU3ZAFtvT6xxJGaUVillfmMKnn5oD1HoGsp2Ftik7SQ==
   dependencies:
     detect-libc "^1.0.2"
     mkdirp "^0.5.1"
-    needle "^2.2.0"
+    needle "^2.2.1"
     nopt "^4.0.1"
     npm-packlist "^1.1.6"
     npmlog "^4.0.2"
-    rc "^1.1.7"
+    rc "^1.2.7"
     rimraf "^2.6.1"
     semver "^5.3.0"
     tar "^4"
@@ -8328,7 +8358,7 @@ raw-body@2.3.2:
     iconv-lite "0.4.19"
     unpipe "1.0.0"
 
-rc@^1.1.6, rc@^1.1.7, rc@^1.2.7:
+rc@^1.1.6, rc@^1.2.7:
   version "1.2.8"
   resolved "https://registry.yarnpkg.com/rc/-/rc-1.2.8.tgz#cd924bf5200a075b83c188cd6b9e211b7fc0d3ed"
   integrity sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==
@@ -10656,12 +10686,10 @@ write@1.0.3:
   dependencies:
     mkdirp "^0.5.1"
 
-ws@5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-5.1.1.tgz#1d43704689711ac1942fd2f283e38f825c4b8b95"
-  integrity sha512-bOusvpCb09TOBLbpMKszd45WKC2KPtxiyiHanv+H2DE3Az+1db5a/L7sVJZVDPUC1Br8f0SKRr1KjLpD1U/IAw==
-  dependencies:
-    async-limiter "~1.0.0"
+ws@7.4.5:
+  version "7.4.5"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.4.5.tgz#a484dd851e9beb6fdb420027e3885e8ce48986c1"
+  integrity sha512-xzyu3hFvomRfXKH8vOFMU3OguG6oOvhXMo3xsGy3xWExqaM2dxBbVxuD99O7m3ZUFMvvscsZDqxfgMaRr/Nr1g==
 
 ws@^5.2.0:
   version "5.2.2"
