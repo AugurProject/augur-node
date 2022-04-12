@@ -67,7 +67,7 @@
     "@types/uuid": "3.4.3",
     "@types/ws": "3.0.2",
     "augur.js": "6.7.1",
-    "async": "2.6.0",
+    "async": "3.2.2",
     "axios": "^0.19.0",
     "bignumber.js": "6.0.0",
     "chalk": "2.3.2",
